@@ -20,6 +20,14 @@ import uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
+import ai
+import github
+import store
+from asc import ASC, AscError
+
+PANEL_PY = os.path.dirname(os.path.abspath(__file__))
+
+VERSION = "1.0.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -31,7 +39,7 @@ LOCK = threading.Lock()
 
 
 class Job:
-    def __init__(self, argv, cwd, title):
+    def __init__(self, argv, cwd, title, env=None):
         self.id = uuid.uuid4().hex[:10]
         self.argv = argv
         self.cwd = cwd
@@ -45,7 +53,7 @@ class Job:
         if pid == 0:  # child
             try:
                 os.chdir(cwd)
-                env = dict(os.environ, TERM="xterm-256color", COLUMNS="120", LINES="40")
+                env = dict(os.environ, TERM="xterm-256color", COLUMNS="120", LINES="40", **(env or {}))
                 os.execvpe(argv[0], argv, env)
             except Exception as e:  # noqa
                 os.write(2, f"falha ao iniciar: {e}\n".encode())
@@ -247,6 +255,7 @@ def accounts_remove(acc_id):
         st = accounts_sync()
         st["accounts"] = [a for a in st["accounts"] if a["id"] != acc_id]
         shutil.rmtree(os.path.join(ACC_DIR, acc_id), ignore_errors=True)
+        store.asc_key_remove(acc_id)
         if st["active"] == acc_id:  # removed the one in use: log the live folder out
             shutil.rmtree(XDATA, ignore_errors=True)
             st["active"] = None
@@ -356,6 +365,59 @@ def usbmux_ok():
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
+# ---- xtool updates: newer versions are installed into the volume (/root/.xtool/<ver>)
+XTOOL_HOME = os.path.expanduser("~/.xtool")
+_latest = {"at": 0, "tag": None}
+
+
+def _vtuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v or "")[:3]) or (0,)
+
+
+def xtool_installed():
+    m = re.search(r"(\d+\.\d+(?:\.\d+)?)", quick(["xtool", "--version"]))
+    return m.group(1) if m else ""
+
+
+def xtool_latest(force=False):
+    if force or time.time() - _latest["at"] > 3600:
+        try:
+            import urllib.request
+            req = urllib.request.Request("https://api.github.com/repos/xtool-org/xtool/releases/latest",
+                                         headers={"Accept": "application/vnd.github+json", "User-Agent": "xtool-painel"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                _latest["tag"] = json.load(r).get("tag_name", "").lstrip("v")
+            _latest["at"] = time.time()
+        except Exception:  # noqa — offline or rate-limited: try again in 10 min
+            _latest["at"] = time.time() - 3000
+    return _latest["tag"]
+
+
+def xtool_activate_saved():
+    """On start, prefer an xtool updated from the panel over the one baked into the image."""
+    cur = os.path.join(XTOOL_HOME, "current", "AppRun")
+    if os.path.exists(cur):
+        img = os.path.realpath("/usr/local/bin/xtool")
+        base = quick(["/opt/xtool/AppRun", "--version"])
+        saved = quick([cur, "--version"])
+        if _vtuple(saved) > _vtuple(base) and img != os.path.realpath(cur):
+            subprocess.run(["ln", "-sf", cur, "/usr/local/bin/xtool"])
+
+
+XTOOL_UPDATE = r'''set -e
+V="$VER"; D="$HOME/.xtool/$V"
+echo "Baixando xtool $V…"
+rm -rf "$D.tmp"; mkdir -p "$D.tmp"; cd "$D.tmp"
+curl -fL --progress-bar "https://github.com/xtool-org/xtool/releases/download/$V/xtool-$(uname -m).AppImage" -o xtool.AppImage
+chmod +x xtool.AppImage
+./xtool.AppImage --appimage-extract >/dev/null
+rm -rf "$D"; mv squashfs-root "$D"; cd ..; rm -rf "$D.tmp"
+ln -sfn "$D" "$HOME/.xtool/current"
+ln -sf "$HOME/.xtool/current/AppRun" /usr/local/bin/xtool
+echo; xtool --version
+echo "✔ xtool atualizado. A versão nova fica salva no volume e continua valendo após reiniciar."'''
+
+
 def status():
     xt = quick(["xtool", "--version"])
     sw = quick(["swift", "--version"]).splitlines()
@@ -364,6 +426,8 @@ def status():
     du = shutil.disk_usage(WORK)
     return {
         "xtool": xt, "swift": sw[0] if sw else "",
+        "xtoolLatest": xtool_latest(),
+        "xtoolUpdate": bool(xtool_latest()) and _vtuple(xtool_latest()) > _vtuple(xt),
         "auth": auth, "sdk": sdk,
         "disk": {"free": du.free, "total": du.total},
         "usbmuxd": usbmux_ok(),
@@ -400,13 +464,84 @@ def projects():
                 for a in os.listdir(xd):
                     if a.endswith((".ipa", ".app")):
                         arts.append(f"{name}/xtool/{a}")
+            yml = {}
+            try:
+                for line in open(os.path.join(d, "xtool.yml")):
+                    if ":" in line and not line.startswith(" "):
+                        k, v = line.split(":", 1)
+                        yml[k.strip()] = v.strip().strip("'\"")
+            except OSError:
+                pass
+            try:
+                gs = github.git_status(d)
+            except Exception:  # noqa
+                gs = None
             res.append({
                 "name": name,
-                "hasToml": os.path.isfile(os.path.join(d, "xtool.yml")),
+                "hasToml": bool(yml),
+                "bundleId": yml.get("bundleID", ""),
                 "artifacts": sorted(arts),
                 "mtime": os.stat(d).st_mtime,
+                "meta": store.project_meta(name),
+                "git": gs,
             })
     return res
+
+
+def release_info(project):
+    d = safe_path("work", project)
+    meta = store.project_meta(project)
+    p = next((x for x in projects() if x["name"] == project), None)
+    if not p:
+        raise ValueError("projeto não encontrado")
+    acc_id = meta.get("accountId") or accounts_state().get("active")
+    info = {"project": project, "bundleId": meta.get("bundleId") or p["bundleId"], "accountId": acc_id,
+            "meta": meta, "app": None, "versions": [], "builds": [], "ascError": None}
+    since = (meta.get("lastRelease") or {}).get("commit")
+    info["changes"] = github.changes_since(d, since)
+    try:
+        k = store.asc_key(acc_id)
+        api = ASC(k.get("issuerId"), k.get("keyId"), k.get("p8"))
+        app = api.app_by_bundle(info["bundleId"])
+        info["app"] = {"id": app["id"], **app["attributes"]}
+        info["versions"] = [{"id": v["id"], **v["attributes"]} for v in api.get(
+            f"/v1/apps/{app['id']}/appStoreVersions", limit=5)["data"]]
+        info["builds"] = api.builds(app["id"], 5)
+    except (AscError, ValueError) as e:
+        info["ascError"] = str(e)
+    return info
+
+
+def apple_apps(acc_id):
+    """Apps of an Apple account: App Store Connect apps (needs API key) + registered bundle IDs."""
+    st = accounts_state()
+    out = {"accountId": acc_id, "apps": None, "ascError": None, "identifiers": None, "idError": None}
+    k = store.asc_key(acc_id)
+    if k.get("p8"):
+        try:
+            out["apps"] = ASC(k["issuerId"], k["keyId"], k["p8"]).apps()
+        except AscError as e:
+            out["ascError"] = str(e)
+    else:
+        out["ascError"] = "sem chave da API do App Store Connect"
+    if st.get("active") == acc_id:
+        txt = ANSI.sub("", quick(["xtool", "ds", "identifiers", "list"], timeout=60))
+        ids, cur = [], None
+        for line in txt.splitlines():
+            m = re.match(r"\s*-?\s*(\w+):\s*(.*)", line)
+            if not m:
+                continue
+            if line.lstrip().startswith("- "):
+                cur = {}
+                ids.append(cur)
+            if cur is not None:
+                cur[m.group(1)] = m.group(2).strip()
+        out["identifiers"] = ids
+        if not ids and txt.strip():
+            out["idError"] = txt.strip()[:400]
+    else:
+        out["idError"] = "troque para esta conta para listar os bundle IDs"
+    return out
 
 
 # Commands the page may ask for. Each maps a name to a function returning argv.
@@ -441,13 +576,118 @@ def build_cmd(action, a):
         "ds": lambda: ["xtool", "ds", q("sub")] + shlex.split(q("args")),
         "shell": lambda: ["bash", "-lc", q("cmd")],
         "help": lambda: ["xtool"] + shlex.split(q("sub")) + ["--help"],
+        # GitHub (gh prints the device code; BROWSER=echo just shows the link)
+        "gh.login": lambda: ["gh", "auth", "login", "--hostname", "github.com", "--git-protocol", "https",
+                             "--web", "--skip-ssh-key", "--scopes", "repo,read:org,workflow"],
+        "gh.token": lambda: ["bash", "-c", "gh auth login --hostname github.com --git-protocol https --with-token <<< \"$TOKEN\" "
+                             "&& gh auth status"],
+        "gh.switch": lambda: ["gh", "auth", "switch", "--hostname", "github.com", "--user", q("user")],
+        "gh.logout": lambda: ["gh", "auth", "logout", "--hostname", "github.com", "--user", q("user")],
+        "gh.clone": lambda: ["bash", "-c", 'set -e; git clone "https://github.com/$REPO.git" "/work/$NAME"; '
+                             'cd "/work/$NAME"; git config user.name "$GN"; git config user.email "$GE"; '
+                             'ls; [ -f Package.swift ] || echo "⚠ o repositório não tem Package.swift na raiz"'],
+        "gh.link": lambda: ["bash", "-c", LINK_SCRIPT],
+        "gh.create": lambda: ["bash", "-c", CREATE_SCRIPT],
+        "git.pull": lambda: ["bash", "-c", "set -e; git pull --no-rebase; git log --oneline -5"],
+        "git.push": lambda: ["bash", "-c", 'set -e; git config user.name "$GN"; git config user.email "$GE"; '
+                             'git add -A; git diff --cached --quiet || git commit -m "$MSG"; '
+                             'git push -u origin HEAD; git log --oneline -3'],
+        "release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "release.py"), write_args(a)],
+        "xtool.update": lambda: ["bash", "-c", XTOOL_UPDATE],
     }
     if action not in cmds:
         raise ValueError(f"ação desconhecida: {action}")
     argv = cmds[action]()
     if any(x == "" for x in argv):
         raise ValueError("preencha os campos obrigatórios")
-    return argv
+    env = {}
+    if action == "gh.login":
+        env["BROWSER"] = "echo"
+    if action == "xtool.update":
+        ver = q("version") or xtool_latest(force=True) or ""
+        if not re.fullmatch(r"\d+\.\d+(\.\d+)?", ver):
+            raise ValueError("não consegui descobrir a versão mais nova do xtool")
+        env["VER"] = ver
+    if action == "gh.token":
+        env["TOKEN"] = q("token")
+    if action.startswith(("gh.clone", "gh.link", "gh.create", "git.")):
+        user = q("user") or store.project_meta(q("project")).get("ghUser", "")
+        if not user:
+            raise ValueError("escolha a conta do GitHub")
+        env["GH_TOKEN"] = github.token(user)
+        env["GN"], env["GE"] = github.identity(user)
+        env.update(REPO=q("repo"), NAME=q("name") or q("repo").split("/")[-1], MSG=q("message") or "Atualização",
+                   PRIVATE="--private" if a.get("private", True) else "--public")
+    return argv, env
+
+
+LINK_SCRIPT = r'''set -e
+git config --global --add safe.directory "$PWD" >/dev/null 2>&1 || true
+[ -d .git ] || git init -q
+git config user.name "$GN"; git config user.email "$GE"
+git remote remove origin 2>/dev/null || true
+git remote add origin "https://github.com/$REPO.git"
+git fetch origin
+BR=$(git remote show origin | sed -n 's/.*HEAD branch: //p')
+if [ -z "$(git rev-parse --verify HEAD 2>/dev/null)" ]; then
+  if [ -n "$BR" ] && [ "$BR" != "(unknown)" ]; then
+    git add -A; git commit -qm "Projeto local" || true
+    git branch -M "$BR"
+    git pull --no-rebase --allow-unrelated-histories --no-edit origin "$BR" || echo "⚠ conflitos: resolva no Terminal"
+  fi
+fi
+git branch --set-upstream-to="origin/${BR:-main}" 2>/dev/null || true
+echo "✔ vinculado a $REPO"; git status -sb | head -5'''
+
+CREATE_SCRIPT = r'''set -e
+[ -f .gitignore ] || printf '.build/\nxtool/\n.swiftpm/\n' > .gitignore
+[ -d .git ] || git init -q
+git config user.name "$GN"; git config user.email "$GE"
+git add -A; git diff --cached --quiet || git commit -qm "Primeiro commit"
+git branch -M main
+gh repo create "$REPO" $PRIVATE --source . --remote origin --push
+echo "✔ repositório criado: https://github.com/$REPO"'''
+
+
+def asc_test(acc_id):
+    k = store.asc_key(acc_id)
+    try:
+        apps = ASC(k.get("issuerId"), k.get("keyId"), k.get("p8")).get("/v1/apps", limit=200)["data"]
+        return {"ok": True, "apps": len(apps)}
+    except Exception as e:  # noqa
+        return {"ok": False, "error": str(e)}
+
+
+def ai_conf_for(b):
+    """Saved provider config, overridden by unsaved fields typed in the form."""
+    try:
+        conf = store.ai_provider(b.get("provider"))
+    except ValueError:
+        conf = {"provider": b.get("provider")}
+    over = {k: v for k, v in (b.get("conf") or {}).items() if v and "…" not in str(v) and v != "•••"}
+    return {**conf, **over, "provider": b.get("provider") or conf.get("provider")}
+
+
+def ai_whats_new(b):
+    conf = ai_conf_for(b)
+    project = b.get("project", "")
+    changes = b.get("changes") or github.changes_since(
+        safe_path("work", project), (store.project_meta(project).get("lastRelease") or {}).get("commit"))
+    if not changes.strip():
+        raise ValueError("não há mudanças registradas no git; escreva um resumo no campo de observações")
+    out = {}
+    for loc in b.get("locales") or ["pt-BR"]:
+        out[loc] = ai.whats_new(conf, b.get("appName") or project, b.get("version", ""), changes, loc,
+                                b.get("tone", ""), b.get("extra", ""))
+    return out
+
+
+def write_args(a):
+    os.makedirs("/tmp/panel-args", exist_ok=True)
+    p = f"/tmp/panel-args/{uuid.uuid4().hex}.json"
+    with open(p, "w") as f:
+        json.dump(a, f)
+    return p
 
 
 class H(BaseHTTPRequestHandler):
@@ -489,6 +729,10 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = {k: v[0] for k, v in parse_qs(u.query).items()}
         try:
+            if u.path == "/favicon.ico":
+                return self._file(os.path.join(STATIC, "logo.svg"), "image/svg+xml")
+            if u.path == "/api/version":
+                return self._json({"panel": VERSION, "author": "marco3079"})
             if u.path in ("/", "/index.html"):
                 return self._file(os.path.join(STATIC, "index.html"))
             if u.path.startswith("/static/"):
@@ -505,6 +749,18 @@ class H(BaseHTTPRequestHandler):
                 return self._json(accounts_state())
             if u.path == "/api/devices":
                 return self._json(devices_list())
+            if u.path == "/api/asc/key":
+                return self._json(store.asc_key_public(qs.get("account", "")))
+            if u.path == "/api/apps":
+                return self._json(apple_apps(qs.get("account") or accounts_state().get("active")))
+            if u.path == "/api/ai":
+                return self._json({**store.ai_public(), "catalog": ai.PROVIDERS})
+            if u.path == "/api/gh/accounts":
+                return self._json(github.accounts())
+            if u.path == "/api/gh/repos":
+                return self._json(github.repos(qs.get("user", ""), qs.get("q", "")))
+            if u.path == "/api/release/info":
+                return self._json(release_info(qs.get("project", "")))
             if u.path == "/api/devices/status":
                 return self._json(devices_with_status())
             if u.path == "/api/devices/detect":
@@ -533,9 +789,9 @@ class H(BaseHTTPRequestHandler):
         try:
             if u.path == "/api/run":
                 b = self._body()
-                argv = build_cmd(b.get("action", ""), b.get("args", {}))
+                argv, env = build_cmd(b.get("action", ""), {**b.get("args", {}), "project": b.get("project", "")})
                 cwd = safe_path("work", b.get("project", "")) if b.get("project") else WORK
-                j = Job(argv, cwd, b.get("title") or " ".join(argv))
+                j = Job(argv, cwd, b.get("title") or " ".join(argv), env)
                 JOBS[j.id] = j
                 return self._json(j.info())
             m = re.fullmatch(r"/api/jobs/(\w+)/(input|stop)", u.path)
@@ -556,6 +812,16 @@ class H(BaseHTTPRequestHandler):
                 "/api/accounts/refresh": lambda b: accounts_sync(),
                 "/api/devices/save": devices_save,
                 "/api/devices/remove": lambda b: devices_remove(b.get("id")),
+                "/api/asc/key": lambda b: (store.asc_key_set(b["accountId"], b.get("issuerId", ""), b.get("keyId", ""),
+                                                             b.get("p8", "")), store.asc_key_public(b["accountId"]))[1],
+                "/api/asc/key/remove": lambda b: (store.asc_key_remove(b["accountId"]), {"ok": True})[1],
+                "/api/asc/test": lambda b: asc_test(b["accountId"]),
+                "/api/ai/save": lambda b: (store.ai_save(b["provider"], b.get("conf", {}), b.get("default")),
+                                           store.ai_public())[1],
+                "/api/ai/remove": lambda b: (store.ai_remove(b["provider"]), store.ai_public())[1],
+                "/api/ai/models": lambda b: ai.list_models(ai_conf_for(b)),
+                "/api/ai/whatsnew": ai_whats_new,
+                "/api/projects/meta": lambda b: store.project_meta_update(b["project"], b.get("patch", {})),
             }
             if u.path in acc_routes:
                 return self._json(acc_routes[u.path](self._body()))
@@ -590,6 +856,7 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(WORK, exist_ok=True)
+    xtool_activate_saved()
     accounts_state()  # adopt an existing login on first run
     threading.Thread(target=_watch_devices, daemon=True).start()
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)

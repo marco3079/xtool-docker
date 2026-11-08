@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>xtool Painel</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+<link rel="apple-touch-icon" href="/static/logo.svg">
+<meta name="author" content="marco3079">
+<meta name="theme-color" content="#0b0d12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
@@ -23,7 +27,10 @@ a{color:var(--accent)}
 .app{display:grid;grid-template-columns:240px 1fr;height:100vh}
 aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;gap:4px;overflow:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
-.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:700}
+.logo{width:38px;height:38px;border-radius:10px;box-shadow:0 4px 14px rgba(79,140,255,.35)}
+.vtag{font-size:10px;font-weight:600;color:var(--accent);background:rgba(79,140,255,.12);border-radius:6px;padding:1px 6px;vertical-align:2px}
+.by{margin-top:auto;padding:18px 12px 4px;font-size:12px;color:#5d6578;line-height:1.6}
+.by a{color:var(--muted);text-decoration:none;font-weight:600}.by a:hover{color:var(--text)}
 .brand b{display:block;font-size:16px}.brand small{color:var(--muted)}
 .nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--muted);border:0;background:none;text-align:left;width:100%}
 .nav:hover{background:var(--panel2);color:var(--text)}
@@ -124,19 +131,24 @@ h2:first-child{margin-top:0}
 <body>
 <div class="app">
 <aside id="side">
-  <div class="brand"><div class="logo">x</div><div><b>xtool</b><small id="ver">painel</small></div></div>
+  <div class="brand"><img class="logo" src="/static/logo.svg" alt=""><div><b>xtool Painel <span class="vtag">v1.0.0</span></b><small id="ver">painel</small></div></div>
   <div class="navsep">Geral</div>
   <button class="nav on" data-s="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Painel</button>
   <button class="nav" data-s="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Configuração</button>
   <button class="nav" data-s="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5.5"/></svg>Contas Apple</button>
   <div class="navsep">Desenvolvimento</div>
   <button class="nav" data-s="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Projetos</button>
+  <button class="nav" data-s="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Apps da conta</button>
+  <button class="nav" data-s="publish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/><path d="M5 21h14"/></svg>Publicar</button>
+  <button class="nav" data-s="github"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 015 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg>GitHub</button>
   <button class="nav" data-s="devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Dispositivos</button>
   <button class="nav" data-s="ds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Developer Services</button>
   <div class="navsep">Ferramentas</div>
+  <button class="nav" data-s="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>IA</button>
   <button class="nav" data-s="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Arquivos</button>
   <button class="nav" data-s="shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg>Terminal</button>
-  <button class="nav" data-s="jobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Tarefas<span class="badge" id="runBadge" hidden>0</span></button>
+  <button class="nav" data-s="jobs" style="order:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Tarefas<span class="badge" id="runBadge" hidden>0</span></button>
+  <div class="by">xtool Painel 1.0.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
 </aside>
 
 <main>
@@ -197,6 +209,78 @@ h2:first-child{margin-top:0}
     <div class="field"><label>Apple ID</label><input type="text" id="authUser" placeholder="voce@icloud.com"></div>
     <button class="btn pri" onclick="addAccount()">Adicionar e entrar</button>
   </div>
+</section>
+
+<!-- APPS OF THE ACCOUNT -->
+<section class="section" id="s-apps">
+  <div class="row" style="margin-bottom:14px">
+    <select id="appsAcc" style="max-width:320px" onchange="loadApps()"></select>
+    <button class="btn pri" onclick="loadApps()">Buscar apps</button>
+    <span class="hint" id="appsHint"></span>
+  </div>
+  <div class="card" id="ascCard" style="margin-bottom:18px"></div>
+  <h2>Apps na App Store Connect</h2>
+  <div class="grid" id="ascApps"><div class="empty">Clique em "Buscar apps".</div></div>
+  <h2>Bundle IDs registrados</h2>
+  <div class="list" id="bundleIds"></div>
+</section>
+
+<!-- PUBLISH -->
+<section class="section" id="s-publish">
+  <div class="row" style="margin-bottom:14px">
+    <select id="pubProject" style="max-width:280px" onchange="loadRelease()"></select>
+    <select id="pubAcc" style="max-width:280px" onchange="saveProjMeta(val('pubProject'),{accountId:this.value});loadRelease()"></select>
+    <button class="btn" onclick="loadRelease()">Recarregar</button>
+  </div>
+  <div id="pubInfo"></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+    <div class="card"><h3>1 · Versão</h3><p>Número que aparece na loja e número do build (precisa ser maior que o último).</p>
+      <div class="row"><div class="field" style="flex:1"><label>Versão</label><input type="text" id="pubVersion" placeholder="1.2.0"></div>
+        <div class="field" style="flex:1"><label>Build</label><input type="text" id="pubBuild" value="auto"></div></div>
+      <label class="check"><input type="checkbox" id="pubNoEnc" checked>O app só usa criptografia padrão (HTTPS) — dispensa documentação de exportação</label>
+    </div>
+    <div class="card"><h3>2 · O que há de novo</h3><p>Escreva ou gere com IA a partir dos commits do git desde a última publicação.</p>
+      <div class="field"><label>Idiomas</label><div class="row" id="pubLocales"></div></div>
+      <div class="row"><select id="pubAi" style="max-width:220px"></select>
+        <input type="text" id="pubExtra" placeholder="Observações para a IA (opcional)" style="flex:1">
+        <button class="btn pri" onclick="genWhatsNew()">✨ Gerar com IA</button></div>
+      <details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Ver mudanças enviadas para a IA</summary><pre id="pubChanges" style="white-space:pre-wrap;font-family:var(--mono);font-size:12px;color:var(--muted);max-height:220px;overflow:auto"></pre></details>
+    </div>
+  </div>
+  <div id="pubTexts" class="grid" style="margin-top:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
+  <div class="card" style="margin-top:16px"><h3>3 · Enviar</h3>
+    <p>Compila em release, gera o ícone (Assets.car), assina com certificado de distribuição e gera o .ipa.</p>
+    <label class="check"><input type="checkbox" id="pubUpload" checked onchange="pubSync()">Enviar o build para o App Store Connect (aparece no TestFlight)</label>
+    <label class="check"><input type="checkbox" id="pubPublish" checked onchange="pubSync()">Preparar a versão na App Store (texto "O que há de novo" + build)</label>
+    <label class="check"><input type="checkbox" id="pubSubmit" onchange="pubSync()">Enviar para revisão da Apple (publicar)</label>
+    <div class="row"><button class="btn pri" onclick="runRelease()">🚀 Iniciar</button><span class="hint" id="pubWarn"></span></div>
+  </div>
+</section>
+
+<!-- GITHUB -->
+<section class="section" id="s-github">
+  <h2>Contas do GitHub</h2>
+  <div class="grid" id="ghAccs"></div>
+  <h2>Adicionar conta</h2>
+  <div class="grid">
+    <div class="card"><h3>Pelo navegador</h3><p>Mostra um código no console; abra o link github.com/login/device, cole o código e autorize.</p><button class="btn pri" onclick="run('gh.login',{},'Login GitHub')">Entrar com GitHub</button></div>
+    <div class="card"><h3>Com token</h3><p>Cole um token (classic com escopos repo, read:org, workflow ou fine-grained).</p>
+      <div class="field"><input type="password" id="ghTok" placeholder="ghp_…"></div>
+      <button class="btn" onclick="run('gh.token',{token:val('ghTok')},'Login GitHub (token)');ghTok.value=''">Adicionar</button></div>
+  </div>
+  <h2>Repositórios</h2>
+  <div class="row" style="margin-bottom:12px">
+    <select id="ghRepoUser" style="max-width:240px" onchange="loadRepos()"></select>
+    <input type="text" id="ghRepoQ" placeholder="Filtrar…" style="max-width:280px" onkeydown="if(event.key==='Enter')loadRepos()">
+    <button class="btn" onclick="loadRepos()">Buscar</button>
+  </div>
+  <div class="list" id="ghRepos"><div class="empty">Escolha uma conta e clique em Buscar.</div></div>
+</section>
+
+<!-- AI -->
+<section class="section" id="s-ai">
+  <p class="hint" style="margin-top:0">Configure uma ou mais IAs. A marcada com ★ é usada por padrão para escrever o "O que há de novo". As chaves ficam só no container (arquivo com permissão restrita).</p>
+  <div class="grid" id="aiGrid"></div>
 </section>
 
 <!-- PROJECTS -->
@@ -307,14 +391,14 @@ h2:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id), val=id=>$(id).value.trim(), chk=id=>$(id).checked;
 const consoleEl=$('console'), side=$('side');
-const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados']};
+const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados']};
 const fmtB=b=>b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
 async function api(u,body){const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 
 function go(s){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 
 /* terminal */
@@ -357,7 +441,10 @@ async function refreshStatus(){
     const sdkOk=/installed/i.test(s.sdk)&&!/not installed/i.test(s.sdk);
     const c=(k,v,cls,ico)=>`<div class="card stat"><span class="k">${ico} ${k}</span><span class="v">${v}</span>${cls?`<span class="pill ${cls[0]}"><i></i>${cls[1]}</span>`:''}</div>`;
     $('stats').innerHTML=
-      c('xtool',esc(s.xtool),['ok','instalado'],'🛠')+
+      (s.xtoolUpdate
+        ?`<div class="card stat" style="border-color:rgba(245,176,65,.5)"><span class="k">🛠 xtool</span><span class="v">${esc(s.xtool)}</span><span class="pill warn"><i></i>nova versão: ${esc(s.xtoolLatest)}</span>
+           <div class="row" style="margin-top:4px"><button class="btn sm pri" onclick="confirmRun('Atualizar o xtool para ${esc(s.xtoolLatest)}?','xtool.update',{version:'${esc(s.xtoolLatest)}'},'Atualizar xtool')">⬆ Atualizar</button><a class="btn sm" target="_blank" href="https://github.com/xtool-org/xtool/releases/tag/${esc(s.xtoolLatest)}">Novidades</a></div></div>`
+        :c('xtool',esc(s.xtool),['ok',s.xtoolLatest?'atualizado':'instalado'],'🛠'))+
       c('Swift',esc(s.swift.replace(/\(.*\)/,'')),['ok','pronto'],'🐦')+
       c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'👤')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
@@ -367,10 +454,12 @@ async function refreshStatus(){
 
 /* projects */
 async function loadProjects(){
-  const ps=await api('/api/projects');
-  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');
+  const ps=await api('/api/projects');projCache=ps;
+  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;
+    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''} · <a href="#" onclick="run('git.pull',{},'Atualizar ${n}',${P});return false">⬇ pull</a> · <a href="#" onclick="gitPush(${P});return false">⬆ push</a>`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}${p.bundleId?` · <span style="font-family:var(--mono)">${esc(p.bundleId)}</span>`:''}</div>`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
     <div class="grow"><div class="name">${n}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
+    ${ghRow}
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
     <div class="row">
       <select id="cfg-${n}" class="btn sm" style="width:auto"><option>debug</option><option>release</option></select>
@@ -378,6 +467,7 @@ async function loadProjects(){
       <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value,sign:true,ipa:true},'Gerar .ipa ${n}',${P})">Gerar .ipa</button>
       <button class="btn sm pri" onclick="run('dev.run',{config:$('cfg-${n}').value,udid:val('runUdid'),conn:'all'},'Rodar ${n}',${P})">▶ Rodar no iPhone</button>
       <button class="btn sm" onclick="run('dev.xcode',{},'Projeto Xcode ${n}',${P})">Xcode</button>
+      <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
     </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>'}
 function newProject(){const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');run('new',{name:n,skipSetup:chk('skipSetup')},'Novo projeto '+n)}
@@ -475,6 +565,121 @@ function editDev(id){const d=devs.find(x=>x.id===id)||{};devId.value=d.id||'';de
 async function saveDev(){try{devs=await api('/api/devices/save',{id:val('devId')||undefined,name:val('devName'),udid:val('devUdid'),notes:val('devNotes'),default:chk('devDefault')});toast('Dispositivo salvo');editDev(null);loadDevs()}catch(e){toast(e.message)}}
 async function removeDev(id){const d=devs.find(x=>x.id===id);if(!confirm(`Remover "${d.name}" da lista?`))return;devs=await api('/api/devices/remove',{id});loadDevs()}
 async function setDefaultDev(id){const d=devs.find(x=>x.id===id);if(!d)return;devs=await api('/api/devices/save',{...d,default:true});loadDevs()}
+
+/* ---------- apps da conta ---------- */
+const STATE_PT={READY_FOR_SALE:['ok','À venda'],PREPARE_FOR_SUBMISSION:['warn','Em preparação'],WAITING_FOR_REVIEW:['warn','Aguardando revisão'],IN_REVIEW:['warn','Em revisão'],PENDING_DEVELOPER_RELEASE:['ok','Aprovado (liberar)'],REJECTED:['bad','Rejeitado'],METADATA_REJECTED:['bad','Metadados rejeitados'],DEVELOPER_REJECTED:['warn','Retirado da revisão'],PROCESSING_FOR_APP_STORE:['warn','Processando'],REMOVED_FROM_SALE:['bad','Fora da venda'],READY_FOR_REVIEW:['warn','Pronto p/ revisão'],ACCEPTED:['ok','Aceito'],REPLACED_WITH_NEW_VERSION:['off','Substituída'],INVALID_BINARY:['bad','Binário inválido'],WAITING_FOR_EXPORT_COMPLIANCE:['warn','Falta conformidade']};
+const stPill=s=>{const [c,t]=STATE_PT[s]||['off',s||'—'];return `<span class="pill ${c}"><i></i>${esc(t)}</span>`};
+function accOptions(sel){return accState.accounts.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}${a.appleId?' · '+esc(a.appleId):''}</option>`).join('')}
+async function initApps(){await loadAccounts();appsAcc.innerHTML=accOptions(val('appsAcc')||accState.active);renderAscCard()}
+async function renderAscCard(){
+  const id=val('appsAcc');if(!id){ascCard.innerHTML='<div class="empty">Cadastre uma conta Apple primeiro.</div>';return}
+  const k=await api('/api/asc/key?account='+id);
+  ascCard.innerHTML=`<h3>🔑 Chave da API do App Store Connect ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>falta configurar</span>'}</h3>
+   <p>Necessária para listar apps da loja, enviar builds e publicar. Crie em <a href="https://appstoreconnect.apple.com/access/integrations/api" target="_blank">App Store Connect → Usuários e Acesso → Integrações → Chaves da equipe</a> com a função <b>App Manager</b> (ou Admin) e baixe o arquivo .p8.</p>
+   <div class="row"><div class="field" style="flex:1;min-width:220px"><label>Issuer ID</label><input type="text" id="kIss" value="${esc(k.issuerId)}" placeholder="69a6de7e-…"></div>
+   <div class="field" style="flex:1;min-width:160px"><label>Key ID</label><input type="text" id="kId" value="${esc(k.keyId)}" placeholder="2X9R4HXF34"></div></div>
+   <div class="field"><label>Arquivo .p8 ${k.configured?'(deixe vazio para manter o atual)':''}</label><input type="file" id="kFile" accept=".p8"></div>
+   <div class="row"><button class="btn pri" onclick="saveAscKey()">Salvar chave</button>${k.configured?`<button class="btn" onclick="testAscKey()">Testar</button><button class="btn danger" onclick="if(confirm('Apagar a chave desta conta?'))api('/api/asc/key/remove',{accountId:val('appsAcc')}).then(renderAscCard)">Remover</button>`:''}<span class="hint" id="kMsg"></span></div>`}
+async function saveAscKey(){const f=kFile.files[0];const p8=f?await f.text():'';try{await api('/api/asc/key',{accountId:val('appsAcc'),issuerId:val('kIss'),keyId:val('kId'),p8});toast('Chave salva');await renderAscCard();testAscKey()}catch(e){toast(e.message)}}
+async function testAscKey(){kMsg.textContent='testando…';const r=await api('/api/asc/test',{accountId:val('appsAcc')});kMsg.textContent=r.ok?`✔ funcionando — ${r.apps} app(s)`:'✖ '+r.error}
+async function loadApps(){
+  renderAscCard();appsHint.textContent='buscando…';ascApps.innerHTML='<div class="empty">Buscando…</div>';bundleIds.innerHTML='';
+  try{const r=await api('/api/apps?account='+val('appsAcc'));appsHint.textContent='';
+    ascApps.innerHTML=r.apps?(r.apps.length?r.apps.map(a=>`<div class="card"><div class="devhead"><div class="avatar" style="background:${colorOf(a.id)};border-radius:12px">${esc((a.name||'?')[0])}</div><div><h3 style="margin:0">${esc(a.name)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.bundleId)}</div></div></div>
+      <div class="list" style="gap:6px;margin-bottom:12px">${a.versions.map(v=>`<div class="row" style="justify-content:space-between"><span>v${esc(v.versionString)} <span class="hint">${(v.createdDate||'').slice(0,10)}</span></span>${stPill(v.appStoreState)}</div>`).join('')||'<span class="hint">sem versões</span>'}</div>
+      <div class="row"><a class="btn sm" target="_blank" href="https://appstoreconnect.apple.com/apps/${a.id}/distribution">Abrir no App Store Connect</a>${linkedProject(a.bundleId)}</div></div>`).join(''):'<div class="empty">Nenhum app nesta conta.</div>'):`<div class="empty">${esc(r.ascError)}</div>`;
+    bundleIds.innerHTML=r.identifiers?(r.identifiers.length?r.identifiers.map(i=>`<div class="item"><span>🏷</span><div class="grow"><div class="name">${esc(i.name||'')}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||'')} · ${esc(i.platform||'')}</div></div></div>`).join(''):'<div class="empty">Nenhum bundle ID.</div>'):`<div class="empty">${esc(r.idError||'')}</div>`}
+  catch(e){appsHint.textContent='';ascApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+let projCache=[];
+function linkedProject(bundle){const p=projCache.find(x=>(x.meta.bundleId||x.bundleId)===bundle);return p?`<button class="btn sm pri" onclick="pubProject.value='${esc(p.name)}';go('publish')">Publicar ${esc(p.name)}</button>`:''}
+
+/* ---------- publicar ---------- */
+const LOCALES=[['pt-BR','Português (BR)'],['en-US','Inglês (EUA)'],['es-MX','Espanhol (MX)'],['es-ES','Espanhol (ES)'],['fr-FR','Francês'],['de-DE','Alemão'],['it','Italiano'],['ja','Japonês']];
+let relInfo=null;
+async function initPublish(){
+  await loadAccounts();projCache=await api('/api/projects');
+  const keep=val('pubProject');pubProject.innerHTML=projCache.length?projCache.map(p=>`<option ${p.name===keep?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">nenhum projeto</option>';
+  const ai=await api('/api/ai');pubAi.innerHTML=Object.keys(ai.providers).length?Object.keys(ai.providers).map(k=>`<option value="${k}" ${k===ai.default?'selected':''}>${esc(ai.catalog[k]?.label||k)} · ${esc(ai.providers[k].model||'')}</option>`).join(''):'<option value="">configure uma IA</option>';
+  loadRelease()}
+async function loadRelease(){
+  const p=val('pubProject');if(!p){pubInfo.innerHTML='<div class="empty">Crie ou importe um projeto primeiro.</div>';return}
+  pubInfo.innerHTML='<div class="empty">Carregando dados do App Store Connect…</div>';
+  try{relInfo=await api('/api/release/info?project='+encodeURIComponent(p))}catch(e){pubInfo.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const r=relInfo;pubAcc.innerHTML=accOptions(r.accountId);
+  const last=r.versions[0];
+  if(!val('pubVersion')||pubVersion.dataset.p!==p){pubVersion.value=last?bump(last.versionString,last.appStoreState):'1.0.0';pubVersion.dataset.p=p}
+  const locs=r.meta.locales||[r.app?.primaryLocale||'pt-BR'];
+  pubLocales.innerHTML=LOCALES.map(([k,t])=>`<label class="check" style="margin:0 10px 0 0"><input type="checkbox" value="${k}" ${locs.includes(k)?'checked':''} onchange="saveProjMeta(val('pubProject'),{locales:[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value)});renderTexts()">${t}</label>`).join('');
+  pubChanges.textContent=r.changes||'(sem histórico git — escreva as observações para a IA)';
+  pubInfo.innerHTML=`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between">
+    <div><h3 style="margin:0">${r.app?esc(r.app.name):'App não encontrado'} <span class="hint" style="font-family:var(--mono)">${esc(r.bundleId)}</span></h3>
+    ${r.ascError?`<p style="color:var(--warn);margin:6px 0 0">${esc(r.ascError)}</p>`:`<p style="margin:6px 0 0">${r.versions.map(v=>`v${esc(v.versionString)} ${stPill(v.appStoreState)}`).join(' &nbsp; ')||'nenhuma versão ainda'} ${r.builds[0]?` · último build ${esc(r.builds[0].marketingVersion||'')} (${esc(r.builds[0].version)}) ${esc(r.builds[0].processingState)}`:''}</p>`}</div>
+    <div class="row">${r.meta.lastRelease?`<span class="hint">última publicação pelo painel: v${esc(r.meta.lastRelease.version)} (${esc(r.meta.lastRelease.build)})</span>`:''}</div></div></div>`;
+  renderTexts();pubSync()}
+function bump(v,state){if(state&&['PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED','REJECTED','METADATA_REJECTED'].includes(state))return v;const p=v.split('.').map(Number);while(p.length<3)p.push(0);p[2]++;return p.join('.')}
+const whatsNew={};
+function renderTexts(){const locs=[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value);
+  pubTexts.innerHTML=locs.map(l=>`<div class="card"><h3>📝 ${esc((LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="8" oninput="whatsNew['${l}']=this.value;this.nextElementSibling.textContent=this.value.length+'/4000'" style="width:100%;background:#0e1117;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(whatsNew[l]||'')}</textarea><div class="hint" style="text-align:right">${(whatsNew[l]||'').length}/4000</div></div>`).join('')}
+async function genWhatsNew(){
+  const locales=[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value);if(!locales.length)return toast('Escolha ao menos um idioma');
+  if(!val('pubAi'))return toast('Configure uma IA na seção IA');
+  toast('Gerando com IA…');
+  try{const r=await api('/api/ai/whatsnew',{provider:val('pubAi'),project:val('pubProject'),appName:relInfo?.app?.name,version:val('pubVersion'),locales,extra:val('pubExtra')});Object.assign(whatsNew,r);renderTexts();toast('Texto gerado — revise antes de publicar')}
+  catch(e){toast(e.message)}}
+function pubSync(){if(!pubUpload.checked){pubPublish.checked=false;pubSubmit.checked=false}if(!pubPublish.checked)pubSubmit.checked=false;
+  pubWarn.textContent=pubSubmit.checked?'⚠ vai enviar para revisão da Apple':pubUpload.checked?'':'só vai gerar o .ipa assinado'}
+async function saveProjMeta(project,patch){if(project)await api('/api/projects/meta',{project,patch})}
+function runRelease(){
+  const p=val('pubProject');if(!p)return;const v=val('pubVersion');if(!/^\d+(\.\d+){0,2}$/.test(v))return toast('Versão inválida (ex: 1.2.0)');
+  const steps={upload:pubUpload.checked,publish:pubPublish.checked,submit:pubSubmit.checked};
+  const texts={};document.querySelectorAll('#pubTexts textarea').forEach(t=>texts[t.dataset.loc]=t.value);
+  if(steps.publish&&!Object.values(texts).some(t=>t.trim()))return toast('Escreva ou gere o "O que há de novo"');
+  const msg=steps.submit?`Compilar, enviar e SUBMETER ${p} v${v} para revisão da Apple?`:steps.upload?`Compilar e enviar ${p} v${v} para o App Store Connect?`:`Compilar e assinar ${p} v${v}?`;
+  if(!confirm(msg))return;
+  run('release',{project:p,accountId:val('pubAcc'),bundleId:relInfo?.bundleId,version:v,build:val('pubBuild')||'auto',steps,whatsNew:texts,noEncryption:pubNoEnc.checked},`Publicar ${p} v${v}`,p)}
+
+/* ---------- github ---------- */
+let ghAccsCache=[];
+async function loadGh(){
+  ghAccs.innerHTML='<div class="empty">Carregando…</div>';
+  try{ghAccsCache=await api('/api/gh/accounts')}catch(e){ghAccsCache=[]}
+  ghAccs.innerHTML=ghAccsCache.length?ghAccsCache.map(a=>`<div class="card acc ${a.active?'on':''}"><span class="tag pill ${a.active?'ok':''}"><i></i>${a.active?'ativa':'salva'}</span>
+    <div class="devhead">${a.avatar_url?`<img src="${esc(a.avatar_url)}" class="avatar" style="object-fit:cover">`:`<div class="avatar" style="background:#333">${esc(a.user[0])}</div>`}<div><h3 style="margin:0">${esc(a.name||a.user)}</h3><div class="hint">@${esc(a.user)}</div></div></div>
+    <div class="row">${a.active?'':`<button class="btn sm pri" onclick="run('gh.switch',{user:'${esc(a.user)}'},'Usar ${esc(a.user)}')">Usar esta</button>`}<button class="btn sm" onclick="ghRepoUser.value='${esc(a.user)}';loadRepos()">Repositórios</button><button class="btn sm danger" onclick="confirmRun('Sair da conta GitHub ${esc(a.user)}?','gh.logout',{user:'${esc(a.user)}'},'Logout ${esc(a.user)}')">Sair</button></div></div>`).join(''):'<div class="empty">Nenhuma conta do GitHub. Adicione abaixo.</div>';
+  ghRepoUser.innerHTML=ghAccsCache.map(a=>`<option ${a.active?'selected':''}>${esc(a.user)}</option>`).join('')||'<option value="">—</option>'}
+async function loadRepos(){
+  const u=val('ghRepoUser');if(!u)return;ghRepos.innerHTML='<div class="empty">Buscando…</div>';
+  projCache=await api('/api/projects');
+  try{const rs=await api(`/api/gh/repos?user=${encodeURIComponent(u)}&q=${encodeURIComponent(val('ghRepoQ'))}`);
+    ghRepos.innerHTML=rs.length?rs.map(r=>{const linked=projCache.find(p=>p.meta.repo===r.nameWithOwner);return `<div class="item"><span>${r.isPrivate?'🔒':'📖'}</span><div class="grow"><div class="name">${esc(r.nameWithOwner)}</div><div class="meta">${esc(r.description||'')} · atualizado ${new Date(r.updatedAt).toLocaleDateString()}</div></div>
+      ${linked?`<span class="pill ok"><i></i>${esc(linked.name)}</span>`:`<button class="btn sm pri" onclick="cloneRepo('${esc(r.nameWithOwner)}')">Importar como projeto</button>`}<a class="btn sm" target="_blank" href="${esc(r.url)}">Abrir</a></div>`}).join(''):'<div class="empty">Nenhum repositório.</div>'}
+  catch(e){ghRepos.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+async function cloneRepo(repo){const name=prompt('Nome da pasta do projeto em /work:',repo.split('/')[1]);if(!name)return;
+  await saveProjMeta(name,{repo,ghUser:val('ghRepoUser')});run('gh.clone',{user:val('ghRepoUser'),repo,name},'Importar '+repo)}
+async function linkRepo(project){
+  if(!ghAccsCache.length)ghAccsCache=await api('/api/gh/accounts');if(!ghAccsCache.length)return toast('Adicione uma conta do GitHub primeiro');
+  const user=prompt('Conta do GitHub ('+ghAccsCache.map(a=>a.user).join(', ')+'):',(ghAccsCache.find(a=>a.active)||ghAccsCache[0]).user);if(!user)return;
+  const repo=prompt('Repositório (dono/nome). Se não existir, será criado como privado:',user+'/'+project);if(!repo)return;
+  let exists=true;try{const rs=await api(`/api/gh/repos?user=${encodeURIComponent(user)}&q=${encodeURIComponent(repo.split('/')[1])}`);exists=rs.some(r=>r.nameWithOwner.toLowerCase()===repo.toLowerCase())}catch(e){}
+  await saveProjMeta(project,{repo,ghUser:user});
+  run(exists?'gh.link':'gh.create',{user,repo,private:true},(exists?'Vincular ':'Criar repositório ')+repo,project)}
+function gitPush(project){const m=prompt('Mensagem do commit:','Atualização');if(m!==null)run('git.push',{message:m||'Atualização'},'Enviar '+project+' ao GitHub',project)}
+
+/* ---------- IA ---------- */
+let aiState=null;
+async function loadAi(){
+  aiState=await api('/api/ai');const C=aiState.catalog,P=aiState.providers;
+  aiGrid.innerHTML=Object.entries(C).map(([k,c])=>{const s=P[k]||{};const on=!!P[k];return `<div class="card acc ${aiState.default===k?'on':''}">
+    <span class="tag">${on?`<button class="star ${aiState.default===k?'on':''}" title="Usar por padrão" onclick="aiSave('${k}',true)">★</button>`:''}</span>
+    <h3>${c.local?'💻':'☁️'} ${esc(c.label)}</h3><p>${c.local?'Roda no seu PC. Abra o app antes de usar.':'Precisa de chave de API.'}</p>
+    ${c.local?'':`<div class="field"><label>Chave da API</label><input type="password" id="ai-key-${k}" placeholder="${s.apiKey?esc(s.apiKey):'cole a chave'}"></div>`}
+    <div class="field"><label>URL da API</label><input type="text" id="ai-url-${k}" value="${esc(s.baseUrl||'')}" placeholder="${esc(c.base||'https://…/v1')}"></div>
+    <div class="field"><label>Modelo</label><div class="row"><input type="text" list="ai-ml-${k}" id="ai-model-${k}" value="${esc(s.model||'')}" placeholder="escolha ou digite" style="flex:1"><datalist id="ai-ml-${k}"></datalist><button class="btn sm" onclick="aiModels('${k}')">Listar</button></div></div>
+    <div class="row"><button class="btn sm pri" onclick="aiSave('${k}')">Salvar</button>${on?`<button class="btn sm" onclick="aiTest('${k}')">Testar</button><button class="btn sm danger" onclick="api('/api/ai/remove',{provider:'${k}'}).then(loadAi)">Remover</button>`:''}<span class="hint" id="ai-msg-${k}"></span></div></div>`}).join('')}
+const aiForm=k=>({apiKey:$('ai-key-'+k)?.value.trim()||'',baseUrl:val('ai-url-'+k),model:val('ai-model-'+k)});
+async function aiSave(k,def){try{await api('/api/ai/save',{provider:k,conf:aiForm(k),default:!!def});toast('IA salva');loadAi()}catch(e){toast(e.message)}}
+async function aiModels(k){const m=$('ai-msg-'+k);m.textContent='buscando…';try{const ms=await api('/api/ai/models',{provider:k,conf:aiForm(k)});$('ai-ml-'+k).innerHTML=ms.map(x=>`<option value="${esc(x)}">`).join('');m.textContent=ms.length+' modelos — clique no campo';$('ai-model-'+k).focus()}catch(e){m.textContent='✖ '+e.message}}
+async function aiTest(k){const m=$('ai-msg-'+k);m.textContent='testando…';try{const r=await api('/api/ai/whatsnew',{provider:k,project:'',changes:'- Corrigido travamento ao abrir fotos\n- Novo modo escuro',version:'1.0.1',locales:['pt-BR']});m.textContent='✔ '+r['pt-BR'].slice(0,80)+'…'}catch(e){m.textContent='✖ '+e.message}}
 
 function runShell(){const c=val('shCmd');if(c)run('shell',{cmd:c},c.length>30?c.slice(0,30)+'…':c)}
 function refreshAll(){refreshStatus();loadJobs();const s=document.querySelector('.nav.on').dataset.s;go(s)}
