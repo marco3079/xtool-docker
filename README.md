@@ -238,6 +238,7 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 - Conexão com o iPhone pelo serviço da Apple do Windows (cabo ou Wi-Fi)
 - Registro de apps de todas as contas, com a conta dona e se ela tem API da Apple
 - Chave da API da Apple cadastrada no cartão de cada conta
+- Projetos vinculados a um app da conta (define a conta e o bundle ID usados na publicação)
 - Ícone dos apps e prévia da página da App Store (publicada e próxima versão)
 - Publicação na App Store: build, ícones, assinatura de distribuição, envio, "O que há de novo" e revisão
 - Integração com GitHub (várias contas, importar, vincular, pull e push)

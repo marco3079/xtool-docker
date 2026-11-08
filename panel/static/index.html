@@ -127,6 +127,8 @@ h2:first-child{margin-top:0}
 .mbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;width:min(560px,100%);box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .mbox h3{margin:0 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mbox p{color:var(--muted);font-size:13px;line-height:1.5}
 .regtbl{display:grid;gap:8px}
+.linked{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.linked .appicon{width:22px;height:22px;border-radius:6px;font-size:12px}
+.linked .mini{width:16px;height:16px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;font-weight:700;color:#fff}.linked .pill{font-size:11px;padding:1px 7px}
 .reg{display:grid;grid-template-columns:auto minmax(0,1.6fr) minmax(0,1.3fr) auto auto;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 .reg .accchip{display:flex;align-items:center;gap:8px;min-width:0}.reg .accchip .mini{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:none}
 .reg .accchip div{min-width:0}.reg .accchip b,.reg .accchip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.reg .accchip small{color:var(--muted);font-size:11px}
@@ -512,10 +514,39 @@ async function refreshStatus(){
   }catch(e){$('stats').innerHTML='<div class="empty">Servidor indisponível</div>'}}
 
 /* projects */
+function appRow(p,P){
+  const b=p.meta.bundleId;
+  if(!b)return `<div class="meta" style="margin-top:4px">📱 <a href="#" onclick="pickApp(${P});return false">vincular a um app da conta</a>${p.bundleId?` · <span style="font-family:var(--mono)">${esc(p.bundleId)}</span>`:''}</div>`;
+  const r=regItems.find(x=>x.bundleId===b&&x.accountId===p.meta.accountId)||regItems.find(x=>x.bundleId===b)||{};
+  const acc=r.accountLabel||(accState.accounts.find(a=>a.id===p.meta.accountId)||{}).label||'conta removida';
+  return `<div class="meta linked" style="margin-top:6px">${iconSlot(b,'📱')}<a href="#" title="Ver página da loja" onclick="openStore('${esc(b)}','${esc(p.meta.accountId||'')}');return false"><b>${esc(p.meta.appName||r.name||b)}</b></a>
+    <span style="font-family:var(--mono)">${esc(b)}</span> · <span class="mini" style="background:${colorOf(p.meta.accountId||'x')}">${esc((acc||'?')[0].toUpperCase())}</span>${esc(acc)}
+    ${r.accountId?(r.hasApi?' · <span class="pill ok"><i></i>API Apple</span>':` · <a href="#" onclick="openKey('${r.accountId}');return false">⚠️ sem API</a>`):''}
+    · <a href="#" onclick="pickApp(${P});return false">trocar</a></div>`}
+async function pickApp(project){
+  if(!accState.accounts.length)await loadAccounts();
+  try{regItems=await api('/api/apps/registry')}catch(e){}
+  const p=projCache.find(x=>x.name===project)||{meta:{}};
+  const base=(p.bundleId||'').toLowerCase();
+  const strip=b=>b.toLowerCase().replace(/\.[A-Z0-9]{10}$/i,'');
+  const score=r=>(r.bundleId===p.meta.bundleId?3:0)+(base&&strip(r.bundleId)===base?2:0)+(r.hasApi?1:0);
+  const items=[...regItems].sort((a,b)=>score(b)-score(a));
+  keyBox.innerHTML=`<h3>📱 Vincular "${esc(project)}" a um app</h3>
+   <p>O app escolhido define a <b>conta Apple</b> e o <b>bundle ID</b> usados para publicar este projeto. A lista vem de <b>Apps da conta → Apps registrados</b>.</p>
+   <div class="regtbl" style="max-height:50vh;overflow:auto;margin:12px 0">${items.length?items.map(r=>{const on=r.bundleId===p.meta.bundleId&&r.accountId===p.meta.accountId;const sug=!on&&base&&strip(r.bundleId)===base;
+     return `<div class="item clickable" style="${on?'border-color:var(--accent,#4f8cff)':''}" onclick='linkApp(${JSON.stringify(project).replace(/'/g,"&#39;")},${JSON.stringify({accountId:r.accountId,bundleId:r.bundleId,appName:r.name||''}).replace(/'/g,"&#39;")})'>
+       ${iconSlot(r.bundleId,esc((r.name||'?')[0]))}<div class="grow"><div class="name">${esc(r.name||r.bundleId)} ${on?'<span class="pill ok"><i></i>vinculado</span>':sug?'<span class="pill warn"><i></i>sugerido</span>':''}</div>
+       <div class="meta"><span style="font-family:var(--mono)">${esc(r.bundleId)}</span> · ${esc(r.accountLabel)}${r.appleId?' ('+esc(r.appleId)+')':''}</div></div>
+       ${r.hasApi?'<span class="pill ok"><i></i>API Apple</span>':'<span class="pill warn"><i></i>sem API</span>'}</div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Vá em Apps da conta e clique em "Buscar apps".</div>'}</div>
+   <div class="row">${p.meta.bundleId?`<button class="btn danger" onclick='linkApp(${JSON.stringify(project).replace(/'/g,"&#39;")},{accountId:"",bundleId:"",appName:""})'>Desvincular</button>`:''}<button class="btn" onclick="keyModal.hidden=true;go('apps')">Buscar mais apps</button><button class="btn" onclick="keyModal.hidden=true">Fechar</button></div>`;
+  keyModal.hidden=false;hydrateIcons()}
+async function linkApp(project,link){
+  try{await api('/api/projects/meta',{project,patch:link});keyModal.hidden=true;toast(link.bundleId?`${project} vinculado a ${link.appName||link.bundleId}`:`${project} desvinculado`);loadProjects()}catch(e){toast(e.message)}}
 async function loadProjects(){
   const ps=await api('/api/projects');projCache=ps;
+  try{regItems=await api('/api/apps/registry')}catch(e){}
   $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;
-    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''} · <a href="#" onclick="run('git.pull',{},'Atualizar ${n}',${P});return false">⬇ pull</a> · <a href="#" onclick="gitPush(${P});return false">⬆ push</a>`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}${p.bundleId?` · <span style="font-family:var(--mono)">${esc(p.bundleId)}</span>`:''}</div>`;
+    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''} · <a href="#" onclick="run('git.pull',{},'Atualizar ${n}',${P});return false">⬇ pull</a> · <a href="#" onclick="gitPush(${P});return false">⬆ push</a>`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
     <div class="grow"><div class="name">${n}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
@@ -528,7 +559,7 @@ async function loadProjects(){
       <button class="btn sm" onclick="run('dev.xcode',{},'Projeto Xcode ${n}',${P})">Xcode</button>
       <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
-    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>'}
+    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons()}
 function newProject(){const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');run('new',{name:n,skipSetup:chk('skipSetup')},'Novo projeto '+n)}
 
 /* files */
@@ -661,7 +692,7 @@ async function loadRegistry(){
   regList.innerHTML=regItems.length?regItems.map((r,i)=>{const v=(r.versions||[])[0];return `<div class="reg">
     <span class="clickable" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')">${iconSlot(r.bundleId,esc((r.name||'?')[0]))}</span>
     <div class="clickable" style="min-width:0" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name||r.bundleId)}</div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.bundleId)}${v?' · v'+esc(v.versionString):''}</div></div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.bundleId)}${v?' · v'+esc(v.versionString):''}${(()=>{const pr=projCache.find(x=>x.meta.bundleId===r.bundleId&&x.meta.accountId===r.accountId);return pr?' · 📁 '+esc(pr.name):''})()}</div></div>
     <div class="accchip" title="Conta Apple"><span class="mini" style="background:${colorOf(r.accountId)}">${esc((r.accountLabel||'?')[0].toUpperCase())}</span><div><b>${esc(r.accountLabel)}</b><small>${esc(r.appleId||r.teamId||'')}</small></div></div>
     ${r.hasApi?'<span class="pill ok" title="A conta tem a chave da API da Apple"><i></i>API Apple</span>':`<span class="pill warn clickable" title="Cadastrar a chave da API desta conta" onclick="openKey('${r.accountId}')"><i></i>sem API</span>`}
     <button class="x" title="Tirar da lista" onclick="forgetApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Escolha a conta e clique em "Buscar apps": tudo que for encontrado fica salvo aqui.</div>';

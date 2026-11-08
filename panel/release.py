@@ -188,6 +188,9 @@ def main():
     info_p = os.path.join(app_dir, "Info.plist")
     info = plistlib.load(open(info_p, "rb"))
     info["CFBundleShortVersionString"] = version
+    if info.get("CFBundleIdentifier") != bundle:  # project linked to an App Store app with another ID
+        log(f"Bundle ID: {info.get('CFBundleIdentifier')} → {bundle} (app vinculado)")
+        info["CFBundleIdentifier"] = bundle
     info["CFBundleVersion"] = build
     info.update(dt_keys())
     if a.get("noEncryption", True):
