@@ -6,12 +6,16 @@ go to secrets.json with mode 600 and are never sent back to the browser in full.
 import json
 import os
 import threading
+import time
+import uuid
 
 PANEL_DIR = os.path.expanduser("~/.config/xtool-panel")
 ACC_FILE = os.path.join(PANEL_DIR, "accounts.json")
 SECRETS = os.path.join(PANEL_DIR, "secrets.json")
 PROJECTS = os.path.join(PANEL_DIR, "projects.json")
 APPS = os.path.join(PANEL_DIR, "apps.json")
+PLAY_APPS = os.path.join(PANEL_DIR, "play_apps.json")
+ANDROID_KEYS_DIR = os.path.join(PANEL_DIR, "android-keys")
 _lock = threading.RLock()
 
 
@@ -149,7 +153,6 @@ def apps_registry():
 
 def apps_record(acc_id, items):
     """Merge apps found on an account. Each item: bundleId plus any of name/ascId/versions/source."""
-    import time
     with _lock:
         reg = apps_registry()
         cur = reg.setdefault(acc_id, {})
@@ -177,3 +180,123 @@ def apps_forget(acc_id, bundle=None):
         else:
             reg.get(acc_id, {}).pop(bundle, None)
         save(APPS, reg)
+
+
+# ---- Google Play accounts (service account JSON lives in secrets.json) ----
+def _play_public(a):
+    return {k: a.get(k) for k in ("id", "label", "email", "projectId", "added")}
+
+
+def play_accounts():
+    accs = [_play_public(a) for a in secrets().get("play", {}).values()]
+    return sorted(accs, key=lambda x: (x.get("label") or "").lower())
+
+
+def play_account(acc_id):
+    a = secrets().get("play", {}).get(acc_id)
+    if not a:
+        raise ValueError("conta da Play Store não encontrada")
+    return a
+
+
+def play_account_add(label, json_text):
+    try:
+        sa = json_text if isinstance(json_text, dict) else json.loads(json_text or "")
+    except ValueError:
+        sa = None
+    if not isinstance(sa, dict) or sa.get("type") != "service_account" \
+            or not sa.get("client_email") or not sa.get("private_key"):
+        raise ValueError("arquivo JSON não é uma chave de conta de serviço do Google")
+    acc = {"id": uuid.uuid4().hex[:8], "label": (label or "").strip() or sa["client_email"],
+           "email": sa["client_email"], "projectId": sa.get("project_id", ""),
+           "added": int(time.time()), "json": sa}
+    with _lock:
+        s = secrets()
+        s.setdefault("play", {})[acc["id"]] = acc
+        save(SECRETS, s, private=True)
+    return _play_public(acc)
+
+
+def play_account_rename(acc_id, label):
+    with _lock:
+        s = secrets()
+        a = s.setdefault("play", {}).get(acc_id)
+        if not a:
+            raise ValueError("conta da Play Store não encontrada")
+        a["label"] = (label or "").strip() or a.get("label", "")
+        save(SECRETS, s, private=True)
+
+
+def play_account_remove(acc_id):
+    with _lock:
+        s = secrets()
+        s.setdefault("play", {}).pop(acc_id, None)
+        save(SECRETS, s, private=True)
+        play_apps_forget(acc_id)
+
+
+# ---- Google Play apps seen on each account (packageName -> name, tracks) ----
+def play_apps_registry():
+    return load(PLAY_APPS, {})
+
+
+def play_apps_record(acc_id, items):
+    """Merge apps found on a Play account. Each item: packageName plus any of name/tracks."""
+    with _lock:
+        reg = play_apps_registry()
+        cur = reg.setdefault(acc_id, {})
+        now = int(time.time())
+        for it in items:
+            p = (it.get("packageName") or "").strip()
+            if not p:
+                continue
+            e = cur.setdefault(p, {"packageName": p, "added": now})
+            for k, v in it.items():
+                if k == "tracks":
+                    e["tracks"] = v or []
+                elif v not in (None, "", []):
+                    e[k] = v
+            e["updated"] = now
+        save(PLAY_APPS, reg)
+        return cur
+
+
+def play_apps_forget(acc_id, package=None):
+    with _lock:
+        reg = play_apps_registry()
+        if package is None:
+            reg.pop(acc_id, None)
+        else:
+            reg.get(acc_id, {}).pop(package, None)
+        save(PLAY_APPS, reg)
+
+
+# ---- Android signing keys (keystore file in ANDROID_KEYS_DIR, passwords in secrets.json) ----
+def android_key(package):
+    return secrets().get("androidKeys", {}).get(package, {})
+
+
+def android_key_public(package):
+    k = android_key(package)
+    return {"configured": bool(k), "keyAlias": k.get("keyAlias", ""), "sha1": k.get("sha1", ""),
+            "sha256": k.get("sha256", ""), "created": k.get("created"),
+            "file": os.path.basename(k["file"]) if k.get("file") else ""}
+
+
+def android_key_set(package, data):
+    with _lock:
+        s = secrets()
+        s.setdefault("androidKeys", {})[package] = dict(data)
+        save(SECRETS, s, private=True)
+
+
+def android_key_remove(package):
+    with _lock:
+        s = secrets()
+        k = s.setdefault("androidKeys", {}).pop(package, None)
+        save(SECRETS, s, private=True)
+    if k and k.get("file"):
+        try:
+            os.remove(k["file"])
+        except OSError:
+            pass

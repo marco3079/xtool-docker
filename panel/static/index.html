@@ -181,7 +181,7 @@ h2:first-child{margin-top:0}
 <body>
 <div class="app">
 <aside id="side">
-  <div class="brand"><img class="logo" src="/static/logo.svg" alt=""><div><b>xtool Painel <span class="vtag">v1.0.0</span></b><small id="ver">painel</small></div></div>
+  <div class="brand"><img class="logo" src="/static/logo.svg" alt=""><div><b>xtool Painel <span class="vtag">v1.1.0</span></b><small id="ver">painel</small></div></div>
   <div class="navsep">Geral</div>
   <button class="nav on" data-s="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Painel</button>
   <button class="nav" data-s="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Configuração</button>
@@ -193,12 +193,15 @@ h2:first-child{margin-top:0}
   <button class="nav" data-s="github"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 015 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg>GitHub</button>
   <button class="nav" data-s="devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Dispositivos</button>
   <button class="nav" data-s="ds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Developer Services</button>
+  <div class="navsep">Android</div>
+  <button class="nav" data-s="android"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M9 5L8 3M15 5l1-2M9 8a3 3 0 016 0M9 19v2M15 19v2M3 11.5v4M21 11.5v4"/></svg>Android</button>
+  <button class="nav" data-s="play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>Contas Google Play</button>
   <div class="navsep">Ferramentas</div>
   <button class="nav" data-s="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>IA</button>
   <button class="nav" data-s="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Arquivos</button>
   <button class="nav" data-s="shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg>Terminal</button>
   <button class="nav" data-s="jobs" style="order:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Tarefas<span class="badge" id="runBadge" hidden>0</span></button>
-  <div class="by">xtool Painel 1.0.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
+  <div class="by">xtool Painel 1.1.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
 </aside>
 
 <main>
@@ -307,6 +310,73 @@ h2:first-child{margin-top:0}
     <label class="check"><input type="checkbox" id="pubSubmit" onchange="pubSync()">Enviar para revisão da Apple (publicar)</label>
     <div class="row"><button class="btn pri" onclick="runRelease()">🚀 Iniciar</button><span class="hint" id="pubWarn"></span></div>
   </div>
+</section>
+
+<!-- GOOGLE PLAY ACCOUNTS -->
+<section class="section" id="s-play">
+  <p class="hint" style="margin-top:0">Cada conta é uma chave JSON de conta de serviço do Google Cloud. Crie em <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank">IAM → Contas de serviço → Chaves → JSON</a>, ative a "Google Play Android Developer API" no projeto e convide o e-mail da conta de serviço em <a href="https://play.google.com/console/users-and-permissions" target="_blank">Play Console → Usuários e permissões</a> com permissão de lançar versões.</p>
+  <div class="grid" id="playAccGrid"></div>
+  <h2>Adicionar conta</h2>
+  <div class="card add" style="max-width:520px">
+    <h3>＋ Nova conta Google Play</h3><p>Envie o arquivo JSON da conta de serviço.</p>
+    <div class="field"><label>Nome para identificar</label><input type="text" id="playLabel" placeholder="ex: Pessoal, Cliente X"></div>
+    <div class="field"><label>Arquivo JSON da conta de serviço</label><input type="file" accept=".json" id="playJson"></div>
+    <button class="btn pri" onclick="addPlayAcc()">Adicionar</button>
+  </div>
+  <h2>Apps na Play</h2>
+  <div class="row" style="margin-bottom:8px">
+    <select id="playAppAcc" style="max-width:300px"></select>
+    <input type="text" id="playAppPkg" placeholder="com.exemplo.app" style="max-width:300px;font-family:var(--mono)">
+    <button class="btn pri" onclick="addPlayApp()">Adicionar app</button>
+  </div>
+  <p class="hint" style="margin:0 0 12px">A API do Google não lista os apps da conta: o app precisa já existir no Play Console.</p>
+  <div class="list" id="playApps"></div>
+</section>
+
+<!-- ANDROID -->
+<section class="section" id="s-android">
+  <div class="row" style="margin-bottom:14px">
+    <select id="andProject" style="max-width:260px" onchange="loadAndroid()"></select>
+    <select id="andAcc" style="max-width:260px" onchange="andAccChanged()"></select>
+    <input type="text" id="andPkg" placeholder="com.exemplo.app" style="max-width:260px;font-family:var(--mono)" onchange="andPkgChanged()">
+    <button class="btn" onclick="loadAndroid()">Recarregar</button>
+  </div>
+  <div id="andInfo"></div>
+  <div class="card" id="andKeyCard" style="margin-bottom:16px"></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+    <div class="card"><h3>1 · Versão</h3><p>Nome que aparece na loja e código do build (precisa ser maior que o último enviado).</p>
+      <div class="row"><div class="field" style="flex:1"><label>Versão</label><input type="text" id="andVersion" placeholder="1.0.0"></div>
+        <div class="field" style="flex:1"><label>Código (versionCode)</label><input type="text" id="andCode" value="auto"></div></div>
+      <div class="field"><label>Gerar</label><select id="andKind"><option value="aab">AAB (Play Store)</option><option value="apk">APK (instalar direto)</option><option value="both">AAB + APK</option></select></div>
+      <label class="check"><input type="checkbox" id="andDebug" onchange="andSync()">Build de debug (sem assinatura de release)</label>
+      <div class="field"><label>Comando antes do Gradle</label><input type="text" id="andPre" style="font-family:var(--mono)" onchange="saveAndroidMeta({preBuild:val('andPre')})"></div>
+      <p class="hint" style="margin:-6px 0 0">deixe vazio para o padrão detectado; use - para pular</p>
+    </div>
+    <div class="card"><h3>2 · Notas da versão</h3><p>Texto "Novidades" da Play, até 500 caracteres por idioma. Gere com IA a partir das mudanças no git ou escreva.</p>
+      <div class="field"><label>Idiomas</label><div class="row" id="andLocales"></div></div>
+      <div class="row"><select id="andAi" style="max-width:220px"></select>
+        <input type="text" id="andExtra" placeholder="Observações para a IA (opcional)" style="flex:1">
+        <button class="btn pri" onclick="genAndNotes()">✨ Gerar com IA</button></div>
+      <details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Ver mudanças enviadas para a IA</summary><pre id="andChanges" style="white-space:pre-wrap;font-family:var(--mono);font-size:12px;color:var(--muted);max-height:220px;overflow:auto"></pre></details>
+    </div>
+    <div class="card"><h3>3 · Compilar e enviar</h3><p>Gera o AAB/APK assinado com a chave deste projeto e, se marcado, envia para uma faixa da Google Play.</p>
+      <label class="check"><input type="checkbox" id="andUpload" onchange="andSync()">Enviar para o Google Play</label>
+      <div class="row"><div class="field" style="flex:1"><label>Faixa</label><select id="andTrack" onchange="andSync()"><option value="internal">Teste interno</option><option value="alpha">Teste fechado (alpha)</option><option value="beta">Teste aberto (beta)</option><option value="production">Produção</option></select></div>
+        <div class="field" style="flex:1"><label>Status</label><select id="andStatus" onchange="andSync()"><option value="completed">Liberar</option><option value="draft">Rascunho</option><option value="inProgress">Lançamento gradual</option></select></div>
+        <div class="field" id="andFracWrap" style="flex:1" hidden><label>Percentual (%)</label><input type="text" id="andFraction" value="10"></div></div>
+      <div class="row"><button class="btn pri" onclick="runAndroid()">🚀 Iniciar</button><span class="hint" id="andWarn"></span></div>
+    </div>
+    <div class="card"><h3>📲 Instalar no celular Android (adb por Wi-Fi)</h3>
+      <p>Android 11+: Opções do desenvolvedor → Depuração por Wi-Fi → Parear com código. O PC e o celular precisam estar na mesma rede.</p>
+      <div class="row"><input type="text" id="adbPairAddr" placeholder="ip:porta de pareamento" style="flex:1;font-family:var(--mono)"><input type="text" id="adbPairCode" placeholder="código" style="max-width:110px;font-family:var(--mono)"><button class="btn" onclick="run('adb.pair',{addr:val('adbPairAddr'),code:val('adbPairCode')},'Parear Android')">Parear</button></div>
+      <div class="row" style="margin-top:10px"><input type="text" id="adbAddr" placeholder="ip:porta de conexão" style="flex:1;font-family:var(--mono)"><button class="btn" onclick="run('adb.connect',{addr:val('adbAddr')},'Conectar Android')">Conectar</button><button class="btn" onclick="listAdb()">Listar</button></div>
+      <div class="hint" id="adbList" style="white-space:pre-line;font-family:var(--mono);margin-top:6px"></div>
+      <div class="field" style="margin-top:10px"><label>Aparelho</label><select id="adbSerial"></select></div>
+      <div class="field"><label>APK do projeto</label><select id="adbApk"></select></div>
+      <div class="row"><button class="btn pri" onclick="run('adb.install',{serial:val('adbSerial'),path:val('adbApk')},'Instalar APK no Android')">Instalar</button><button class="btn" onclick="run('adb.launch',{serial:val('adbSerial'),package:val('andPkg')},'Abrir app Android')">Abrir app</button></div>
+    </div>
+  </div>
+  <div id="andTexts" class="grid" style="margin-top:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
 </section>
 
 <!-- GITHUB -->
@@ -452,14 +522,14 @@ h2:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id), val=id=>$(id).value.trim(), chk=id=>$(id).checked;
 const consoleEl=$('console'), side=$('side');
-const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados']};
+const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados'],android:['Android','Compilar APK/AAB, assinar e publicar no Google Play'],play:['Contas Google Play','Contas de serviço, apps e faixas']};
 const fmtB=b=>b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
 async function api(u,body){const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 
 function go(s){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 
 /* terminal */
@@ -485,7 +555,7 @@ async function poll(force){
     $('ctitle').textContent=j.title+'  ·  '+j.argv.join(' ');
     $('cdot').className='dot '+(j.running?'run':j.code===0?'ok':'bad');
     $('cstop').hidden=!j.running;
-    if(!j.running&&!doneShown.has(j.id)){doneShown.add(j.id);term.write(`\r\n\x1b[${j.code===0?'32':'31'}m── terminou (código ${j.code})\x1b[0m\r\n`);loadJobs();refreshStatus();loadProjects();loadAccounts()}
+    if(!j.running&&!doneShown.has(j.id)){doneShown.add(j.id);term.write(`\r\n\x1b[${j.code===0?'32':'31'}m── terminou (código ${j.code})\x1b[0m\r\n`);loadJobs();refreshStatus();loadProjects();loadAccounts();if(andCur&&$('s-android').classList.contains('on'))refreshAndInfo().catch(()=>{})}
   }catch(e){}}
 setInterval(poll,350);
 
@@ -510,7 +580,8 @@ async function refreshStatus(){
       c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'👤')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
       c('Disco livre',fmtB(s.disk.free)+' de '+fmtB(s.disk.total),null,'💾')+
-      c('Conexão iPhone',s.usbmuxd?'serviço Apple ativo':'abra o iTunes no Windows',s.usbmuxd?['ok','pronto']:['warn','desligado'],'🔌');
+      c('Conexão iPhone',s.usbmuxd?'serviço Apple ativo':'abra o iTunes no Windows',s.usbmuxd?['ok','pronto']:['warn','desligado'],'🔌')+
+      (s.android?c('Android',esc((s.android.java||'Java não encontrado')+' · Node '+(s.android.node||'—')),s.android.sdk?['ok','SDK pronto']:['warn','SDK falta'],'🤖'):'');
   }catch(e){$('stats').innerHTML='<div class="empty">Servidor indisponível</div>'}}
 
 /* projects */
@@ -545,19 +616,21 @@ async function linkApp(project,link){
 async function loadProjects(){
   const ps=await api('/api/projects');projCache=ps;
   try{regItems=await api('/api/apps/registry')}catch(e){}
-  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;
+  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;const pl=p.platforms||['ios'],hasIos=pl.includes('ios'),hasAnd=pl.includes('android');
+    const pills=pl.map(x=>`<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px">${x==='ios'?'🍎 iOS':'🤖 Android'}</span>`).join('');
     const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''} · <a href="#" onclick="run('git.pull',{},'Atualizar ${n}',${P});return false">⬇ pull</a> · <a href="#" onclick="gitPush(${P});return false">⬆ push</a>`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
-    <div class="grow"><div class="name">${n}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
+    <div class="grow"><div class="name">${n}${pills}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
     <div class="row">
-      <select id="cfg-${n}" class="btn sm" style="width:auto"><option>debug</option><option>release</option></select>
+      ${hasIos?`<select id="cfg-${n}" class="btn sm" style="width:auto"><option>debug</option><option>release</option></select>
       <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value},'Build ${n}',${P})">Build</button>
       <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value,sign:true,ipa:true},'Gerar .ipa ${n}',${P})">Gerar .ipa</button>
       <button class="btn sm pri" onclick="run('dev.run',{config:$('cfg-${n}').value,udid:val('runUdid'),conn:'all'},'Rodar ${n}',${P})">▶ Rodar no iPhone</button>
       <button class="btn sm" onclick="run('dev.xcode',{},'Projeto Xcode ${n}',${P})">Xcode</button>
-      <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>
+      <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>`:''}
+      ${hasAnd?`<button class="btn sm" onclick="andProject.innerHTML='<option>${n}</option>';go('android')">🤖 Android</button>`:''}
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
     </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons()}
 function newProject(){const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');run('new',{name:n,skipSetup:chk('skipSetup')},'Novo projeto '+n)}
@@ -692,7 +765,7 @@ async function loadRegistry(){
   regList.innerHTML=regItems.length?regItems.map((r,i)=>{const v=(r.versions||[])[0];return `<div class="reg">
     <span class="clickable" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')">${iconSlot(r.bundleId,esc((r.name||'?')[0]))}</span>
     <div class="clickable" style="min-width:0" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name||r.bundleId)}</div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.bundleId)}${v?' · v'+esc(v.versionString):''}${(()=>{const pr=projCache.find(x=>x.meta.bundleId===r.bundleId&&x.meta.accountId===r.accountId);return pr?' · 📁 '+esc(pr.name):''})()}</div></div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.bundleId)}${v?' · v'+esc(v.versionString):''}${(()=>{const pr=projCache.filter(x=>(x.platforms||['ios']).includes('ios')).find(x=>x.meta.bundleId===r.bundleId&&x.meta.accountId===r.accountId);return pr?' · 📁 '+esc(pr.name):''})()}</div></div>
     <div class="accchip" title="Conta Apple"><span class="mini" style="background:${colorOf(r.accountId)}">${esc((r.accountLabel||'?')[0].toUpperCase())}</span><div><b>${esc(r.accountLabel)}</b><small>${esc(r.appleId||r.teamId||'')}</small></div></div>
     ${r.hasApi?'<span class="pill ok" title="A conta tem a chave da API da Apple"><i></i>API Apple</span>':`<span class="pill warn clickable" title="Cadastrar a chave da API desta conta" onclick="openKey('${r.accountId}')"><i></i>sem API</span>`}
     <button class="x" title="Tirar da lista" onclick="forgetApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Escolha a conta e clique em "Buscar apps": tudo que for encontrado fica salvo aqui.</div>';
@@ -777,14 +850,15 @@ function renderStore(){
     <div class="row">${L.url?`<a class="btn sm" target="_blank" href="${esc(L.url)}">Abrir na App Store</a>`:''}${L.project?`<button class="btn sm" onclick="closeStore();pubProject.innerHTML='<option>${esc(L.project)}</option>';go('publish')">🚀 Publicar</button>`:''}<button class="btn sm" onclick="closeStore()">Fechar</button></div>`}
 
 let projCache=[];
-function linkedProject(bundle){const p=projCache.find(x=>(x.meta.bundleId||x.bundleId)===bundle);return p?`<button class="btn sm pri" onclick="pubProject.value='${esc(p.name)}';go('publish')">Publicar ${esc(p.name)}</button>`:''}
+function linkedProject(bundle){const p=projCache.filter(x=>(x.platforms||['ios']).includes('ios')).find(x=>(x.meta.bundleId||x.bundleId)===bundle);return p?`<button class="btn sm pri" onclick="pubProject.value='${esc(p.name)}';go('publish')">Publicar ${esc(p.name)}</button>`:''}
 
 /* ---------- publicar ---------- */
 const LOCALES=[['pt-BR','Português (BR)'],['en-US','Inglês (EUA)'],['es-MX','Espanhol (MX)'],['es-ES','Espanhol (ES)'],['fr-FR','Francês'],['de-DE','Alemão'],['it','Italiano'],['ja','Japonês']];
 let relInfo=null;
 async function initPublish(){
   await loadAccounts();projCache=await api('/api/projects');
-  const keep=val('pubProject');pubProject.innerHTML=projCache.length?projCache.map(p=>`<option ${p.name===keep?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">nenhum projeto</option>';
+  const L=projCache.filter(p=>(p.platforms||['ios']).includes('ios'));
+  const keep=val('pubProject');pubProject.innerHTML=L.length?L.map(p=>`<option ${p.name===keep?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">nenhum projeto iOS</option>';
   const ai=await api('/api/ai');pubAi.innerHTML=Object.keys(ai.providers).length?Object.keys(ai.providers).map(k=>`<option value="${k}" ${k===ai.default?'selected':''}>${esc(ai.catalog[k]?.label||k)} · ${esc(ai.providers[k].model||'')}</option>`).join(''):'<option value="">configure uma IA</option>';
   loadRelease()}
 async function loadRelease(){
@@ -866,6 +940,164 @@ const aiForm=k=>({apiKey:$('ai-key-'+k)?.value.trim()||'',baseUrl:val('ai-url-'+
 async function aiSave(k,def){try{await api('/api/ai/save',{provider:k,conf:aiForm(k),default:!!def});toast('IA salva');loadAi()}catch(e){toast(e.message)}}
 async function aiModels(k){const m=$('ai-msg-'+k);m.textContent='buscando…';try{const ms=await api('/api/ai/models',{provider:k,conf:aiForm(k)});$('ai-ml-'+k).innerHTML=ms.map(x=>`<option value="${esc(x)}">`).join('');m.textContent=ms.length+' modelos — clique no campo';$('ai-model-'+k).focus()}catch(e){m.textContent='✖ '+e.message}}
 async function aiTest(k){const m=$('ai-msg-'+k);m.textContent='testando…';try{const r=await api('/api/ai/whatsnew',{provider:k,project:'',changes:'- Corrigido travamento ao abrir fotos\n- Novo modo escuro',version:'1.0.1',locales:['pt-BR']});m.textContent='✔ '+r['pt-BR'].slice(0,80)+'…'}catch(e){m.textContent='✖ '+e.message}}
+
+/* ---------- Google Play: contas e apps ---------- */
+let playAccs=[], playAppsCache=[];
+async function fetchPlayAccs(){playAccs=await api('/api/play/accounts');return playAccs}
+async function loadPlay(){await loadPlayAccs();loadPlayApps()}
+async function loadPlayAccs(){
+  playAccGrid.innerHTML='<div class="empty">Carregando…</div>';
+  try{await fetchPlayAccs()}catch(e){playAccGrid.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  playAccGrid.innerHTML=playAccs.length?playAccs.map(a=>`<div class="card acc">
+    <div class="avatar" style="background:${colorOf(a.id)}">${esc((a.label||'?')[0].toUpperCase())}</div>
+    <h3>${esc(a.label)}</h3>
+    <div class="kv"><span>E-mail</span><span>${esc(a.email||'—')}</span><span>Projeto</span><span>${esc(a.projectId||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span></div>
+    <div class="row">
+      <button class="btn sm" onclick="testPlayAcc('${a.id}')">Testar</button>
+      <button class="btn sm" onclick="renamePlayAcc('${a.id}')">Renomear</button>
+      <button class="btn sm danger" onclick="removePlayAcc('${a.id}')">Remover</button>
+      <span class="hint" id="pt-${a.id}"></span></div></div>`).join(''):'<div class="empty">Nenhuma conta Google Play. Adicione uma abaixo.</div>';
+  refreshPlayAppAcc()}
+function refreshPlayAppAcc(){const sel=val('playAppAcc');playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta acima</option>'}
+async function testPlayAcc(id){const s=$('pt-'+id);if(s)s.textContent='testando…';try{const r=await api('/api/play/test',{id});if(s)s.textContent='✔ conectado'+(r.email?' · '+r.email:'')}catch(e){if(s)s.textContent='✖ '+e.message}}
+async function renamePlayAcc(id){const a=playAccs.find(x=>x.id===id);const n=prompt('Novo nome da conta:',a?a.label:'');if(!n||!n.trim())return;try{await api('/api/play/accounts/rename',{id,label:n.trim()});loadPlay()}catch(e){toast(e.message)}}
+async function removePlayAcc(id){const a=playAccs.find(x=>x.id===id);if(!confirm(`Remover a conta "${a?a.label:id}" do painel? Os apps dela também saem da lista (nada é apagado no Google Play).`))return;try{await api('/api/play/accounts/remove',{id});loadPlay()}catch(e){toast(e.message)}}
+async function addPlayAcc(){const f=playJson.files[0];if(!f)return toast('Escolha o arquivo JSON da conta de serviço');try{const json=await f.text();await api('/api/play/accounts/add',{label:val('playLabel'),json});playLabel.value='';playJson.value='';toast('Conta Google Play adicionada');loadPlay()}catch(e){toast(e.message)}}
+async function loadPlayApps(){
+  playApps.innerHTML='<div class="empty">Carregando…</div>';
+  try{playAppsCache=await api('/api/play/apps')}catch(e){playApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  playApps.innerHTML=playAppsCache.length?playAppsCache.map((a,i)=>{const tr=(a.tracks||[]).filter(t=>t.releases&&t.releases.length).map(t=>`${esc(t.track)}: ${esc(t.releases[0].name||'?')}(${esc(t.releases[0].status||'?')})`).join(' · ');
+    return `<div class="item"><span style="font-size:20px">🤖</span><div class="grow">
+      <div class="name">${esc(a.name||a.packageName)}</div>
+      <div class="meta" style="font-family:var(--mono)">${esc(a.packageName)}</div>
+      <div class="meta linked"><span class="mini" style="background:${colorOf(a.accountId||'x')}">${esc((a.accountLabel||'?')[0].toUpperCase())}</span>${esc(a.accountLabel||'conta removida')}</div>
+      <div class="meta">${tr||'sem faixas'}</div></div>
+      <button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>
+      <button class="btn sm danger" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app na Play. Adicione o package name acima.</div>'}
+async function addPlayApp(){const accountId=val('playAppAcc'),packageName=val('playAppPkg');if(!accountId)return toast('Cadastre uma conta Google Play primeiro');if(!packageName)return toast('Informe o package name (ex: com.exemplo.app)');toast('conferindo no Google Play…');try{await api('/api/play/apps/add',{accountId,packageName});playAppPkg.value='';loadPlayApps()}catch(e){toast(e.message)}}
+async function refreshPlayApp(i){const a=playAppsCache[i];if(!a)return;toast('Atualizando '+a.packageName+'…');try{await api(`/api/play/app?account=${encodeURIComponent(a.accountId)}&package=${encodeURIComponent(a.packageName)}`);loadPlayApps()}catch(e){toast(e.message)}}
+async function forgetPlayApp(i){const a=playAppsCache[i];if(!a)return;if(!confirm(`Tirar "${a.name||a.packageName}" da lista? (Não apaga nada no Google Play.)`))return;try{await api('/api/play/apps/forget',{accountId:a.accountId,packageName:a.packageName});loadPlayApps()}catch(e){toast(e.message)}}
+
+/* ---------- Android: compilar, assinar e enviar ---------- */
+const PLAY_LOCALES=[['pt-BR','Português (BR)'],['en-US','Inglês (EUA)'],['es-419','Espanhol (América Latina)'],['es-ES','Espanhol (Espanha)'],['fr-FR','Francês'],['de-DE','Alemão'],['it-IT','Italiano'],['ja-JP','Japonês']];
+let andCur=null, andNotes={};
+const bumpLast=v=>{const p=String(v).split('.');const n=parseInt(p.pop(),10);return isNaN(n)?String(v):[...p,n+1].join('.')};
+const selText=s=>(s.options[s.selectedIndex]||{}).text||'';
+async function initAndroid(){
+  const keep=val('andProject');
+  try{projCache=await api('/api/projects')}catch(e){andInfo.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  const L=projCache.filter(p=>(p.platforms||[]).includes('android'));
+  andProject.innerHTML=L.length?L.map(p=>`<option ${p.name===keep?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">nenhum projeto Android</option>';
+  try{await fetchPlayAccs()}catch(e){}
+  andAcc.innerHTML='<option value="">— sem envio —</option>'+playAccs.map(a=>`<option value="${a.id}">${esc(a.label)}</option>`).join('');
+  try{const ai=await api('/api/ai');andAi.innerHTML=Object.keys(ai.providers).length?Object.keys(ai.providers).map(k=>`<option value="${k}" ${k===ai.default?'selected':''}>${esc(ai.catalog[k]?.label||k)} · ${esc(ai.providers[k].model||'')}</option>`).join(''):'<option value="">configure uma IA</option>'}catch(e){andAi.innerHTML='<option value="">IA indisponível</option>'}
+  await loadAndroid()}
+async function fetchAndInfo(){andCur=await api('/api/android/info?project='+encodeURIComponent(val('andProject')))}
+async function refreshAndInfo(){if(!andCur)return;await fetchAndInfo();renderAndInfo();fillAdbApk()}
+async function loadAndroid(){
+  const p=val('andProject');
+  if(!p){andCur=null;andInfo.innerHTML='<div class="empty">Nenhum projeto Android. Os projetos com a plataforma Android aparecem aqui.</div>';andKeyCard.innerHTML='';return}
+  andInfo.innerHTML='<div class="empty">Carregando…</div>';
+  try{projCache=await api('/api/projects');await fetchAndInfo()}catch(e){andCur=null;andInfo.innerHTML=`<div class="empty">${esc(e.message)}</div>`;andKeyCard.innerHTML='';return}
+  const I=andCur,M=I.meta||{},D=I.detect||{};
+  renderAndInfo();fillAdbApk();
+  if(andVersion.dataset.p!==p){andVersion.value=M.lastVersionName?bumpLast(M.lastVersionName):(D.versionName||'1.0.0');andCode.value='auto';andVersion.dataset.p=p;andNotes={}}
+  andPkg.value=I.packageName||'';
+  andAcc.value=M.playAccountId||'';
+  andPre.value=M.preBuild??D.defaultPreBuild??'';
+  const locs=M.locales??['pt-BR'];
+  andLocales.innerHTML=PLAY_LOCALES.map(([k,t])=>`<label class="check" style="margin:0 10px 0 0"><input type="checkbox" value="${k}" ${locs.includes(k)?'checked':''} onchange="andLocChanged()">${t}</label>`).join('');
+  renderAndTexts();
+  andChanges.textContent=I.changes||'(sem histórico git — escreva as observações para a IA)';
+  andSync()}
+async function saveAndroidMeta(patch){if(!andCur)return;andCur.meta={...(andCur.meta||{}),...patch};try{await api('/api/projects/meta',{project:andCur.project,patch:{android:andCur.meta}})}catch(e){toast(e.message)}}
+async function andPkgChanged(){const pkg=val('andPkg');if(!andCur||!pkg||pkg===andCur.packageName)return;await saveAndroidMeta({packageName:pkg});try{await refreshAndInfo()}catch(e){toast(e.message)}}
+function andAccChanged(){andSync();saveAndroidMeta({playAccountId:andAcc.value})}
+function andLocChanged(){const locales=[...andLocales.querySelectorAll('input:checked')].map(i=>i.value);saveAndroidMeta({locales});renderAndTexts()}
+function andSync(){const noAcc=!andAcc.value,dbg=chk('andDebug');andUpload.disabled=noAcc;if(noAcc)andUpload.checked=false;andFracWrap.hidden=andStatus.value!=='inProgress';andWarn.textContent=dbg?'build de debug: não é enviado':andUpload.checked?`vai enviar para ${selText(andTrack)}`:'só gera os arquivos'}
+function fillAdbApk(){const pr=projCache.find(x=>x.name===(andCur&&andCur.project))||{};const apks=(pr.artifacts||[]).filter(a=>/\.apk$/i.test(a));
+  adbApk.innerHTML=apks.length?apks.map(a=>`<option value="${esc('/work/'+a)}">${esc(a.split('/').pop())}</option>`).join(''):'<option value="">nenhum .apk — gere um build primeiro</option>'}
+function renderAndInfo(){
+  const I=andCur,D=I.detect,M=I.meta||{},P=I.play;
+  if(!D){andInfo.innerHTML='<div class="empty">Projeto sem pasta Gradle (android/). Confira se é um projeto Android.</div>';andKeyCard.innerHTML='';return}
+  const tracks=P?(P.tracks||[]).filter(t=>t.releases&&t.releases.length):[];
+  const b=M.lastBuild;
+  andInfo.innerHTML=`<div class="card" style="margin-bottom:16px">
+    <div style="min-width:0"><h3 style="margin:0">${esc(P&&P.title||I.packageName||I.project)}</h3>
+      <div class="hint" style="font-family:var(--mono)">${esc(I.packageName||'sem package name')}</div>
+      <p style="margin:6px 0 0">${D.capacitor?'Capacitor':'Gradle'} · pasta gradle <span style="font-family:var(--mono)">${esc(D.gradleDir||'—')}</span> · módulo ${esc(D.module||'app')}</p></div>
+    ${P?`<div class="meta" style="margin-top:10px">${tracks.length?tracks.map(t=>`<div><b>${esc(t.track)}</b>: ${t.releases.map(r=>`${esc(r.name||'?')} (${esc(r.status||'?')})`).join(', ')}</div>`).join(''):'Google Play: nenhuma faixa com release'}</div>
+      <div class="hint" style="margin-top:6px">último build na Play: versionCode ${esc(P.maxVersionCode??'—')}</div>`:''}
+    ${I.playError?`<p style="color:var(--warn);margin:8px 0 0">Google Play: ${esc(I.playError)}</p>`:''}
+    ${b?`<div style="margin-top:12px"><div class="hint">último build local · ${esc(b.versionName||'?')} (${esc(b.versionCode||'?')})${b.at?' · '+(typeof b.at==='number'?new Date(b.at*1000).toLocaleString('pt-BR'):esc(b.at)):''}</div>
+      <div class="row" style="margin-top:6px">${(b.files||[]).map(f=>`<a class="btn sm" href="/api/download?root=work&path=${encodeURIComponent(f.replace(/^\/work\//,''))}">⬇ ${esc(f.split('/').pop())}</a>`).join('')}</div></div>`:'<p class="hint" style="margin-top:12px">Nenhum build local ainda.</p>'}
+  </div>`;
+  renderAndKey()}
+function renderAndKey(){
+  const K=andCur.key||{},pkg=andCur.packageName||'';
+  if(K.configured){
+    andKeyCard.innerHTML=`<h3>🔑 Chave de assinatura (upload key) <span class="pill ok"><i></i>configurada</span></h3>
+      <p>Assina os builds de release. Baixe o backup e guarde em lugar seguro: sem a chave não dá para atualizar o app na Play.</p>
+      <div class="kv"><span>Alias</span><span>${esc(K.keyAlias||'—')}</span><span>SHA-1</span><span>${esc(K.sha1||'—')}</span><span>SHA-256</span><span>${esc(K.sha256||'—')}</span></div>
+      <div class="row"><a class="btn sm pri" href="/api/android/key/download?package=${encodeURIComponent(pkg)}">⬇ Baixar backup</a><button class="btn sm danger" onclick="removeAndKey()">Remover</button></div>`;
+    return}
+  andKeyCard.innerHTML=`<h3>🔑 Chave de assinatura (upload key) <span class="pill warn"><i></i>não configurada</span></h3>
+    <p>Sem chave não é possível assinar o build de release (AAB/APK). Escolha uma opção para <b>${esc(pkg||'este app')}</b>:</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px;border:1px solid var(--line);border-radius:12px;padding:14px">
+        <b>a) Gerar chave nova</b>
+        <div class="field" style="margin-top:8px"><label>Nome (CN)</label><input type="text" id="akCn" placeholder="ex: Equipe Dev"></div>
+        <div class="field"><label>Organização</label><input type="text" id="akOrg"></div>
+        <button class="btn pri" onclick="genAndKey()">Gerar chave nova</button>
+        <p class="hint" style="margin:8px 0 0">Depois de gerar, baixe o backup e cadastre o SHA-1/SHA-256 no Firebase/Google.</p>
+      </div>
+      <div style="flex:1;min-width:260px;border:1px solid var(--line);border-radius:12px;padding:14px">
+        <b>b) Importar chave existente</b>
+        <div class="field" style="margin-top:8px"><label>Arquivo (.p12, .jks, .keystore, .pfx)</label><input type="file" id="akFile" accept=".p12,.jks,.keystore,.pfx"></div>
+        <div class="field"><label>Senha do keystore</label><input type="password" id="akStorePw"></div>
+        <div class="field"><label>Alias</label><input type="text" id="akAlias"></div>
+        <div class="field"><label>Senha da chave (opcional)</label><input type="password" id="akKeyPw"></div>
+        <button class="btn" onclick="importAndKey()">Importar</button>
+      </div>
+    </div>`}
+async function genAndKey(){const pkg=val('andPkg');if(!pkg)return toast('Informe o package name do app');try{await api('/api/android/key/generate',{package:pkg,cn:val('akCn'),org:val('akOrg')});toast('Chave gerada: baixe o backup agora e cadastre o SHA-1/SHA-256 no Firebase/Google');await refreshAndInfo()}catch(e){toast(e.message)}}
+async function importAndKey(){
+  const pkg=val('andPkg'),f=$('akFile').files[0];
+  if(!pkg)return toast('Informe o package name do app');if(!f)return toast('Escolha o arquivo do keystore');
+  try{
+    const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(new Error('não foi possível ler o arquivo'));r.readAsDataURL(f)});
+    await api('/api/android/key/import',{package:pkg,data,storePassword:$('akStorePw').value,keyAlias:val('akAlias'),keyPassword:$('akKeyPw').value,ext:f.name.split('.').pop().toLowerCase()});
+    toast('Chave importada');await refreshAndInfo()}catch(e){toast(e.message)}}
+async function removeAndKey(){
+  const pkg=andCur.packageName;
+  if(!confirm(`Apagar a chave de assinatura de ${pkg}?\n\nSem backup, você NÃO consegue mais atualizar este app na Play com a mesma chave.`))return;
+  if(prompt('Para confirmar, digite o package name do app:\n'+pkg)!==pkg)return toast('Cancelado: o package name não confere');
+  try{await api('/api/android/key/remove',{package:pkg});toast('Chave removida');await refreshAndInfo()}catch(e){toast(e.message)}}
+function renderAndTexts(){const locs=[...andLocales.querySelectorAll('input:checked')].map(i=>i.value);
+  andTexts.innerHTML=locs.map(l=>{const n=(andNotes[l]||'').length;return `<div class="card"><h3>📝 ${esc((PLAY_LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="6" oninput="andNoteChanged(this)" style="width:100%;background:#0e1117;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(andNotes[l]||'')}</textarea><div class="hint" data-cnt="${l}" style="text-align:right;${n>500?'color:var(--bad)':''}">${n}/500</div></div>`}).join('')}
+function andNoteChanged(t){const l=t.dataset.loc,n=t.value.length;andNotes[l]=t.value;const c=andTexts.querySelector(`[data-cnt="${l}"]`);if(c){c.textContent=n+'/500';c.style.color=n>500?'var(--bad)':''}}
+async function genAndNotes(){
+  if(!andCur)return;
+  const locales=[...andLocales.querySelectorAll('input:checked')].map(i=>i.value);if(!locales.length)return toast('Escolha ao menos um idioma');
+  if(!val('andAi'))return toast('Configure uma IA na seção IA');
+  const extra=val('andExtra');if(!andCur.changes&&!extra)return toast('Sem mudanças no git: escreva observações para a IA');
+  toast('Gerando com IA…');
+  try{const r=await api('/api/ai/whatsnew',{provider:val('andAi'),project:andCur.project,appName:(andCur.play&&andCur.play.title)||andCur.project,version:val('andVersion'),locales,changes:andCur.changes||extra,extra:(extra+' Máximo de 500 caracteres: é o texto de novidades do Google Play.').trim()});
+    Object.assign(andNotes,r);renderAndTexts();toast('Texto gerado — revise antes de enviar')}catch(e){toast(e.message)}}
+function runAndroid(){
+  if(!andCur)return toast('Escolha um projeto Android');
+  const project=andCur.project,v=val('andVersion'),code=val('andCode')||'auto',pkg=val('andPkg');
+  if(!/^\d+(\.\d+){0,3}$/.test(v))return toast('Versão inválida (ex: 1.2.0)');
+  if(code!=='auto'&&!/^\d+$/.test(code))return toast('Código inválido (use auto ou um número)');
+  if(!pkg)return toast('Informe o package name do app');
+  const debug=chk('andDebug'),upload=!debug&&andUpload.checked&&!!andAcc.value,kind=andKind.value,status=andStatus.value;
+  let frac=null;if(status==='inProgress'){frac=parseFloat(val('andFraction').replace(',','.'));if(!(frac>0&&frac<=100))return toast('Percentual entre 0 e 100')}
+  const notes={};document.querySelectorAll('#andTexts textarea').forEach(t=>{if(t.value.trim())notes[t.dataset.loc]=t.value.trim()});
+  const what=debug?`Compilar ${project} v${v} em modo debug (sem envio)`:upload?`Compilar ${project} v${v} e enviar para a Play (${selText(andTrack)}, ${selText(andStatus)}${frac!=null?' '+frac+'%':''})`:`Compilar ${project} v${v} (${selText(andKind)}, sem envio)`;
+  const warn=upload&&kind==='apk'?'\n\nAtenção: a Play exige AAB para apps novos.':'';
+  if(!confirm(`${what}?\nversionCode: ${code}${warn}`))return;
+  run('android.release',{project,packageName:pkg,kind,debug,versionName:v,versionCode:code,preBuild:val('andPre'),upload,playAccountId:andAcc.value,track:andTrack.value,status,userFraction:frac!=null?frac/100:null,releaseNotes:notes},`Android ${project} v${v}`,project)}
+async function listAdb(){try{const L=await api('/api/adb/devices');adbSerial.innerHTML='<option value="">Automático (primeiro conectado)</option>'+L.map(d=>`<option value="${esc(d.serial)}">${esc(d.serial)} — ${esc(d.model||d.device||d.state||'')}</option>`).join('');adbList.textContent=L.length?L.map(d=>`${d.serial} · ${d.state||''} · ${d.model||d.device||''}`).join('\n'):'Nenhum aparelho. Pareie ou conecte e tente de novo.'}catch(e){adbList.textContent=e.message}}
 
 function runShell(){const c=val('shCmd');if(c)run('shell',{cmd:c},c.length>30?c.slice(0,30)+'…':c)}
 function refreshAll(){refreshStatus();loadJobs();const s=document.querySelector('.nav.on').dataset.s;go(s)}

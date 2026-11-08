@@ -5,6 +5,7 @@ Every command becomes a "job" with its own pseudo-terminal, so interactive
 prompts (login mode, Apple ID, 2FA code, Xcode.xip path) work from the browser:
 the page polls the job output and posts lines back as input.
 """
+import base64
 import json
 import os
 import pty
@@ -21,16 +22,19 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
 import ai
+import android
 import github
 import store
 from asc import ASC, AscError
+from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
+ANDROID_HOME = os.environ.get("ANDROID_HOME", "/opt/android-sdk")
 ROOTS = {"work": WORK, "downloads": "/downloads"}
 MAX_OUT = 2_000_000  # keep the last ~2 MB of output per job
 
@@ -425,6 +429,7 @@ def status():
     auth = ANSI.sub("", quick(["xtool", "auth", "status"]))
     sdk = ANSI.sub("", quick(["xtool", "sdk", "status"]))
     du = shutil.disk_usage(WORK)
+    jv = quick(["java", "-version"]) if shutil.which("java") else ""
     return {
         "xtool": xt, "swift": sw[0] if sw else "",
         "xtoolLatest": xtool_latest(),
@@ -434,6 +439,12 @@ def status():
         "usbmuxd": usbmux_ok(),
         "usbmuxdVia": os.environ.get("USBMUXD_SOCKET_ADDRESS") or "/var/run/usbmuxd",
         "downloads": os.path.isdir("/downloads"),
+        "android": {
+            "sdk": os.path.isdir(ANDROID_HOME),
+            "java": jv.splitlines()[0] if jv else "",
+            "node": quick(["node", "--version"]) if shutil.which("node") else "",
+            "adb": shutil.which("adb") is not None,
+        },
     }
 
 
@@ -458,34 +469,47 @@ def projects():
         return res
     for name in sorted(os.listdir(WORK), key=str.lower):
         d = os.path.join(WORK, name)
-        if os.path.isfile(os.path.join(d, "Package.swift")):
-            arts = []
-            xd = os.path.join(d, "xtool")
-            if os.path.isdir(xd):
-                for a in os.listdir(xd):
-                    if a.endswith((".ipa", ".app")):
-                        arts.append(f"{name}/xtool/{a}")
-            yml = {}
-            try:
-                for line in open(os.path.join(d, "xtool.yml")):
-                    if ":" in line and not line.startswith(" "):
-                        k, v = line.split(":", 1)
-                        yml[k.strip()] = v.strip().strip("'\"")
-            except OSError:
-                pass
-            try:
-                gs = github.git_status(d)
-            except Exception:  # noqa
-                gs = None
-            res.append({
-                "name": name,
-                "hasToml": bool(yml),
-                "bundleId": yml.get("bundleID", ""),
-                "artifacts": sorted(arts),
-                "mtime": os.stat(d).st_mtime,
-                "meta": store.project_meta(name),
-                "git": gs,
-            })
+        ios = os.path.isfile(os.path.join(d, "Package.swift"))
+        try:
+            andr = android.detect(d)
+        except Exception:  # noqa
+            andr = None
+        if not ios and not andr:
+            continue
+        arts = []
+        xd = os.path.join(d, "xtool")
+        if os.path.isdir(xd):
+            for a in os.listdir(xd):
+                if a.endswith((".ipa", ".app")):
+                    arts.append(f"{name}/xtool/{a}")
+        ad = os.path.join(xd, "android")
+        if os.path.isdir(ad):
+            for a in os.listdir(ad):
+                if a.endswith((".apk", ".aab")):
+                    arts.append(f"{name}/xtool/android/{a}")
+        yml = {}
+        try:
+            for line in open(os.path.join(d, "xtool.yml")):
+                if ":" in line and not line.startswith(" "):
+                    k, v = line.split(":", 1)
+                    yml[k.strip()] = v.strip().strip("'\"")
+        except OSError:
+            pass
+        try:
+            gs = github.git_status(d)
+        except Exception:  # noqa
+            gs = None
+        res.append({
+            "name": name,
+            "hasToml": bool(yml),
+            "bundleId": yml.get("bundleID", ""),
+            "artifacts": sorted(arts),
+            "mtime": os.stat(d).st_mtime,
+            "meta": store.project_meta(name),
+            "git": gs,
+            "platforms": [p for p, ok in (("ios", ios), ("android", andr)) if ok],
+            "android": andr,
+        })
     return res
 
 
@@ -723,6 +747,82 @@ def apps_registry():
     return out
 
 
+# ---- Google Play apps and Android projects ----
+def play_apps_list():
+    accs = {a["id"]: a for a in store.play_accounts()}
+    out = []
+    for acc_id, apps in store.play_apps_registry().items():
+        a = accs.get(acc_id)
+        if not a:
+            continue
+        for e in apps.values():
+            out.append({"packageName": e.get("packageName", ""), "name": e.get("name", ""),
+                        "accountId": acc_id, "accountLabel": a.get("label", ""), "email": a.get("email", ""),
+                        "updated": e.get("updated"), "tracks": e.get("tracks", [])})
+    out.sort(key=lambda x: ((x.get("name") or x["packageName"]).lower(), x["accountLabel"]))
+    return out
+
+
+def play_app(acc_id, pkg):
+    info = Play(store.play_account(acc_id)["json"]).app_info(pkg)
+    store.play_apps_record(acc_id, [{"packageName": pkg, "name": info.get("title") or pkg,
+                                     "tracks": info.get("tracks", [])}])
+    return info
+
+
+def android_info(project):
+    d = safe_path("work", project)
+    meta = store.project_meta(project).get("android", {})
+    det = android.detect(d)
+    pkg = meta.get("packageName") or (det or {}).get("packageName") or ""
+    play, play_err = None, None
+    if meta.get("playAccountId") and pkg:
+        try:
+            play = play_app(meta["playAccountId"], pkg)
+        except (PlayError, ValueError) as e:
+            play_err = str(e)
+    try:
+        changes = github.changes_since(d, (meta.get("lastRelease") or {}).get("commit"))
+    except Exception:  # noqa
+        changes = ""
+    return {"project": project, "detect": det, "meta": meta, "packageName": pkg,
+            "key": store.android_key_public(pkg), "playAccounts": store.play_accounts(),
+            "play": play, "playError": play_err, "changes": changes}
+
+
+def adb_devices():
+    if not shutil.which("adb"):
+        return []
+    out = []
+    for line in quick(["adb", "devices", "-l"], timeout=15).splitlines():
+        line = line.strip()
+        if not line or line.startswith(("*", "List of devices", "erro")):
+            continue
+        parts = line.split(None, 2)
+        if len(parts) < 2:
+            continue
+        rest = parts[2] if len(parts) > 2 else ""
+        m_model = re.search(r"model:(\S+)", rest)
+        m_dev = re.search(r"device:(\S+)", rest)
+        out.append({"serial": parts[0], "state": parts[1],
+                    "model": m_model.group(1) if m_model else "",
+                    "device": m_dev.group(1) if m_dev else ""})
+    return out
+
+
+def play_test(b):
+    try:
+        return Play(store.play_account(str(b.get("id", "")))["json"]).test()
+    except (PlayError, ValueError) as e:
+        return {"ok": False, "error": str(e)}
+
+
+def android_key_import(b):
+    data = base64.b64decode(b.get("data", "") or "")
+    return android.key_import(b["package"], data, b.get("storePassword", ""), b.get("keyAlias", ""),
+                              b.get("keyPassword", ""), ext=b.get("ext", "p12"))
+
+
 # Commands the page may ask for. Each maps a name to a function returning argv.
 def build_cmd(action, a):
     q = lambda k, d="": str(a.get(k, d)).strip()  # noqa
@@ -732,6 +832,7 @@ def build_cmd(action, a):
     conn = q("conn", "all")
     if conn in ("usb", "network", "all"):
         dev_sel += [f"--{conn}"]
+    s = ["-s", q("serial")] if q("serial") else []  # adb: serial opcional
     cmds = {
         "setup": lambda: ["xtool", "setup"],
         "auth.login": lambda: ["xtool", "auth", "login"] + (["--mode", q("mode")] if q("mode") in ("key", "password") else [])
@@ -772,6 +873,14 @@ def build_cmd(action, a):
                              'git add -A; git diff --cached --quiet || git commit -m "$MSG"; '
                              'git push -u origin HEAD; git log --oneline -3'],
         "release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "release.py"), write_args(a)],
+        "android.release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "android.py"), write_args(a)],
+        "adb.pair": lambda: ["adb", "pair", q("addr"), q("code")],
+        "adb.connect": lambda: ["adb", "connect", q("addr")],
+        "adb.disconnect": lambda: ["adb", "disconnect"],
+        "adb.devices": lambda: ["adb", "devices", "-l"],
+        "adb.install": lambda: ["adb"] + s + ["install", "-r", q("path")],
+        "adb.launch": lambda: ["adb"] + s + ["shell", "monkey", "-p", q("package"),
+                                             "-c", "android.intent.category.LAUNCHER", "1"],
         "xtool.update": lambda: ["bash", "-c", XTOOL_UPDATE],
     }
     if action not in cmds:
@@ -965,6 +1074,23 @@ class H(BaseHTTPRequestHandler):
                     chunk = bytes(j.buf[start:])
                     nxt = j.trimmed + len(j.buf)
                 return self._json({**j.info(), "out": chunk.decode("utf-8", "replace"), "offset": nxt})
+            if u.path == "/api/play/accounts":
+                return self._json(store.play_accounts())
+            if u.path == "/api/play/apps":
+                return self._json(play_apps_list())
+            if u.path == "/api/play/app":
+                return self._json(play_app(qs.get("account", ""), qs.get("package", "")))
+            if u.path == "/api/android/info":
+                return self._json(android_info(qs.get("project", "")))
+            if u.path == "/api/android/key":
+                return self._json(store.android_key_public(qs.get("package", "")))
+            if u.path == "/api/android/key/download":
+                k = store.android_key(qs.get("package", ""))
+                if not k.get("file"):
+                    raise ValueError("chave não encontrada")
+                return self._file(k["file"], download=True)
+            if u.path == "/api/adb/devices":
+                return self._json(adb_devices())
             return self._json({"error": "rota não existe"}, 404)
         except Exception as e:  # noqa
             return self._json({"error": str(e)}, 400)
@@ -1009,6 +1135,19 @@ class H(BaseHTTPRequestHandler):
                 "/api/ai/models": lambda b: ai.list_models(ai_conf_for(b)),
                 "/api/ai/whatsnew": ai_whats_new,
                 "/api/projects/meta": lambda b: store.project_meta_update(b["project"], b.get("patch", {})),
+                "/api/play/accounts/add": lambda b: (store.play_account_add(str(b.get("label", "")), b.get("json", "")),
+                                                     store.play_accounts())[1],
+                "/api/play/accounts/remove": lambda b: (store.play_account_remove(b.get("id", "")),
+                                                        store.play_accounts())[1],
+                "/api/play/accounts/rename": lambda b: (store.play_account_rename(b.get("id", ""), str(b.get("label", ""))),
+                                                        store.play_accounts())[1],
+                "/api/play/test": play_test,
+                "/api/play/apps/add": lambda b: (play_app(b["accountId"], b["packageName"]), play_apps_list())[1],
+                "/api/play/apps/forget": lambda b: (store.play_apps_forget(b["accountId"], b["packageName"]),
+                                                    play_apps_list())[1],
+                "/api/android/key/generate": lambda b: android.keygen(b["package"], b.get("cn", ""), b.get("org", "")),
+                "/api/android/key/import": android_key_import,
+                "/api/android/key/remove": lambda b: (store.android_key_remove(b["package"]), {"ok": True})[1],
             }
             if u.path in acc_routes:
                 return self._json(acc_routes[u.path](self._body()))
