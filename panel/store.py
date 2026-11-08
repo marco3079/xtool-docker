@@ -95,7 +95,8 @@ def ai_public():
 def ai_save(provider, conf, make_default=False):
     with _lock:
         s = secrets()
-        ai = s.setdefault("ai", {"providers": {}, "default": None})
+        ai = s.setdefault("ai", {})
+        ai.setdefault("providers", {})
         cur = ai["providers"].get(provider, {})
         new = {**cur, **{k: v for k, v in conf.items() if k != "apiKey"}}
         if conf.get("apiKey") and "…" not in conf["apiKey"] and conf["apiKey"] != "•••":
