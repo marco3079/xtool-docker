@@ -118,6 +118,19 @@ def quick(argv, timeout=20, cwd=None):
         return f"erro: {e}"
 
 
+def usbmux_ok():
+    addr = os.environ.get("USBMUXD_SOCKET_ADDRESS")
+    if not addr:
+        return os.path.exists("/var/run/usbmuxd")
+    import socket
+    host, _, port = addr.rpartition(":")
+    try:
+        socket.create_connection((host, int(port)), timeout=2).close()
+        return True
+    except OSError:
+        return False
+
+
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
@@ -131,7 +144,8 @@ def status():
         "xtool": xt, "swift": sw[0] if sw else "",
         "auth": auth, "sdk": sdk,
         "disk": {"free": du.free, "total": du.total},
-        "usbmuxd": os.path.exists("/var/run/usbmuxd"),
+        "usbmuxd": usbmux_ok(),
+        "usbmuxdVia": os.environ.get("USBMUXD_SOCKET_ADDRESS") or "/var/run/usbmuxd",
         "downloads": os.path.isdir("/downloads"),
     }
 

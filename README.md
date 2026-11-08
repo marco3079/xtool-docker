@@ -36,9 +36,15 @@ Todo comando roda num terminal real (PTY). As perguntas interativas, como modo d
 - `xtool-work` → `/work`: guarda os projetos
 - `~/Downloads` → `/downloads`: o `.xip` e os `.ipa` do Windows
 
-## USB no Windows
+## Conectar o iPhone (cabo ou Wi-Fi, sem usbipd)
 
-O Docker Desktop não repassa USB para o container. Para instalar no iPhone, passe o aparelho para o WSL com [usbipd](https://learn.microsoft.com/windows/wsl/connect-usb) ou use conexão pela rede.
+O container fala com o iPhone através do serviço da Apple que roda no Windows, pela variável `USBMUXD_SOCKET_ADDRESS=host.docker.internal:27015` no compose.
+
+1. Instale o **iTunes** ou o **Dispositivos Apple** pela Microsoft Store e **deixe aberto**. O serviço só fica ativo assim.
+2. Conecte o iPhone com o cabo uma vez e toque em **Confiar**.
+3. Para usar só por Wi-Fi: no iTunes, abra o iPhone e marque **"Sincronizar com este iPhone via Wi-Fi"**. Depois disso o cabo pode sair, desde que o iPhone e o PC estejam na mesma rede.
+4. No iPhone, ative **Ajustes → Privacidade e Segurança → Modo de Desenvolvedor**.
+5. No painel, use **Dispositivos → Listar dispositivos**.
 
 ## Atualizar o xtool
 

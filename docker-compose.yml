@@ -5,6 +5,10 @@ services:
     image: xtool
     container_name: xtool
     restart: unless-stopped
+    environment:
+      # Usa o serviço da Apple do Windows (iTunes / Dispositivos Apple aberto)
+      # para falar com o iPhone por cabo ou Wi-Fi. Sem usbipd.
+      USBMUXD_SOCKET_ADDRESS: host.docker.internal:27015
     ports:
       - "127.0.0.1:8080:8080"   # painel: http://localhost:8080
     volumes:

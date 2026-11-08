@@ -186,7 +186,7 @@ h2:first-child{margin-top:0}
       <input type="text" id="udid" placeholder="UDID (opcional)" style="max-width:320px">
       <button class="btn pri" onclick="run('devices',{conn:val('conn')},'Listar dispositivos')">Listar dispositivos</button>
     </div>
-    <p class="hint" style="margin:10px 0 0">No Docker do Windows o USB não chega no container sozinho: use usbipd para passar o iPhone ao WSL, ou conexão por rede.</p>
+    <p class="hint" style="margin:10px 0 0">O container usa o serviço da Apple do Windows: deixe o <b>iTunes</b> (ou Dispositivos Apple) aberto. Para usar sem cabo, ative "Sincronizar via Wi-Fi" no iTunes uma vez com o cabo conectado.</p>
   </div>
   <div class="grid">
     <div class="card"><h3>Instalar .ipa / .app</h3><p>Escolha um arquivo de /work ou envie do seu PC.</p>
@@ -314,7 +314,7 @@ async function refreshStatus(){
       c('Conta Apple',esc(s.auth.split('\n')[0]||'—'),authOk?['ok','logado']:['warn','sem login'],'👤')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
       c('Disco livre',fmtB(s.disk.free)+' de '+fmtB(s.disk.total),null,'💾')+
-      c('USB (usbmuxd)',s.usbmuxd?'socket encontrado':'não conectado',s.usbmuxd?['ok','ok']:['warn','sem USB'],'🔌');
+      c('Conexão iPhone',s.usbmuxd?'serviço Apple ativo':'abra o iTunes no Windows',s.usbmuxd?['ok','pronto']:['warn','desligado'],'🔌');
   }catch(e){$('stats').innerHTML='<div class="empty">Servidor indisponível</div>'}}
 
 /* projects */
