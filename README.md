@@ -15,9 +15,10 @@ Depois abra **http://localhost:8080**.
 | Seção | Funções |
 |---|---|
 | **Painel** | Mostra a versão do xtool e do Swift, o login Apple, o SDK do iOS, o espaço em disco e o USB |
-| **Configuração** | `xtool setup`; login, status e logout da conta Apple; instalar, atualizar, gerar e remover o SDK a partir do `Xcode.xip` |
-| **Projetos** | `xtool new`; build (debug/release); gerar `.ipa` assinado; rodar no iPhone; gerar projeto Xcode; baixar os builds |
-| **Dispositivos** | Listar aparelhos (USB/rede); instalar `.ipa` (com upload por arrastar); abrir e desinstalar apps |
+| **Configuração** | `xtool setup`; instalar, atualizar, gerar e remover o SDK a partir do `Xcode.xip` |
+| **Contas Apple** | Cadastra **várias contas Apple**; cada uma guarda o próprio login e dá para trocar a conta em uso com um clique (também pelo seletor no topo); login, status, logout, renomear e remover |
+| **Projetos** | `xtool new`; build (debug/release); gerar `.ipa` assinado; rodar no aparelho escolhido; gerar projeto Xcode; baixar os builds |
+| **Dispositivos** | Cadastra **vários aparelhos** (detecta e salva com um clique, ou cadastro manual com nome e UDID) e marca um como padrão; instalar `.ipa` (com upload por arrastar); abrir e desinstalar apps |
 | **Developer Services** | `xtool ds` para times, certificados, bundle IDs, dispositivos, perfis e anisette |
 | **Arquivos** | Navegar em `/work` e nos Downloads do Windows; enviar, baixar e apagar arquivos |
 | **Terminal** | Qualquer comando ou um shell bash interativo |
@@ -32,7 +33,7 @@ Todo comando roda num terminal real (PTY). As perguntas interativas, como modo d
 
 ## Volumes
 
-- `xtool-home` → `/root`: guarda o login Apple e o SDK do iOS
+- `xtool-home` → `/root`: guarda os logins Apple (`.config/xtool-panel/accounts/<id>`), os aparelhos cadastrados e o SDK do iOS
 - `xtool-work` → `/work`: guarda os projetos
 - `~/Downloads` → `/downloads`: o `.xip` e os `.ipa` do Windows
 

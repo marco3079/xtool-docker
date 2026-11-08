@@ -90,6 +90,21 @@ h2:first-child{margin-top:0}
 .hint{font-size:12px;color:var(--muted)}
 .toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line);padding:12px 16px;border-radius:12px;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .menu-btn{display:none}
+.switcher{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 4px 0 10px}
+.switcher select{border:0;background:transparent;padding:8px 6px;max-width:190px;cursor:pointer}
+.switcher select option{background:var(--panel)}
+.acc{position:relative}
+.acc.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.acc .avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:18px;color:#fff;margin-bottom:12px}
+.acc .tag{position:absolute;top:16px;right:16px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px;margin-bottom:14px}
+.kv span:nth-child(odd){color:var(--muted)}
+.kv span:nth-child(even){font-family:var(--mono);word-break:break-all}
+.add{border-style:dashed;display:flex;flex-direction:column}
+.found{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:var(--panel2)}
+.star{cursor:pointer;font-size:18px;color:var(--muted);background:none;border:0}
+.star.on{color:var(--warn)}
+@media (max-width:860px){.switcher{display:none}}
 @media (max-width:860px){
   .app{grid-template-columns:1fr}
   aside{position:fixed;inset:0 30% 0 0;z-index:5;transform:translateX(-100%);transition:.2s}
@@ -106,6 +121,7 @@ h2:first-child{margin-top:0}
   <div class="navsep">Geral</div>
   <button class="nav on" data-s="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Painel</button>
   <button class="nav" data-s="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Configuração</button>
+  <button class="nav" data-s="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5.5"/></svg>Contas Apple</button>
   <div class="navsep">Desenvolvimento</div>
   <button class="nav" data-s="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Projetos</button>
   <button class="nav" data-s="devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Dispositivos</button>
@@ -121,6 +137,8 @@ h2:first-child{margin-top:0}
   <button class="btn sm menu-btn" onclick="side.classList.toggle('open')">☰</button>
   <div><h1 id="htitle">Painel</h1><p id="hsub">Visão geral do ambiente xtool</p></div>
   <div class="sp"></div>
+  <div class="switcher" title="Conta Apple em uso"><span>👤</span><select id="accSwitch" onchange="switchAcc(this.value)"></select></div>
+  <div class="switcher" title="Dispositivo padrão"><span>📱</span><select id="devSwitch" onchange="setDefaultDev(this.value)"></select></div>
   <button class="btn sm" onclick="refreshAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>Atualizar</button>
 </header>
 
@@ -143,15 +161,7 @@ h2:first-child{margin-top:0}
   <h2>Tudo de uma vez</h2>
   <div class="card" style="max-width:680px"><h3>xtool setup</h3><p>Faz o login (se precisar) e instala o SDK. As perguntas aparecem no console abaixo — clique nele e digite as respostas.</p><button class="btn pri" onclick="run('setup',{},'xtool setup')">Iniciar setup</button></div>
 
-  <h2>Conta Apple</h2>
-  <div class="grid">
-    <div class="card"><h3>Entrar</h3><p>API Key (conta paga) ou senha (qualquer Apple ID). O 2FA é pedido no console.</p>
-      <div class="field"><label>Modo</label><select id="authMode"><option value="">Perguntar no console</option><option value="password">Senha (Apple ID)</option><option value="key">API Key</option></select></div>
-      <div class="field"><label>Apple ID (opcional)</label><input type="text" id="authUser" placeholder="voce@icloud.com"></div>
-      <button class="btn pri" onclick="run('auth.login',{mode:val('authMode'),username:val('authUser')},'Login Apple')">Entrar</button></div>
-    <div class="card"><h3>Status</h3><p>Mostra com qual conta o xtool está logado.</p><button class="btn" onclick="run('auth.status',{},'Status do login')">Ver status</button></div>
-    <div class="card"><h3>Sair</h3><p>Remove o login salvo.</p><label class="check"><input type="checkbox" id="reset2fa">Resetar dados de 2FA</label><button class="btn danger" onclick="confirmRun('Sair da conta Apple?','auth.logout',{reset2fa:chk('reset2fa')},'Logout')">Sair</button></div>
-  </div>
+  <p class="hint">As contas Apple ficam em <a href="#" onclick="go('accounts');return false">Contas Apple</a>.</p>
 
   <h2>SDK do iOS (Darwin)</h2>
   <div class="grid">
@@ -168,23 +178,54 @@ h2:first-child{margin-top:0}
   </div>
 </section>
 
+<!-- ACCOUNTS -->
+<section class="section" id="s-accounts">
+  <p class="hint" style="margin-top:0">Cada conta guarda o próprio login. A conta em uso (destacada) é a que o xtool usa para assinar e instalar apps. O SDK do iOS é o mesmo para todas.</p>
+  <div class="grid" id="accGrid"></div>
+  <h2>Adicionar conta</h2>
+  <div class="card add" style="max-width:520px">
+    <h3>＋ Nova conta Apple</h3><p>Cria a conta, passa a usá-la e abre o login no console (Apple ID, senha e código 2FA).</p>
+    <div class="field"><label>Nome para identificar</label><input type="text" id="accLabel" placeholder="ex: Pessoal, Testes, Cliente X"></div>
+    <div class="field"><label>Modo de login</label><select id="authMode"><option value="password">Senha (qualquer Apple ID)</option><option value="key">API Key (conta paga)</option><option value="">Perguntar no console</option></select></div>
+    <div class="field"><label>Apple ID</label><input type="text" id="authUser" placeholder="voce@icloud.com"></div>
+    <button class="btn pri" onclick="addAccount()">Adicionar e entrar</button>
+  </div>
+</section>
+
 <!-- PROJECTS -->
 <section class="section" id="s-projects">
   <div class="card" style="margin-bottom:18px"><h3>Novo projeto</h3><p>Cria uma pasta em /work com um app SwiftUI pronto.</p>
     <div class="row"><input type="text" id="newName" placeholder="MeuApp" style="max-width:280px">
       <label class="check" style="margin:0"><input type="checkbox" id="skipSetup" checked>Pular setup</label>
       <button class="btn pri" onclick="newProject()">Criar</button></div></div>
-  <div class="field" style="max-width:420px"><label>Dispositivo para "Rodar" (UDID, opcional)</label><input type="text" id="runUdid" placeholder="vazio = primeiro encontrado"></div>
+  <div class="field" style="max-width:420px"><label>Rodar no dispositivo</label><select id="runUdid" class="devSel"></select></div>
   <div class="list" id="projList"></div>
 </section>
 
 <!-- DEVICES -->
 <section class="section" id="s-devices">
+  <h2>Meus dispositivos</h2>
+  <div class="grid" id="devGrid"></div>
+
+  <h2>Cadastrar</h2>
+  <div class="grid">
+    <div class="card"><h3>🔍 Detectar conectados</h3><p>Procura iPhones/iPads ligados no cabo ou no Wi-Fi e permite salvar com um clique.</p>
+      <button class="btn pri" onclick="detectDevs()">Detectar agora</button><div id="foundList"></div></div>
+    <div class="card"><h3>✍️ Adicionar manualmente</h3><p>Para um aparelho que não está conectado agora.</p>
+      <input type="hidden" id="devId">
+      <div class="field"><label>Nome</label><input type="text" id="devName" placeholder="iPhone do João"></div>
+      <div class="field"><label>UDID</label><input type="text" id="devUdid" placeholder="00008150-0010550A14C0401C" style="font-family:var(--mono)"></div>
+      <div class="field"><label>Observação (opcional)</label><input type="text" id="devNotes" placeholder="iPhone 17, iOS 27"></div>
+      <label class="check"><input type="checkbox" id="devDefault">Usar como padrão</label>
+      <div class="row"><button class="btn pri" onclick="saveDev()">Salvar</button><button class="btn" id="devCancel" hidden onclick="editDev(null)">Cancelar edição</button></div></div>
+  </div>
+
+  <h2>Ações no aparelho</h2>
   <div class="card" style="margin-bottom:16px"><h3>Conexão</h3>
     <div class="row">
+      <select id="udid" class="devSel" style="max-width:320px"></select>
       <select id="conn" style="max-width:200px"><option value="all">USB + rede</option><option value="usb">Só USB</option><option value="network">Só rede</option></select>
-      <input type="text" id="udid" placeholder="UDID (opcional)" style="max-width:320px">
-      <button class="btn pri" onclick="run('devices',{conn:val('conn')},'Listar dispositivos')">Listar dispositivos</button>
+      <button class="btn" onclick="run('devices',{conn:val('conn')},'Listar dispositivos')">Listar no console</button>
     </div>
     <p class="hint" style="margin:10px 0 0">O container usa o serviço da Apple do Windows: deixe o <b>iTunes</b> (ou Dispositivos Apple) aberto. Para usar sem cabo, ative "Sincronizar via Wi-Fi" no iTunes uma vez com o cabo conectado.</p>
   </div>
@@ -243,7 +284,7 @@ h2:first-child{margin-top:0}
 
 </div>
 
-<div class="console" id="console">
+<div class="console min" id="console">
   <div class="ctop">
     <span id="cdot" class="dot"></span><span class="title" id="ctitle">Console — nenhuma tarefa</span>
     <div class="tabs" id="ctabs"></div>
@@ -259,14 +300,14 @@ h2:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id), val=id=>$(id).value.trim(), chk=id=>$(id).checked;
 const consoleEl=$('console'), side=$('side');
-const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Conta Apple e SDK do iOS'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Instalar, abrir e remover apps'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados']};
+const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados']};
 const fmtB=b=>b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
 async function api(u,body){const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 
 function go(s){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:loadIpas,setup:loadXips})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 
 /* terminal */
@@ -292,7 +333,7 @@ async function poll(force){
     $('ctitle').textContent=j.title+'  ·  '+j.argv.join(' ');
     $('cdot').className='dot '+(j.running?'run':j.code===0?'ok':'bad');
     $('cstop').hidden=!j.running;
-    if(!j.running&&!doneShown.has(j.id)){doneShown.add(j.id);term.write(`\r\n\x1b[${j.code===0?'32':'31'}m── terminou (código ${j.code})\x1b[0m\r\n`);loadJobs();refreshStatus();loadProjects()}
+    if(!j.running&&!doneShown.has(j.id)){doneShown.add(j.id);term.write(`\r\n\x1b[${j.code===0?'32':'31'}m── terminou (código ${j.code})\x1b[0m\r\n`);loadJobs();refreshStatus();loadProjects();loadAccounts()}
   }catch(e){}}
 setInterval(poll,350);
 
@@ -311,7 +352,7 @@ async function refreshStatus(){
     $('stats').innerHTML=
       c('xtool',esc(s.xtool),['ok','instalado'],'🛠')+
       c('Swift',esc(s.swift.replace(/\(.*\)/,'')),['ok','pronto'],'🐦')+
-      c('Conta Apple',esc(s.auth.split('\n')[0]||'—'),authOk?['ok','logado']:['warn','sem login'],'👤')+
+      c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'👤')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
       c('Disco livre',fmtB(s.disk.free)+' de '+fmtB(s.disk.total),null,'💾')+
       c('Conexão iPhone',s.usbmuxd?'serviço Apple ativo':'abra o iTunes no Windows',s.usbmuxd?['ok','pronto']:['warn','desligado'],'🔌');
@@ -363,9 +404,69 @@ const DS=[['teams','Times','👥'],['certificates','Certificados','🔐'],['iden
 $('dsGrid').innerHTML=DS.map(([s,t,i])=>`<div class="card"><div class="ico">${i}</div><h3>${t}</h3><p>xtool ds ${s}</p><div class="row"><button class="btn sm" onclick="run('help',{sub:'ds ${s}'},'Ajuda ds ${s}')">Ajuda</button><button class="btn sm pri" onclick="dsSub.value='${s}';dsArgs.focus()">Usar</button></div></div>`).join('');
 $('dsSub').innerHTML=DS.map(([s])=>`<option>${s}</option>`).join('');
 
+/* accounts */
+let accState={active:null,accounts:[]};
+const COLORS=['#4f8cff','#7c5cff','#2ecc8f','#f5b041','#ff5d6c','#22b8cf','#e64980'];
+const colorOf=id=>COLORS[[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length];
+async function loadAccounts(){
+  try{accState=await api('/api/accounts')}catch(e){return}
+  const A=accState.accounts;
+  $('accSwitch').innerHTML=A.length?A.map(a=>`<option value="${a.id}" ${a.id===accState.active?'selected':''}>${esc(a.label)}${a.appleId?' · '+esc(a.appleId):''}</option>`).join(''):'<option value="">nenhuma conta</option>';
+  $('accGrid').innerHTML=A.length?A.map(a=>{const on=a.id===accState.active;
+    return `<div class="card acc ${on?'on':''}">
+      <span class="tag pill ${on?'ok':''}"><i></i>${on?'em uso':'salva'}</span>
+      <div class="avatar" style="background:${colorOf(a.id)}">${esc((a.label||'?')[0].toUpperCase())}</div>
+      <h3>${esc(a.label)}</h3>
+      <div class="kv"><span>Apple ID</span><span>${esc(a.appleId||'—')}</span><span>Team</span><span>${esc(a.teamId||'—')}</span><span>Login</span><span>${a.loggedIn?'✅ ativo':'⚠️ sem login'}</span>${a.expiry?`<span>Expira</span><span>${esc(a.expiry)}</span>`:''}</div>
+      <div class="row">
+        ${on?'':`<button class="btn sm pri" onclick="switchAcc('${a.id}')">Usar esta</button>`}
+        ${on?`<button class="btn sm ${a.loggedIn?'':'pri'}" onclick="loginActive('${a.appleId?esc(a.appleId):''}')">${a.loggedIn?'Entrar de novo':'Fazer login'}</button>`:''}
+        ${on&&a.loggedIn?`<button class="btn sm" onclick="run('auth.status',{},'Status ${esc(a.label)}')">Status</button>`:''}
+        <button class="btn sm" onclick="renameAcc('${a.id}')">Renomear</button>
+        ${on&&a.loggedIn?`<button class="btn sm danger" onclick="confirmRun('Sair da conta ${esc(a.label)}? O cadastro continua salvo.','auth.logout',{},'Logout ${esc(a.label)}')">Sair</button>`:''}
+        <button class="btn sm danger" onclick="removeAcc('${a.id}')">Remover</button>
+      </div></div>`}).join(''):'<div class="empty">Nenhuma conta cadastrada. Adicione uma abaixo.</div>'}
+async function switchAcc(id){if(!id||id===accState.active)return;try{accState=await api('/api/accounts/switch',{id});toast('Conta em uso: '+(accState.accounts.find(a=>a.id===id)||{}).label);loadAccounts();refreshStatus()}catch(e){toast(e.message);loadAccounts()}}
+async function addAccount(){
+  const label=val('accLabel')||val('authUser')||'Nova conta';
+  try{accState=await api('/api/accounts/add',{label});await loadAccounts();refreshStatus();
+    run('auth.login',{mode:val('authMode'),username:val('authUser')},'Login '+label);accLabel.value='';authUser.value=''}catch(e){toast(e.message)}}
+function loginActive(user){run('auth.login',{mode:'password',username:user},'Login Apple')}
+async function renameAcc(id){const a=accState.accounts.find(x=>x.id===id);const n=prompt('Novo nome da conta:',a.label);if(n&&n.trim()){await api('/api/accounts/rename',{id,label:n.trim()});loadAccounts()}}
+async function removeAcc(id){const a=accState.accounts.find(x=>x.id===id);if(!confirm(`Remover a conta "${a.label}" do painel? O login salvo dela será apagado (a conta Apple em si não é afetada).`))return;try{accState=await api('/api/accounts/remove',{id});loadAccounts();refreshStatus()}catch(e){toast(e.message)}}
+
+/* devices */
+let devs=[];
+async function loadDevs(){
+  try{devs=await api('/api/devices')}catch(e){return}
+  const def=devs.find(d=>d.default);
+  const opts=`<option value="">Automático (primeiro conectado)</option>`+devs.map(d=>`<option value="${esc(d.udid)}">${esc(d.name)}</option>`).join('');
+  document.querySelectorAll('.devSel').forEach(s=>{const keep=s.value;s.innerHTML=opts;s.value=keep&&devs.some(d=>d.udid===keep)?keep:(def?def.udid:'')});
+  $('devSwitch').innerHTML=devs.length?devs.map(d=>`<option value="${d.id}" ${d.default?'selected':''}>${esc(d.name)}</option>`).join(''):'<option value="">nenhum aparelho</option>';
+  $('devGrid').innerHTML=devs.length?devs.map(d=>`<div class="card acc ${d.default?'on':''}">
+      <span class="tag"><button class="star ${d.default?'on':''}" title="Dispositivo padrão" onclick="setDefaultDev('${d.id}')">★</button></span>
+      <div class="avatar" style="background:${colorOf(d.id)}">📱</div>
+      <h3>${esc(d.name)}</h3>
+      <div class="kv"><span>UDID</span><span>${esc(d.udid)}</span>${d.notes?`<span>Obs.</span><span style="font-family:inherit">${esc(d.notes)}</span>`:''}</div>
+      <div class="row">
+        <button class="btn sm" onclick="udid.value='${esc(d.udid)}';ipaSel.focus();udid.scrollIntoView({behavior:'smooth'})">Usar nas ações</button>
+        <button class="btn sm" onclick="editDev('${d.id}')">Editar</button>
+        <button class="btn sm danger" onclick="removeDev('${d.id}')">Remover</button>
+      </div></div>`).join(''):'<div class="empty">Nenhum aparelho cadastrado. Use "Detectar agora" ou adicione manualmente.</div>'}
+async function detectDevs(){
+  $('foundList').innerHTML='<p class="hint" style="margin-top:12px">Procurando…</p>';
+  try{const r=await api('/api/devices/detect');
+    $('foundList').innerHTML=r.found.length?r.found.map((f,i)=>`<div class="found"><span>${f.conn==='usb'?'🔌':'📶'}</span><div class="grow" style="min-width:0"><div class="name">${esc(f.name)}</div><div class="meta" style="font-family:var(--mono);overflow:hidden;text-overflow:ellipsis">${esc(f.udid)}</div></div>${f.savedAs?`<span class="pill ok"><i></i>salvo</span>`:`<button class="btn sm pri" onclick='saveFound(${JSON.stringify(f).replace(/'/g,"&#39;")})'>Salvar</button>`}</div>`).join(''):`<p class="hint" style="margin-top:12px">Nenhum aparelho encontrado. Deixe o iTunes aberto e o iPhone desbloqueado.</p>`}
+  catch(e){$('foundList').innerHTML=`<p class="hint">${esc(e.message)}</p>`}}
+async function saveFound(f){try{devs=await api('/api/devices/save',{name:f.name,udid:f.udid});toast('Salvo: '+f.name);loadDevs();detectDevs()}catch(e){toast(e.message)}}
+function editDev(id){const d=devs.find(x=>x.id===id)||{};devId.value=d.id||'';devName.value=d.name||'';devUdid.value=d.udid||'';devNotes.value=d.notes||'';devDefault.checked=!!d.default;$('devCancel').hidden=!id;if(id)devName.focus()}
+async function saveDev(){try{devs=await api('/api/devices/save',{id:val('devId')||undefined,name:val('devName'),udid:val('devUdid'),notes:val('devNotes'),default:chk('devDefault')});toast('Dispositivo salvo');editDev(null);loadDevs()}catch(e){toast(e.message)}}
+async function removeDev(id){const d=devs.find(x=>x.id===id);if(!confirm(`Remover "${d.name}" da lista?`))return;devs=await api('/api/devices/remove',{id});loadDevs()}
+async function setDefaultDev(id){const d=devs.find(x=>x.id===id);if(!d)return;devs=await api('/api/devices/save',{...d,default:true});loadDevs()}
+
 function runShell(){const c=val('shCmd');if(c)run('shell',{cmd:c},c.length>30?c.slice(0,30)+'…':c)}
 function refreshAll(){refreshStatus();loadJobs();const s=document.querySelector('.nav.on').dataset.s;go(s)}
-refreshStatus();loadJobs();setInterval(loadJobs,4000);
+refreshStatus();loadJobs();loadAccounts();loadDevs();setInterval(loadJobs,4000);
 </script>
 </body>
 </html>

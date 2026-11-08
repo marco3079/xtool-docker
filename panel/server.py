@@ -76,6 +76,10 @@ class Job:
             os.close(self.fd)
         except OSError:
             pass
+        try:  # a login/logout may have changed the active account's data
+            accounts_sync()
+        except Exception:  # noqa
+            pass
 
     def write(self, text):
         if self.ended is None:
@@ -116,6 +120,197 @@ def quick(argv, timeout=20, cwd=None):
         return (r.stdout + r.stderr).strip()
     except Exception as e:  # noqa
         return f"erro: {e}"
+
+
+# ---------------------------------------------------------------------------
+# Saved state: Apple accounts and devices
+#
+# xtool keeps one login in ~/.config/xtool/data. Each account gets its own copy
+# of that folder under ~/.config/xtool-panel/accounts/<id>; switching accounts
+# saves the live folder into the current profile and restores the chosen one.
+# The iOS SDK lives elsewhere (~/.swiftpm) and is shared by all accounts.
+# ---------------------------------------------------------------------------
+XDATA = os.path.expanduser("~/.config/xtool/data")
+PANEL_DIR = os.path.expanduser("~/.config/xtool-panel")
+ACC_DIR = os.path.join(PANEL_DIR, "accounts")
+ACC_FILE = os.path.join(PANEL_DIR, "accounts.json")
+DEV_FILE = os.path.join(PANEL_DIR, "devices.json")
+STATE_LOCK = threading.RLock()
+
+
+def _load(path, default):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def _save(path, obj):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def _copy_dir(src, dst):
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    if os.path.isdir(src):
+        shutil.copytree(src, dst)
+    else:
+        os.makedirs(dst, exist_ok=True)
+
+
+def parse_auth(text):
+    text = ANSI.sub("", text)
+    logged = text.lower().startswith("logged in")
+    m_id = re.search(r"Apple ID:\s*(\S+)", text)
+    m_team = re.search(r"Team ID:\s*(\S+)", text)
+    m_exp = re.search(r"Token expiry:\s*(.+)", text)
+    return {
+        "loggedIn": logged,
+        "appleId": m_id.group(1) if m_id else "",
+        "teamId": m_team.group(1) if m_team else "",
+        "expiry": m_exp.group(1).strip() if m_exp else "",
+    }
+
+
+def accounts_state():
+    st = _load(ACC_FILE, None)
+    if st is None:  # first run: adopt whatever login already exists
+        st = {"active": None, "accounts": []}
+        info = parse_auth(quick(["xtool", "auth", "status"]))
+        if info["loggedIn"]:
+            acc = {"id": uuid.uuid4().hex[:8], "label": "Conta principal", **info}
+            st = {"active": acc["id"], "accounts": [acc]}
+            _copy_dir(XDATA, os.path.join(ACC_DIR, acc["id"]))
+        _save(ACC_FILE, st)
+    return st
+
+
+def accounts_sync():
+    """Copy the live xtool login into the active profile and refresh its info."""
+    with STATE_LOCK:
+        st = accounts_state()
+        acc = next((a for a in st["accounts"] if a["id"] == st["active"]), None)
+        if not acc:
+            # logged in with no account selected (e.g. plain "xtool setup"): save it
+            info = parse_auth(quick(["xtool", "auth", "status"]))
+            if not info["loggedIn"]:
+                return st
+            acc = {"id": uuid.uuid4().hex[:8], "label": info["appleId"] or "Conta", **info}
+            st["accounts"].append(acc)
+            st["active"] = acc["id"]
+        _copy_dir(XDATA, os.path.join(ACC_DIR, acc["id"]))
+        acc.update(parse_auth(quick(["xtool", "auth", "status"])))
+        _save(ACC_FILE, st)
+        return st
+
+
+def any_running():
+    return any(j.ended is None for j in JOBS.values())
+
+
+def accounts_switch(acc_id):
+    with STATE_LOCK:
+        if any_running():
+            raise ValueError("espere as tarefas em andamento terminarem antes de trocar de conta")
+        st = accounts_sync()
+        if not any(a["id"] == acc_id for a in st["accounts"]):
+            raise ValueError("conta não existe")
+        src = os.path.join(ACC_DIR, acc_id)
+        _copy_dir(src, XDATA)
+        st["active"] = acc_id
+        _save(ACC_FILE, st)
+        return accounts_sync()
+
+
+def accounts_add(label):
+    with STATE_LOCK:
+        if any_running():
+            raise ValueError("espere as tarefas em andamento terminarem")
+        st = accounts_sync()
+        acc = {"id": uuid.uuid4().hex[:8], "label": label or "Nova conta",
+               "loggedIn": False, "appleId": "", "teamId": "", "expiry": ""}
+        os.makedirs(os.path.join(ACC_DIR, acc["id"]), exist_ok=True)  # empty = logged out
+        st["accounts"].append(acc)
+        _save(ACC_FILE, st)
+        return accounts_switch(acc["id"])
+
+
+def accounts_remove(acc_id):
+    with STATE_LOCK:
+        if any_running():
+            raise ValueError("espere as tarefas em andamento terminarem")
+        st = accounts_sync()
+        st["accounts"] = [a for a in st["accounts"] if a["id"] != acc_id]
+        shutil.rmtree(os.path.join(ACC_DIR, acc_id), ignore_errors=True)
+        if st["active"] == acc_id:  # removed the one in use: log the live folder out
+            shutil.rmtree(XDATA, ignore_errors=True)
+            st["active"] = None
+            _save(ACC_FILE, st)
+            if st["accounts"]:
+                return accounts_switch(st["accounts"][0]["id"])
+        _save(ACC_FILE, st)
+        return st
+
+
+def accounts_rename(acc_id, label):
+    with STATE_LOCK:
+        st = accounts_state()
+        for a in st["accounts"]:
+            if a["id"] == acc_id:
+                a["label"] = label
+        _save(ACC_FILE, st)
+        return st
+
+
+def devices_list():
+    return _load(DEV_FILE, [])
+
+
+def devices_save(d):
+    with STATE_LOCK:
+        devs = devices_list()
+        udid = str(d.get("udid", "")).strip()
+        name = str(d.get("name", "")).strip() or udid
+        if not re.fullmatch(r"[0-9A-Fa-f-]{20,50}", udid):
+            raise ValueError("UDID inválido")
+        cur = next((x for x in devs if x["id"] == d.get("id")), None) \
+            or next((x for x in devs if x["udid"].lower() == udid.lower()), None)
+        if cur is None:
+            cur = {"id": uuid.uuid4().hex[:8]}
+            devs.append(cur)
+        cur.update({"name": name, "udid": udid, "notes": str(d.get("notes", "")).strip()})
+        if d.get("default") or len(devs) == 1:
+            for x in devs:
+                x["default"] = x is cur
+        _save(DEV_FILE, devs)
+        return devs
+
+
+def devices_remove(dev_id):
+    with STATE_LOCK:
+        devs = [x for x in devices_list() if x["id"] != dev_id]
+        if devs and not any(x.get("default") for x in devs):
+            devs[0]["default"] = True
+        _save(DEV_FILE, devs)
+        return devs
+
+
+def devices_detect():
+    out = ANSI.sub("", quick(["xtool", "devices", "--all", "--no-wait"], timeout=15))
+    saved = {x["udid"].lower(): x for x in devices_list()}
+    found = []
+    for line in out.splitlines():
+        m = re.match(r"(.+?)\s*\[(\w+)\]:\s*([0-9A-Fa-f-]{20,50})\s*$", line.strip())
+        if m:
+            udid = m.group(3)
+            found.append({"name": m.group(1), "conn": m.group(2), "udid": udid,
+                          "savedAs": saved.get(udid.lower(), {}).get("name")})
+    return {"found": found, "raw": out}
 
 
 def usbmux_ok():
@@ -279,6 +474,12 @@ class H(BaseHTTPRequestHandler):
                 return self._json(list_dir(qs.get("root", "work"), qs.get("path", "")))
             if u.path == "/api/download":
                 return self._file(safe_path(qs.get("root", "work"), qs.get("path", "")), download=True)
+            if u.path == "/api/accounts":
+                return self._json(accounts_state())
+            if u.path == "/api/devices":
+                return self._json(devices_list())
+            if u.path == "/api/devices/detect":
+                return self._json(devices_detect())
             if u.path == "/api/jobs":
                 with LOCK:
                     return self._json(sorted([j.info() for j in JOBS.values()], key=lambda x: -x["started"]))
@@ -318,6 +519,17 @@ class H(BaseHTTPRequestHandler):
                 else:
                     threading.Thread(target=j.stop, daemon=True).start()
                 return self._json({"ok": True})
+            acc_routes = {
+                "/api/accounts/add": lambda b: accounts_add(str(b.get("label", "")).strip()),
+                "/api/accounts/switch": lambda b: accounts_switch(b.get("id")),
+                "/api/accounts/remove": lambda b: accounts_remove(b.get("id")),
+                "/api/accounts/rename": lambda b: accounts_rename(b.get("id"), str(b.get("label", "")).strip()),
+                "/api/accounts/refresh": lambda b: accounts_sync(),
+                "/api/devices/save": devices_save,
+                "/api/devices/remove": lambda b: devices_remove(b.get("id")),
+            }
+            if u.path in acc_routes:
+                return self._json(acc_routes[u.path](self._body()))
             if u.path == "/api/jobs/clear":
                 for k in [k for k, j in JOBS.items() if j.ended]:
                     del JOBS[k]
@@ -349,5 +561,6 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(WORK, exist_ok=True)
+    accounts_state()  # adopt an existing login on first run
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()
