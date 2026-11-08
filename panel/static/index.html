@@ -104,6 +104,13 @@ h2:first-child{margin-top:0}
 .found{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:var(--panel2)}
 .star{cursor:pointer;font-size:18px;color:var(--muted);background:none;border:0}
 .star.on{color:var(--warn)}
+.devhead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.devhead .avatar{margin:0;position:relative}
+.sdot{position:absolute;right:-1px;bottom:-1px;width:14px;height:14px;border-radius:50%;border:2px solid var(--panel);background:#5d6578}
+.sdot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.sdot.warn{background:var(--warn)}
+.pill.off i{background:#5d6578}
+.pill.ok{color:var(--ok);border-color:rgba(46,204,143,.35)}
 @media (max-width:860px){.switcher{display:none}}
 @media (max-width:860px){
   .app{grid-template-columns:1fr}
@@ -436,23 +443,28 @@ async function renameAcc(id){const a=accState.accounts.find(x=>x.id===id);const 
 async function removeAcc(id){const a=accState.accounts.find(x=>x.id===id);if(!confirm(`Remover a conta "${a.label}" do painel? O login salvo dela será apagado (a conta Apple em si não é afetada).`))return;try{accState=await api('/api/accounts/remove',{id});loadAccounts();refreshStatus()}catch(e){toast(e.message)}}
 
 /* devices */
-let devs=[];
-async function loadDevs(){
-  try{devs=await api('/api/devices')}catch(e){return}
+let devs=[], devService=true, devSig='';
+const connInfo=d=>!devService?['warn','Serviço Apple desligado (abra o iTunes)','⚠️']:d.conn==='usb'?['ok','Conectado · cabo','🔌']:d.conn==='network'?['ok','Conectado · Wi-Fi','📶']:['off','Desconectado',''];
+async function loadDevs(force=true){
+  let r;try{r=await api('/api/devices/status')}catch(e){return}
+  const sig=JSON.stringify(r.devices)+r.service;
+  if(!force&&sig===devSig)return;
+  devSig=sig;devs=r.devices;devService=r.service;
   const def=devs.find(d=>d.default);
-  const opts=`<option value="">Automático (primeiro conectado)</option>`+devs.map(d=>`<option value="${esc(d.udid)}">${esc(d.name)}</option>`).join('');
+  const opts=`<option value="">Automático (primeiro conectado)</option>`+devs.map(d=>`<option value="${esc(d.udid)}">${d.conn?'🟢':'⚪'} ${esc(d.name)}</option>`).join('');
   document.querySelectorAll('.devSel').forEach(s=>{const keep=s.value;s.innerHTML=opts;s.value=keep&&devs.some(d=>d.udid===keep)?keep:(def?def.udid:'')});
-  $('devSwitch').innerHTML=devs.length?devs.map(d=>`<option value="${d.id}" ${d.default?'selected':''}>${esc(d.name)}</option>`).join(''):'<option value="">nenhum aparelho</option>';
-  $('devGrid').innerHTML=devs.length?devs.map(d=>`<div class="card acc ${d.default?'on':''}">
+  $('devSwitch').innerHTML=devs.length?devs.map(d=>`<option value="${d.id}" ${d.default?'selected':''}>${d.conn?'🟢':'⚪'} ${esc(d.name)}</option>`).join(''):'<option value="">nenhum aparelho</option>';
+  $('devGrid').innerHTML=devs.length?devs.map(d=>{const [cls,txt,ico]=connInfo(d);return `<div class="card acc ${d.default?'on':''}">
       <span class="tag"><button class="star ${d.default?'on':''}" title="Dispositivo padrão" onclick="setDefaultDev('${d.id}')">★</button></span>
-      <div class="avatar" style="background:${colorOf(d.id)}">📱</div>
+      <div class="devhead"><div class="avatar" style="background:${colorOf(d.id)}">📱<span class="sdot ${cls}"></span></div>
+        <span class="pill ${cls}"><i></i>${ico} ${txt}</span></div>
       <h3>${esc(d.name)}</h3>
       <div class="kv"><span>UDID</span><span>${esc(d.udid)}</span>${d.notes?`<span>Obs.</span><span style="font-family:inherit">${esc(d.notes)}</span>`:''}</div>
       <div class="row">
         <button class="btn sm" onclick="udid.value='${esc(d.udid)}';ipaSel.focus();udid.scrollIntoView({behavior:'smooth'})">Usar nas ações</button>
         <button class="btn sm" onclick="editDev('${d.id}')">Editar</button>
         <button class="btn sm danger" onclick="removeDev('${d.id}')">Remover</button>
-      </div></div>`).join(''):'<div class="empty">Nenhum aparelho cadastrado. Use "Detectar agora" ou adicione manualmente.</div>'}
+      </div></div>`}).join(''):'<div class="empty">Nenhum aparelho cadastrado. Use "Detectar agora" ou adicione manualmente.</div>'}
 async function detectDevs(){
   $('foundList').innerHTML='<p class="hint" style="margin-top:12px">Procurando…</p>';
   try{const r=await api('/api/devices/detect');
@@ -466,7 +478,7 @@ async function setDefaultDev(id){const d=devs.find(x=>x.id===id);if(!d)return;de
 
 function runShell(){const c=val('shCmd');if(c)run('shell',{cmd:c},c.length>30?c.slice(0,30)+'…':c)}
 function refreshAll(){refreshStatus();loadJobs();const s=document.querySelector('.nav.on').dataset.s;go(s)}
-refreshStatus();loadJobs();loadAccounts();loadDevs();setInterval(loadJobs,4000);
+refreshStatus();loadJobs();loadAccounts();loadDevs();setInterval(loadJobs,4000);setInterval(()=>loadDevs(false),5000);
 </script>
 </body>
 </html>

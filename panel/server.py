@@ -271,6 +271,33 @@ def devices_list():
     return _load(DEV_FILE, [])
 
 
+# Background watcher: which devices are reachable right now (udid -> "usb"/"network").
+ONLINE = {"devices": {}, "service": False, "checked": 0}
+
+
+def _watch_devices():
+    while True:
+        try:
+            service = usbmux_ok()
+            found = {}
+            if service:
+                for f in devices_detect()["found"]:
+                    # a device can show up on both; prefer the cable
+                    if found.get(f["udid"].lower()) != "usb":
+                        found[f["udid"].lower()] = f["conn"]
+            ONLINE.update(devices=found, service=service, checked=time.time())
+        except Exception:  # noqa
+            pass
+        time.sleep(5)
+
+
+def devices_with_status():
+    out = []
+    for d in devices_list():
+        out.append({**d, "conn": ONLINE["devices"].get(d["udid"].lower())})
+    return {"devices": out, "service": ONLINE["service"], "checked": ONLINE["checked"]}
+
+
 def devices_save(d):
     with STATE_LOCK:
         devs = devices_list()
@@ -478,6 +505,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json(accounts_state())
             if u.path == "/api/devices":
                 return self._json(devices_list())
+            if u.path == "/api/devices/status":
+                return self._json(devices_with_status())
             if u.path == "/api/devices/detect":
                 return self._json(devices_detect())
             if u.path == "/api/jobs":
@@ -562,5 +591,6 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     os.makedirs(WORK, exist_ok=True)
     accounts_state()  # adopt an existing login on first run
+    threading.Thread(target=_watch_devices, daemon=True).start()
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()
