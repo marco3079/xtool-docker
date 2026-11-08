@@ -1,0 +1,94 @@
+# Regra do repositório (o plano gratuito não tem proteção de branch em repositório privado,
+# então esta Action desfaz o que não for permitido logo depois do push):
+#   - só o dono (OWNER) faz commit, push ou merge na main;
+#   - os outros colaboradores só fazem push nas branches deles: <login>/<nome>
+#     (ex.: WasDevFullStack/nova-tela).
+# O que for desfeito não se perde: os commits ficam guardados em bloqueado/<login>-<commit>
+# e uma issue avisa o que aconteceu.
+name: Guarda das branches
+
+on:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: guarda-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guarda:
+    runs-on: ubuntu-latest
+    env:
+      OWNER: marco3079
+    steps:
+      - name: Conferir quem fez o push
+        id: check
+        env:
+          ACTOR: ${{ github.actor }}
+          REF: ${{ github.ref_name }}
+          CREATED: ${{ github.event.created }}
+          DELETED: ${{ github.event.deleted }}
+        run: |
+          allowed=yes
+          if [ "$ACTOR" != "$OWNER" ] && [ "$ACTOR" != "github-actions[bot]" ]; then
+            if [ "$REF" = "main" ]; then
+              allowed=no
+            else
+              case "$REF" in
+                "$ACTOR"/*) ;;
+                bloqueado/*) [ "$DELETED" = "true" ] || allowed=no ;;
+                *) allowed=no ;;
+              esac
+            fi
+          fi
+          echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
+          echo "$ACTOR → $REF: permitido=$allowed"
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.allowed == 'no'
+        with:
+          fetch-depth: 0
+
+      - name: Desfazer e guardar os commits
+        if: steps.check.outputs.allowed == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          REF: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          CREATED: ${{ github.event.created }}
+          DELETED: ${{ github.event.deleted }}
+          COMPARE: ${{ github.event.compare }}
+        run: |
+          set -e
+          ZERO=0000000000000000000000000000000000000000
+          backup=""
+          if [ "$DELETED" = "true" ]; then
+            # apagou uma branch que não é dele: recria do jeito que estava
+            git push origin "$BEFORE:refs/heads/$REF"
+            acao="A branch \`$REF\` foi apagada e recriada."
+          else
+            backup="bloqueado/${ACTOR}-${AFTER:0:7}"
+            git push origin "$AFTER:refs/heads/$backup"
+            if [ "$CREATED" = "true" ] || [ "$BEFORE" = "$ZERO" ]; then
+              git push origin --delete "$REF"
+              acao="A branch \`$REF\` foi removida. Os commits estão em \`$backup\`."
+            else
+              git push --force origin "$BEFORE:refs/heads/$REF"
+              acao="\`$REF\` voltou para \`${BEFORE:0:7}\`. Os commits estão em \`$backup\`."
+            fi
+          fi
+          if [ "$REF" = "main" ]; then
+            regra="Só o dono do repositório pode mexer na \`main\`. Crie uma branch \`${ACTOR}/<nome>\` e abra um pull request."
+          else
+            regra="Colaboradores só podem fazer push nas branches \`${ACTOR}/<nome>\`."
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Push desfeito: $ACTOR em $REF" \
+            --body "$(printf '%s\n\n%s\n\n- Commit: `%s`\n- Comparação: %s\n- Execução: %s/%s/actions/runs/%s' \
+              "$regra" "$acao" "${AFTER:0:7}" "$COMPARE" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"

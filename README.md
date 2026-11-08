@@ -37,6 +37,7 @@ By **[marco3079](https://github.com/marco3079)**
 - [Solução de problemas](#solução-de-problemas)
 - [Atualização](#atualização)
 - [Changelog](#changelog)
+- [Como contribuir](#como-contribuir)
 - [Créditos](#créditos)
 
 ## Visão geral
@@ -291,6 +292,13 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 - Integração com GitHub (várias contas, importar, vincular, pull e push)
 - IA para notas de versão com 11 provedores, inclusive locais
 - Aviso de nova versão do xtool e atualização com um clique
+
+## Como contribuir
+
+- Só o dono do repositório faz commit, push ou merge na `main`.
+- Cada colaborador trabalha em branches com o próprio login na frente: `<seu-login>/<nome>` (ex.: `WasDevFullStack/nova-tela`), e abre um pull request para a `main`.
+
+A Action [Guarda das branches](.github/workflows/guarda-branches.yml) confere cada push: se alguém que não é o dono mexer na `main` ou numa branch que não é a dele, o push é desfeito na hora. Os commits não se perdem: ficam numa branch `bloqueado/<login>-<commit>`, e uma issue avisa o que aconteceu.
 
 ## Créditos
 
