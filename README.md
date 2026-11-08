@@ -22,6 +22,7 @@ By **[marco3079](https://github.com/marco3079)**
 
 - [Visão geral](#visão-geral)
 - [Recursos](#recursos)
+- [Telas](#telas)
 - [Requisitos](#requisitos)
 - [Instalação](#instalação)
 - [Primeiros passos](#primeiros-passos)
@@ -64,6 +65,52 @@ http://localhost:8080
 | **Tarefas** | Histórico de todos os comandos, com a saída completa |
 
 Todo comando roda num terminal real (PTY). As perguntas interativas, como o código 2FA, a senha ou o caminho do Xcode.xip, são respondidas pelo console do próprio painel.
+
+## Telas
+
+> Dados pessoais (e-mails, nomes, IDs, chaves e aparelhos) aparecem borrados. Clique numa imagem para ver em tamanho real.
+
+<table>
+<tr>
+<td width="50%" valign="top"><b>Painel</b><br><sub>Versões do xtool (base ou xtool-org), Swift, conta Apple, SDK do iOS, disco, conexão com o iPhone e Android.</sub><br><a href="docs/telas/01-painel.png"><img src="docs/telas/01-painel.png" alt="Painel"></a></td>
+<td width="50%" valign="top"><b>Tema claro</b><br><sub>Alterna entre claro e escuro no botão do topo; o painel lembra a escolha.</sub><br><a href="docs/telas/19-tema-claro.png"><img src="docs/telas/19-tema-claro.png" alt="Tema claro"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Configuração</b><br><sub>xtool setup e SDK do iOS a partir do Xcode.xip.</sub><br><a href="docs/telas/02-configuracao.png"><img src="docs/telas/02-configuracao.png" alt="Configuração"></a></td>
+<td width="50%" valign="top"><b>Contas Apple</b><br><sub>Várias contas Apple, cada uma com o próprio login.</sub><br><a href="docs/telas/03-contas-apple.png"><img src="docs/telas/03-contas-apple.png" alt="Contas Apple"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Contas Google Play</b><br><sub>Contas de serviço do Google Play (chave JSON).</sub><br><a href="docs/telas/04-contas-google-play.png"><img src="docs/telas/04-contas-google-play.png" alt="Contas Google Play"></a></td>
+<td width="50%" valign="top"><b>Projetos</b><br><sub>Compilar, gerar .ipa/.apk e rodar no iPhone ou no Android.</sub><br><a href="docs/telas/05-projetos.png"><img src="docs/telas/05-projetos.png" alt="Projetos"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Apps da conta · Apple</b><br><sub>Apps registrados, App Store Connect e bundle IDs.</sub><br><a href="docs/telas/06-apps-apple.png"><img src="docs/telas/06-apps-apple.png" alt="Apps da conta · Apple"></a></td>
+<td width="50%" valign="top"><b>Apps da conta · Google Play</b><br><sub>Apps de cada conta Google Play e suas faixas.</sub><br><a href="docs/telas/07-apps-google-play.png"><img src="docs/telas/07-apps-google-play.png" alt="Apps da conta · Google Play"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Prévia da App Store</b><br><sub>Como a página do app aparece na App Store do iPhone.</sub><br><a href="docs/telas/17-previa-app-store.png"><img src="docs/telas/17-previa-app-store.png" alt="Prévia da App Store"></a></td>
+<td width="50%" valign="top"><b>Prévia da Google Play</b><br><sub>Como a página do app aparece na Google Play, com a ficha do Play Console.</sub><br><a href="docs/telas/18-previa-google-play.png"><img src="docs/telas/18-previa-google-play.png" alt="Prévia da Google Play"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Publicar · App Store</b><br><sub>Versão, notas com IA, compilar, assinar, enviar e submeter.</sub><br><a href="docs/telas/08-publicar-app-store.png"><img src="docs/telas/08-publicar-app-store.png" alt="Publicar · App Store"></a></td>
+<td width="50%" valign="top"><b>Publicar · Google Play</b><br><sub>APK/AAB assinado, chave de upload, notas da versão e faixas.</sub><br><a href="docs/telas/09-publicar-google-play.png"><img src="docs/telas/09-publicar-google-play.png" alt="Publicar · Google Play"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>GitHub</b><br><sub>Contas, repositórios e vínculo com projetos.</sub><br><a href="docs/telas/10-github.png"><img src="docs/telas/10-github.png" alt="GitHub"></a></td>
+<td width="50%" valign="top"><b>Dispositivos</b><br><sub>Aparelhos com status em tempo real; instala, abre e remove apps.</sub><br><a href="docs/telas/11-dispositivos.png"><img src="docs/telas/11-dispositivos.png" alt="Dispositivos"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Developer Services</b><br><sub>Times, certificados, bundle IDs, aparelhos e perfis.</sub><br><a href="docs/telas/12-developer-services.png"><img src="docs/telas/12-developer-services.png" alt="Developer Services"></a></td>
+<td width="50%" valign="top"><b>IA</b><br><sub>Provedores para escrever as notas de versão.</sub><br><a href="docs/telas/13-ia.png"><img src="docs/telas/13-ia.png" alt="IA"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Arquivos</b><br><sub>Navega em /work e nos Downloads; envia, baixa e apaga.</sub><br><a href="docs/telas/14-arquivos.png"><img src="docs/telas/14-arquivos.png" alt="Arquivos"></a></td>
+<td width="50%" valign="top"><b>Terminal</b><br><sub>Shell interativo dentro do container.</sub><br><a href="docs/telas/15-terminal.png"><img src="docs/telas/15-terminal.png" alt="Terminal"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Tarefas</b><br><sub>Histórico de todos os comandos, com a saída completa.</sub><br><a href="docs/telas/16-tarefas.png"><img src="docs/telas/16-tarefas.png" alt="Tarefas"></a></td>
+</tr>
+</table>
 
 ## Requisitos
 

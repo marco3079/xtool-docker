@@ -729,7 +729,7 @@ async function loadProjects(){
     <div class="grow"><div class="name">${n}${pills}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
-    <div class="row">
+    <div class="row" style="flex-basis:100%;padding:10px 0 0 50px;border-top:1px solid var(--line);margin-top:4px">
       ${hasIos?`<select id="cfg-${n}" class="btn sm" style="width:auto"><option>debug</option><option>release</option></select>
       <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value},'Build ${n}',${P})">Build</button>
       <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value,sign:true,ipa:true},'Gerar .ipa ${n}',${P})">Gerar .ipa</button>
