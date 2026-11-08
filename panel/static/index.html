@@ -267,6 +267,7 @@ h2:first-child{margin-top:0}
   <button class="nav" data-s="ds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Developer Services</button>
   <div class="navsep">Android</div>
   <button class="nav" data-s="android"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M9 5L8 3M15 5l1-2M9 8a3 3 0 016 0M9 19v2M15 19v2M3 11.5v4M21 11.5v4"/></svg>Android</button>
+  <button class="nav" data-s="playapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Apps da conta</button>
   <button class="nav" data-s="play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>Contas Google Play</button>
   <div class="navsep">Ferramentas</div>
   <button class="nav" data-s="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>IA</button>
@@ -397,17 +398,23 @@ h2:first-child{margin-top:0}
     <div class="field"><label>Arquivo JSON da conta de serviço</label><input type="file" accept=".json" id="playJson"></div>
     <button class="btn pri" onclick="addPlayAcc()">Adicionar</button>
   </div>
-  <h2>Apps na Play</h2>
-  <div class="row" style="margin-bottom:8px">
-    <select id="playAppAcc" style="max-width:300px"></select>
-    <input type="text" id="playAppPkg" placeholder="com.exemplo.app" style="max-width:300px;font-family:var(--mono)">
-    <button class="btn pri" onclick="addPlayApp()">Adicionar app</button>
-  </div>
-  <p class="hint" style="margin:0 0 12px">A API do Google não lista os apps da conta: o app precisa já existir no Play Console.</p>
-  <div class="list" id="playApps"></div>
 </section>
 
 <!-- ANDROID -->
+<section class="section" id="s-playapps">
+  <div class="row" style="margin-bottom:8px">
+    <select id="playAppAcc" style="max-width:320px" onchange="renderPlayAccApps()"></select>
+    <input type="text" id="playAppPkg" placeholder="com.exemplo.app" style="max-width:280px;font-family:var(--mono)" onkeydown="if(event.key==='Enter')addPlayApp()">
+    <button class="btn pri" onclick="addPlayApp()">Adicionar app</button>
+    <button class="btn" onclick="refreshAccPlayApps()">Atualizar da Play</button>
+    <span class="hint" id="playAppsHint"></span>
+  </div>
+  <p class="hint" style="margin:0 0 14px">A API do Google não lista os apps da conta: adicione pelo package name (o app precisa já existir no Play Console).</p>
+  <h2>Apps registrados <span class="hint" id="playRegHint" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+  <div class="regtbl" id="playApps" style="margin-bottom:22px"><div class="empty">Carregando…</div></div>
+  <h2>Apps na conta <span class="hint" id="playAccName" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+  <div class="grid" id="playAccApps"></div>
+</section>
 <section class="section" id="s-android">
   <div class="row" style="margin-bottom:14px">
     <select id="andProject" style="max-width:260px" onchange="loadAndroid()"></select>
@@ -601,14 +608,14 @@ h2:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id), val=id=>$(id).value.trim(), chk=id=>$(id).checked;
 const consoleEl=$('console'), side=$('side');
-const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados'],android:['Android','Compilar APK/AAB, assinar e publicar no Google Play'],play:['Contas Google Play','Contas de serviço, apps e faixas']};
+const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados'],android:['Android','Compilar APK/AAB, assinar e publicar no Google Play'],play:['Contas Google Play','Contas de serviço do Google Play'],playapps:['Apps da conta','Apps de cada conta Google Play e suas faixas']};
 const fmtB=b=>b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
 async function api(u,body){const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 
 function go(s){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay,playapps:initPlayApps})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 
 /* terminal */
@@ -1064,7 +1071,7 @@ async function aiTest(k){const m=$('ai-msg-'+k);m.textContent='testando…';try{
 /* ---------- Google Play: contas e apps ---------- */
 let playAccs=[], playAppsCache=[];
 async function fetchPlayAccs(){playAccs=await api('/api/play/accounts');return playAccs}
-async function loadPlay(){await loadPlayAccs();loadPlayApps()}
+async function loadPlay(){await loadPlayAccs()}
 async function loadPlayAccs(){
   playAccGrid.innerHTML='<div class="empty">Carregando…</div>';
   try{await fetchPlayAccs()}catch(e){playAccGrid.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
@@ -1078,23 +1085,48 @@ async function loadPlayAccs(){
       <button class="btn sm danger" onclick="removePlayAcc('${a.id}')">Remover</button>
       <span class="hint" id="pt-${a.id}"></span></div></div>`).join(''):'<div class="empty">Nenhuma conta Google Play. Adicione uma abaixo.</div>';
   refreshPlayAppAcc()}
-function refreshPlayAppAcc(){const sel=val('playAppAcc');playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta acima</option>'}
+function refreshPlayAppAcc(){const sel=val('playAppAcc');playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta em Contas Google Play</option>'}
 async function testPlayAcc(id){const s=$('pt-'+id);if(s)s.textContent='testando…';try{const r=await api('/api/play/test',{id});if(s)s.textContent='✔ conectado'+(r.email?' · '+r.email:'')}catch(e){if(s)s.textContent='✖ '+e.message}}
 async function renamePlayAcc(id){const a=playAccs.find(x=>x.id===id);const n=prompt('Novo nome da conta:',a?a.label:'');if(!n||!n.trim())return;try{await api('/api/play/accounts/rename',{id,label:n.trim()});loadPlay()}catch(e){toast(e.message)}}
 async function removePlayAcc(id){const a=playAccs.find(x=>x.id===id);if(!confirm(`Remover a conta "${a?a.label:id}" do painel? Os apps dela também saem da lista (nada é apagado no Google Play).`))return;try{await api('/api/play/accounts/remove',{id});loadPlay()}catch(e){toast(e.message)}}
 async function addPlayAcc(){const f=playJson.files[0];if(!f)return toast('Escolha o arquivo JSON da conta de serviço');try{const json=await f.text();await api('/api/play/accounts/add',{label:val('playLabel'),json});playLabel.value='';playJson.value='';toast('Conta Google Play adicionada');loadPlay()}catch(e){toast(e.message)}}
+/* ---------- Apps da conta (Google Play): mesmo layout dos apps da Apple ---------- */
+const PLAY_TR={production:'Produção',beta:'Teste aberto',alpha:'Teste fechado',internal:'Teste interno'};
+const PLAY_ST={completed:['ok','publicada'],inProgress:['warn','lançamento gradual'],draft:['','rascunho'],halted:['bad','interrompida']};
+const playRels=a=>(a.tracks||[]).flatMap(t=>(t.releases||[]).map(r=>({track:t.track,name:r.name||'?',status:r.status||'',vc:Math.max(0,...(r.versionCodes||[]).map(Number).filter(n=>!isNaN(n)))}))).sort((x,y)=>y.vc-x.vc);
+const playStPill=r=>{const [c,t]=PLAY_ST[r.status]||['',r.status];return `<span class="pill ${c}"><i></i>${esc(t)}</span>`};
+const playProject=pkg=>projCache.find(p=>(p.platforms||[]).includes('android')&&((p.meta.android||{}).packageName||(p.android||{}).packageName)===pkg);
+async function initPlayApps(){
+  try{await fetchPlayAccs()}catch(e){}
+  refreshPlayAppAcc();
+  try{projCache=await api('/api/projects')}catch(e){}
+  loadPlayApps()}
 async function loadPlayApps(){
-  playApps.innerHTML='<div class="empty">Carregando…</div>';
   try{playAppsCache=await api('/api/play/apps')}catch(e){playApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
-  playApps.innerHTML=playAppsCache.length?playAppsCache.map((a,i)=>{const tr=(a.tracks||[]).filter(t=>t.releases&&t.releases.length).map(t=>`${esc(t.track)}: ${esc(t.releases[0].name||'?')}(${esc(t.releases[0].status||'?')})`).join(' · ');
-    return `<div class="item"><span class="clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${playIconSlot(a)}</span><div class="grow">
-      <div class="name clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${esc(a.name||a.packageName)} <span class="hint" style="font-weight:400">Ver na loja ›</span></div>
-      <div class="meta" style="font-family:var(--mono)">${esc(a.packageName)}</div>
-      <div class="meta linked"><span class="mini" style="background:${colorOf(a.accountId||'x')}">${esc((a.accountLabel||'?')[0].toUpperCase())}</span>${esc(a.accountLabel||'conta removida')}</div>
-      <div class="meta">${tr||'sem faixas'}</div></div>
-      <button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>
-      <button class="btn sm danger" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app na Play. Adicione o package name acima.</div>';
+  const n=new Set(playAppsCache.map(a=>a.accountId)).size;
+  playRegHint.textContent=playAppsCache.length?`· ${playAppsCache.length} app(s) em ${n} conta(s)`:'';
+  playApps.innerHTML=playAppsCache.length?playAppsCache.map((a,i)=>{const r=playRels(a)[0];const pr=playProject(a.packageName);return `<div class="reg">
+    <span class="clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${playIconSlot(a)}</span>
+    <div class="clickable" style="min-width:0" title="Ver página da loja" onclick="openPlayStore(${i})"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name||a.packageName)}</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.packageName)}${r?' · v'+esc(r.name):''}${pr?' · 📁 '+esc(pr.name):''}</div></div>
+    <div class="accchip" title="Conta Google Play"><span class="mini" style="background:${colorOf(a.accountId||'x')}">${esc((a.accountLabel||'?')[0].toUpperCase())}</span><div><b>${esc(a.accountLabel||'conta removida')}</b><small>${esc(a.email||'')}</small></div></div>
+    ${r?`<span title="${esc(PLAY_TR[r.track]||r.track)}">${playStPill(r)}</span>`:'<span class="pill off"><i></i>sem versões</span>'}
+    <button class="x" title="Tirar da lista" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Escolha a conta, digite o package name e clique em "Adicionar app".</div>';
+  hydratePlayIcons();renderPlayAccApps()}
+function renderPlayAccApps(){
+  const acc=val('playAppAcc'),A=playAccs.find(x=>x.id===acc);
+  playAccName.textContent=A?'· '+A.label:'';
+  const L=playAppsCache.map((a,i)=>[a,i]).filter(([a])=>a.accountId===acc);
+  playAccApps.innerHTML=!acc?'<div class="empty">Cadastre uma conta em Contas Google Play.</div>':L.length?L.map(([a,i])=>{const rels=playRels(a);const pr=playProject(a.packageName);return `<div class="card">
+    <div class="devhead clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${playIconSlot(a)}<div style="min-width:0"><h3 style="margin:0">${esc(a.name||a.packageName)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.packageName)}</div></div></div>
+    <div class="list" style="gap:6px;margin-bottom:12px">${rels.map(r=>`<div class="row" style="justify-content:space-between"><span>v${esc(r.name)} <span class="hint">${esc(PLAY_TR[r.track]||r.track)} · ${r.vc}</span></span>${playStPill(r)}</div>`).join('')||'<span class="hint">sem versões</span>'}</div>
+    <div class="row"><a class="btn sm" target="_blank" href="https://play.google.com/console">Abrir no Play Console</a><button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>${pr?`<button class="btn sm pri" onclick="andProject.innerHTML='<option>${esc(pr.name)}</option>';go('android')">Publicar ${esc(pr.name)}</button>`:''}</div></div>`}).join('')
+    :'<div class="empty">Nenhum app desta conta na lista. Adicione pelo package name acima.</div>';
   hydratePlayIcons()}
+async function refreshAccPlayApps(){
+  const acc=val('playAppAcc'),L=playAppsCache.filter(a=>a.accountId===acc);if(!L.length)return toast('Nenhum app desta conta na lista');
+  let ok=0,err='';for(const a of L){playAppsHint.textContent=`atualizando ${a.packageName}…`;try{await api(`/api/play/app?account=${encodeURIComponent(a.accountId)}&package=${encodeURIComponent(a.packageName)}`);ok++}catch(e){err=e.message}}
+  playAppsHint.textContent=err?'✖ '+err:`✔ ${ok} app(s) atualizado(s)`;loadPlayApps()}
 /* arrastar as capturas de tela das prévias com o mouse (e rolar de lado com a roda) */
 (()=>{let el=null,x0=0,s0=0,moved=false;
   document.addEventListener('pointerdown',e=>{const t=e.target.closest('.as-shots,.gp-shots');if(!t||e.button!==0)return;el=t;x0=e.clientX;s0=t.scrollLeft;moved=false;t.classList.add('dragging');t.setPointerCapture(e.pointerId)});
