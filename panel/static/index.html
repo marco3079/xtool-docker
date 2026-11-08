@@ -290,6 +290,7 @@ h2:first-child{margin-top:0}
   <div id="pubInfo"></div>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
     <div class="card"><h3>1 · Versão</h3><p>Número que aparece na loja e número do build (precisa ser maior que o último).</p>
+      <div class="field"><label>A versão vem de</label><select id="pubVerSrc" onchange="setVerSrc('pub',this.value)"></select></div>
       <div class="row"><div class="field" style="flex:1"><label>Versão</label><input type="text" id="pubVersion" placeholder="1.2.0"></div>
         <div class="field" style="flex:1"><label>Build</label><input type="text" id="pubBuild" value="auto"></div></div>
       <label class="check"><input type="checkbox" id="pubNoEnc" checked>O app só usa criptografia padrão (HTTPS) — dispensa documentação de exportação</label>
@@ -345,6 +346,7 @@ h2:first-child{margin-top:0}
   <div class="card" id="andKeyCard" style="margin-bottom:16px"></div>
   <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
     <div class="card"><h3>1 · Versão</h3><p>Nome que aparece na loja e código do build (precisa ser maior que o último enviado).</p>
+      <div class="field"><label>A versão vem de</label><select id="andVerSrc" onchange="setVerSrc('and',this.value)"></select></div>
       <div class="row"><div class="field" style="flex:1"><label>Versão</label><input type="text" id="andVersion" placeholder="1.0.0"></div>
         <div class="field" style="flex:1"><label>Código (versionCode)</label><input type="text" id="andCode" value="auto"></div></div>
       <div class="field"><label>Gerar</label><select id="andKind"><option value="aab">AAB (Play Store)</option><option value="apk">APK (instalar direto)</option><option value="both">AAB + APK</option></select></div>
@@ -883,7 +885,9 @@ async function loadRelease(){
   try{relInfo=await api('/api/release/info?project='+encodeURIComponent(p))}catch(e){pubInfo.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   const r=relInfo;pubAcc.innerHTML=accOptions(r.accountId);
   const last=r.versions[0];
-  if(!val('pubVersion')||pubVersion.dataset.p!==p){pubVersion.value=last?bump(last.versionString,last.appStoreState):'1.0.0';pubVersion.dataset.p=p}
+  const pubAuto=last?bump(last.versionString,last.appStoreState):'1.0.0';
+  if(!val('pubVersion')||pubVersion.dataset.p!==p){pubVersion.value=pubAuto;pubVersion.dataset.p=p}
+  pubVersion.dataset.auto=pubAuto;applyVerSrc('pub',r)
   const locs=r.meta.locales||[r.app?.primaryLocale||'pt-BR'];
   pubLocales.innerHTML=LOCALES.map(([k,t])=>`<label class="check" style="margin:0 10px 0 0"><input type="checkbox" value="${k}" ${locs.includes(k)?'checked':''} onchange="saveProjMeta(val('pubProject'),{locales:[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value)});renderTexts()">${t}</label>`).join('');
   pubChanges.textContent=r.changes||'(sem histórico git — escreva as observações para a IA)';
@@ -892,6 +896,21 @@ async function loadRelease(){
     ${r.ascError?`<p style="color:var(--warn);margin:6px 0 0">${esc(r.ascError)}</p>`:`<p style="margin:6px 0 0">${r.versions.map(v=>`v${esc(v.versionString)} ${stPill(v.appStoreState)}`).join(' &nbsp; ')||'nenhuma versão ainda'} ${r.builds[0]?` · último build ${esc(r.builds[0].marketingVersion||'')} (${esc(r.builds[0].version)}) ${esc(r.builds[0].processingState)}`:''}</p>`}</div>
     <div class="row">${r.meta.lastRelease?`<span class="hint">última publicação pelo painel: v${esc(r.meta.lastRelease.version)} (${esc(r.meta.lastRelease.build)})</span>`:''}</div></div></div>`;
   renderTexts();pubSync()}
+/* versão do app: cada projeto escolhe de onde ela vem (salvo em projects.json → versionSource) */
+function applyVerSrc(kind,info,force){
+  const sel=$(kind+'VerSrc'),inp=$(kind+'Version');if(!sel||!info)return;
+  const cur=info.versionSource||'auto',S=info.versionSources||[];
+  sel.innerHTML=`<option value="auto">Automático (${kind==='pub'?'próxima depois da última na App Store':'próxima depois do último build'})</option><option value="manual">Manual (digito a cada vez)</option>`+
+    S.map(s=>`<option value="${esc(s.id)}">${esc(s.label)} — ${esc(s.value)}</option>`).join('')+
+    (cur!=='auto'&&cur!=='manual'&&!S.some(s=>s.id===cur)?`<option value="${esc(cur)}">${esc(cur)} — não encontrado no projeto</option>`:'');
+  sel.value=cur;
+  const src=S.find(s=>s.id===cur);
+  inp.readOnly=!!src;inp.style.opacity=src?.75:'';inp.title=src?'Definido pelo projeto em '+src.label+' — troque a origem acima para editar':'';
+  if(src)inp.value=src.value;else if(force&&cur==='auto')inp.value=inp.dataset.auto||inp.value}
+async function setVerSrc(kind,v){
+  const info=kind==='pub'?relInfo:andCur,project=kind==='pub'?val('pubProject'):andCur?.project;if(!info||!project)return;
+  try{await saveProjMeta(project,{versionSource:v});info.versionSource=v;applyVerSrc(kind,info,true);
+    const s=(info.versionSources||[]).find(x=>x.id===v);toast(s?`Versão de ${project} vem de ${s.label}`:v==='manual'?'Versão manual':'Versão automática')}catch(e){toast(e.message)}}
 function bump(v,state){if(state&&['PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED','REJECTED','METADATA_REJECTED'].includes(state))return v;const p=v.split('.').map(Number);while(p.length<3)p.push(0);p[2]++;return p.join('.')}
 const whatsNew={};
 function renderTexts(){const locs=[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value);
@@ -1008,7 +1027,14 @@ async function initAndroid(){
   andAcc.innerHTML='<option value="">— sem envio —</option>'+playAccs.map(a=>`<option value="${a.id}">${esc(a.label)}</option>`).join('');
   try{const ai=await api('/api/ai');andAi.innerHTML=Object.keys(ai.providers).length?Object.keys(ai.providers).map(k=>`<option value="${k}" ${k===ai.default?'selected':''}>${esc(ai.catalog[k]?.label||k)} · ${esc(ai.providers[k].model||'')}</option>`).join(''):'<option value="">configure uma IA</option>'}catch(e){andAi.innerHTML='<option value="">IA indisponível</option>'}
   await loadAndroid()}
-async function fetchAndInfo(){andCur=await api('/api/android/info?project='+encodeURIComponent(val('andProject')))}
+// local data first (instant); the Google Play lookup (several seconds) fills in afterwards
+async function fetchAndInfo(){
+  const p=val('andProject'),q='/api/android/info?project='+encodeURIComponent(p);
+  andCur=await api(q+'&play=0');
+  if(!(andCur.meta||{}).playAccountId)return;
+  const mine=andCur;mine.playPending=true;
+  api(q).then(r=>{if(andCur!==mine)return;Object.assign(andCur,{play:r.play,playError:r.playError,playPending:false});renderAndInfo()})
+    .catch(e=>{if(andCur!==mine)return;Object.assign(andCur,{playError:e.message,playPending:false});renderAndInfo()})}
 async function refreshAndInfo(){if(!andCur)return;await fetchAndInfo();renderAndInfo();fillAdbApk()}
 async function loadAndroid(){
   const p=val('andProject');
@@ -1017,7 +1043,9 @@ async function loadAndroid(){
   try{projCache=await api('/api/projects');await fetchAndInfo()}catch(e){andCur=null;andInfo.innerHTML=`<div class="empty">${esc(e.message)}</div>`;andKeyCard.innerHTML='';return}
   const I=andCur,M=I.meta||{},D=I.detect||{};
   renderAndInfo();fillAdbApk();
-  if(andVersion.dataset.p!==p){andVersion.value=M.lastVersionName?bumpLast(M.lastVersionName):(D.versionName||'1.0.0');andCode.value='auto';andVersion.dataset.p=p;andNotes={}}
+  const andAuto=M.lastVersionName?bumpLast(M.lastVersionName):(D.versionName||'1.0.0');
+  if(andVersion.dataset.p!==p){andVersion.value=andAuto;andCode.value='auto';andVersion.dataset.p=p;andNotes={}}
+  andVersion.dataset.auto=andAuto;applyVerSrc('and',I)
   andPkg.value=I.packageName||'';
   andAcc.value=M.playAccountId||'';
   andPre.value=M.preBuild??D.defaultPreBuild??'';
@@ -1045,6 +1073,7 @@ function renderAndInfo(){
     ${P?`<div class="meta" style="margin-top:10px">${tracks.length?tracks.map(t=>`<div><b>${esc(t.track)}</b>: ${t.releases.map(r=>`${esc(r.name||'?')} (${esc(r.status||'?')})`).join(', ')}</div>`).join(''):'Google Play: nenhuma faixa com release'}</div>
       <div class="hint" style="margin-top:6px">último build na Play: versionCode ${esc(P.maxVersionCode??'—')}</div>`:''}
     ${I.playError?`<p style="color:var(--warn);margin:8px 0 0">Google Play: ${esc(I.playError)}</p>`:''}
+    ${I.playPending?'<p class="hint" style="margin:8px 0 0">consultando o Google Play…</p>':''}
     ${b?`<div style="margin-top:12px"><div class="hint">último build local · ${esc(b.versionName||'?')} (${esc(b.versionCode||'?')})${b.at?' · '+(typeof b.at==='number'?new Date(b.at*1000).toLocaleString('pt-BR'):esc(b.at)):''}</div>
       <div class="row" style="margin-top:6px">${(b.files||[]).map(f=>`<a class="btn sm" href="/api/download?root=work&path=${encodeURIComponent(f.replace(/^\/work\//,''))}">⬇ ${esc(f.split('/').pop())}</a>`).join('')}</div></div>`:'<p class="hint" style="margin-top:12px">Nenhum build local ainda.</p>'}
   </div>`;

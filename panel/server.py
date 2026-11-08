@@ -25,6 +25,7 @@ import ai
 import android
 import github
 import store
+import versions
 from asc import ASC, AscError
 from play import Play, PlayError
 
@@ -524,6 +525,8 @@ def release_info(project):
             "meta": meta, "app": None, "versions": [], "builds": [], "ascError": None}
     since = (meta.get("lastRelease") or {}).get("commit")
     info["changes"] = github.changes_since(d, since)
+    info["versionSources"] = versions.sources(d)
+    info["versionSource"] = meta.get("versionSource") or "auto"
     try:
         k = store.asc_key(acc_id)
         api = ASC(k.get("issuerId"), k.get("keyId"), k.get("p8"))
@@ -770,13 +773,13 @@ def play_app(acc_id, pkg):
     return info
 
 
-def android_info(project):
+def android_info(project, with_play=True):
     d = safe_path("work", project)
     meta = store.project_meta(project).get("android", {})
     det = android.detect(d)
     pkg = meta.get("packageName") or (det or {}).get("packageName") or ""
     play, play_err = None, None
-    if meta.get("playAccountId") and pkg:
+    if with_play and meta.get("playAccountId") and pkg:
         try:
             play = play_app(meta["playAccountId"], pkg)
         except (PlayError, ValueError) as e:
@@ -787,7 +790,9 @@ def android_info(project):
         changes = ""
     return {"project": project, "detect": det, "meta": meta, "packageName": pkg,
             "key": store.android_key_public(pkg), "playAccounts": store.play_accounts(),
-            "play": play, "playError": play_err, "changes": changes}
+            "play": play, "playError": play_err, "changes": changes,
+            "versionSources": versions.sources(d),
+            "versionSource": store.project_meta(project).get("versionSource") or "auto"}
 
 
 def adb_devices():
@@ -1081,7 +1086,7 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/play/app":
                 return self._json(play_app(qs.get("account", ""), qs.get("package", "")))
             if u.path == "/api/android/info":
-                return self._json(android_info(qs.get("project", "")))
+                return self._json(android_info(qs.get("project", ""), qs.get("play") != "0"))
             if u.path == "/api/android/key":
                 return self._json(store.android_key_public(qs.get("package", "")))
             if u.path == "/api/android/key/download":

@@ -19,6 +19,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store  # noqa: E402
+import versions  # noqa: E402
 from play import Play, PlayError  # noqa: E402
 
 KEY_EXTS = ("p12", "pfx", "jks", "keystore")
@@ -275,7 +276,11 @@ def main():
         raise SystemExit(f"tipo de pacote desconhecido: {kind}")
 
     step("1/5 Conferindo versão")
-    vn = (a.get("versionName") or "").strip() or meta.get("lastVersionName") or info["versionName"] or "1.0.0"
+    src = store.project_meta(project).get("versionSource") or "auto"
+    vn = (a.get("versionName") or "").strip() or versions.resolve(pdir, src) \
+        or meta.get("lastVersionName") or info["versionName"] or "1.0.0"
+    if not (a.get("versionName") or "").strip() and src not in ("auto", "manual"):
+        log(f"Versão lida de {src}")
     vcode = str(a.get("versionCode") or "auto")
     play = edit = None
     max_play = 0
