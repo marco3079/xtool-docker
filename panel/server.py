@@ -757,7 +757,7 @@ def build_cmd(action, a):
         "help": lambda: ["xtool"] + shlex.split(q("sub")) + ["--help"],
         # GitHub (gh prints the device code; BROWSER=echo just shows the link)
         "gh.login": lambda: ["gh", "auth", "login", "--hostname", "github.com", "--git-protocol", "https",
-                             "--web", "--skip-ssh-key", "--scopes", "repo,read:org,workflow"],
+                             "--web", "--scopes", "repo,read:org,workflow"],
         "gh.token": lambda: ["bash", "-c", "gh auth login --hostname github.com --git-protocol https --with-token <<< \"$TOKEN\" "
                              "&& gh auth status"],
         "gh.switch": lambda: ["gh", "auth", "switch", "--hostname", "github.com", "--user", q("user")],
