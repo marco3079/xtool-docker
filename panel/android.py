@@ -218,6 +218,25 @@ def copy_newest(pattern, dest, what):
     return dest
 
 
+def install_and_launch(apk, pkg, serial):
+    """Install the APK on a phone connected by adb and open the app."""
+    step("Instalando no celular Android")
+    if not apk:
+        raise SystemExit("não há APK para instalar")
+    if not serial:
+        out = subprocess.run(["adb", "devices"], capture_output=True, text=True).stdout
+        found = [ln.split()[0] for ln in out.splitlines()[1:] if ln.strip().endswith("device")]
+        if not found:
+            raise SystemExit("nenhum celular Android conectado: pareie e conecte em Android → Instalar no celular")
+        if len(found) > 1:
+            raise SystemExit(f"há {len(found)} celulares conectados ({', '.join(found)}): escolha um em Projetos")
+        serial = found[0]
+    s = ["-s", serial]
+    run(["adb", *s, "install", "-r", apk])
+    run(["adb", *s, "shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1"])
+    log(f"\n\033[1;32m✔ {pkg} instalado e aberto em {serial}\033[0m")
+
+
 def merge_meta(project, patch):
     cur = dict(store.project_meta(project).get("android", {}))
     cur.update(patch)
@@ -237,7 +256,14 @@ def main():
         raise SystemExit("não achei o packageName (applicationId) do app")
     meta = store.project_meta(project).get("android", {})
     upload = bool(a.get("upload"))
-    debug = bool(a.get("debug"))
+    debug = a.get("debug")
+    if debug == "auto":  # quick builds from Projetos: signed release if the app has a key, else debug
+        k = store.android_key(pkg)
+        debug = not (k.get("file") and os.path.exists(k["file"]))
+        if debug:
+            log("\033[33mEste app ainda não tem chave de assinatura: gerando APK de debug "
+                "(instala no celular, mas não serve para a Play Store).\033[0m")
+    debug = bool(debug)
     kind = a.get("kind") or "aab"
     if debug:
         if upload:
@@ -249,7 +275,7 @@ def main():
         raise SystemExit(f"tipo de pacote desconhecido: {kind}")
 
     step("1/5 Conferindo versão")
-    vn = (a.get("versionName") or "").strip() or info["versionName"] or "1.0.0"
+    vn = (a.get("versionName") or "").strip() or meta.get("lastVersionName") or info["versionName"] or "1.0.0"
     vcode = str(a.get("versionCode") or "auto")
     play = edit = None
     max_play = 0
@@ -346,6 +372,9 @@ def main():
     merge_meta(project, {"lastVersionCode": vc, "lastVersionName": vn,
                          "lastBuild": {"versionName": vn, "versionCode": vc, "files": files, "at": time.time()}})
 
+    if a.get("install"):
+        install_and_launch(apk_out, pkg, (a.get("serial") or "").strip())
+        return
     if not upload:
         log("\nParado aqui (envio para a Play desligado).")
         return

@@ -21,7 +21,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
 button,input,select{font:inherit;color:inherit}
 a{color:var(--accent)}
 .app{display:grid;grid-template-columns:240px 1fr;height:100vh}
@@ -43,7 +43,7 @@ header{display:flex;align-items:center;gap:12px;padding:18px 28px;border-bottom:
 header h1{font-size:20px;margin:0}
 header p{margin:0;color:var(--muted)}
 header .sp{flex:1}
-.content{flex:1;overflow:auto;padding:24px 28px 28px}
+.content{flex:1;min-height:0;overflow:auto;padding:24px 28px 28px}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
 .card h3{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px}
@@ -82,7 +82,7 @@ h2:first-child{margin-top:0}
 .drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);margin-bottom:12px}
 .drop.over{border-color:var(--accent);color:var(--text)}
 /* console */
-.console{border-top:1px solid var(--line);background:#07080c;display:flex;flex-direction:column;height:320px;min-height:120px;transition:height .2s}
+.console{border-top:1px solid var(--line);background:#07080c;display:flex;flex-direction:column;flex:none;height:min(320px,45vh);min-height:120px;overflow:hidden;transition:height .2s}
 .console.min{height:44px}
 .ctop{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13px}
 .ctop .title{font-family:var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
@@ -92,7 +92,7 @@ h2:first-child{margin-top:0}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--muted)}
 .dot.run{background:var(--warn);animation:pulse 1s infinite}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
 @keyframes pulse{50%{opacity:.3}}
-#term{flex:1;padding:6px 10px;min-height:0}
+#term{flex:1;padding:6px 10px;min-height:0;min-width:0;overflow:hidden}
 .console.min #term{display:none}
 .hint{font-size:12px;color:var(--muted)}
 .toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line);padding:12px 16px;border-radius:12px;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -411,7 +411,11 @@ h2:first-child{margin-top:0}
     <div class="row"><input type="text" id="newName" placeholder="MeuApp" style="max-width:280px">
       <label class="check" style="margin:0"><input type="checkbox" id="skipSetup" checked>Pular setup</label>
       <button class="btn pri" onclick="newProject()">Criar</button></div></div>
-  <div class="field" style="max-width:420px"><label>Rodar no dispositivo</label><select id="runUdid" class="devSel"></select></div>
+  <div class="row" style="align-items:flex-end;margin-bottom:10px">
+    <div class="field" style="flex:1;min-width:240px;max-width:420px;margin:0"><label>Rodar no iPhone</label><select id="runUdid" class="devSel"></select></div>
+    <div class="field" style="flex:1;min-width:240px;max-width:420px;margin:0"><label>Rodar no Android (adb)</label><select id="runAdb"></select></div>
+    <button class="btn sm" onclick="loadRunAdb()" title="Procurar celulares Android conectados">↻</button>
+  </div>
   <div class="list" id="projList"></div>
 </section>
 
@@ -536,6 +540,7 @@ document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 const term=new Terminal({fontFamily:'JetBrains Mono, monospace',fontSize:13,theme:{background:'#07080c',foreground:'#e6e9f0',cursor:'#4f8cff'},convertEol:true,cursorBlink:true,scrollback:20000});
 const fit=new FitAddon.FitAddon();term.loadAddon(fit);term.open($('term'));
 const fitT=()=>{try{fit.fit()}catch(e){}};addEventListener('resize',fitT);setTimeout(fitT,100);
+new ResizeObserver(()=>requestAnimationFrame(fitT)).observe($('term'));
 term.writeln('\x1b[38;5;75mxtool painel\x1b[0m — rode uma ação e a saída aparece aqui.');
 let cur=null, offs={}, jobsCache=[];
 term.onData(d=>{if(cur)fetch(`/api/jobs/${cur}/input`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:d})})});
@@ -630,9 +635,20 @@ async function loadProjects(){
       <button class="btn sm pri" onclick="run('dev.run',{config:$('cfg-${n}').value,udid:val('runUdid'),conn:'all'},'Rodar ${n}',${P})">▶ Rodar no iPhone</button>
       <button class="btn sm" onclick="run('dev.xcode',{},'Projeto Xcode ${n}',${P})">Xcode</button>
       <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>`:''}
-      ${hasAnd?`<button class="btn sm" onclick="andProject.innerHTML='<option>${n}</option>';go('android')">🤖 Android</button>`:''}
+      ${hasAnd?`<button class="btn sm" onclick="quickAndroid(${P},false)" title="Só gera o APK (assinado se o app tiver chave; senão, debug). Não envia para a Play.">Gerar .apk</button>
+      <button class="btn sm pri" onclick="quickAndroid(${P},true)">▶ Rodar no Android</button>
+      <button class="btn sm" onclick="andProject.innerHTML='<option>${n}</option>';go('android')">🤖 Android</button>`:''}
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
-    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons()}
+    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb()}
+async function loadRunAdb(){
+  const el=$('runAdb');if(!el)return;const keep=el.value;let ds=[];
+  try{ds=(await api('/api/adb/devices')).filter(d=>d.state==='device')}catch(e){}
+  el.innerHTML=`<option value="">${ds.length?'Automático (único conectado)':'nenhum celular Android conectado'}</option>`+ds.map(d=>`<option value="${esc(d.serial)}">🟢 ${esc(d.model||d.serial)} · ${esc(d.serial)}</option>`).join('');
+  if(ds.some(d=>d.serial===keep))el.value=keep}
+function quickAndroid(project,install){
+  const p=projCache.find(x=>x.name===project)||{meta:{}};const m=p.meta.android||{};
+  run('android.release',{project,packageName:m.packageName||'',kind:'apk',debug:install?true:'auto',versionName:'',versionCode:'auto',
+    preBuild:m.preBuild??'',upload:false,install,serial:install?val('runAdb'):''},(install?'Rodar no Android ':'Gerar .apk ')+project,project)}
 function newProject(){const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');run('new',{name:n,skipSetup:chk('skipSetup')},'Novo projeto '+n)}
 
 /* files */
