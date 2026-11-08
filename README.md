@@ -52,7 +52,7 @@ http://localhost:8080
 |---|---|
 | **Painel** | Mostra num relance as versões do xtool e do Swift, a conta Apple em uso, o SDK do iOS, o espaço em disco e a conexão com o iPhone. Avisa quando sai uma versão nova do xtool e atualiza com um clique |
 | **Contas Apple** | Cadastra várias contas Apple, cada uma com o próprio login, e troca a conta em uso com um clique |
-| **Apps da conta** | Lista os apps do App Store Connect com o estado de cada versão e os bundle IDs registrados |
+| **Apps da conta** | Registro de todos os apps de todas as contas (com a conta dona e se ela tem API da Apple), apps do App Store Connect com o estado de cada versão, bundle IDs com ícone e prévia da página da App Store em um iPhone |
 | **Projetos** | Cria apps SwiftUI; compila em debug ou release; gera `.ipa`; roda no iPhone; gera projeto Xcode |
 | **Publicar** | Compila em release, gera o ícone (`Assets.car`), assina para distribuição, envia ao App Store Connect, preenche "O que há de novo" e submete para revisão |
 | **GitHub** | Várias contas; lista os repositórios (inclusive de organizações); importa como projeto; vincula ou cria repositório; pull e push |
@@ -109,7 +109,7 @@ O status de cada aparelho aparece em **Dispositivos** e se atualiza a cada 5 seg
 ### Pré-requisitos (uma vez por conta)
 
 1. Crie uma **chave de equipe** em [App Store Connect → Usuários e Acesso → Integrações](https://appstoreconnect.apple.com/access/integrations/api) com a função **App Manager** (ou Admin) e baixe o `.p8`.
-2. No painel, vá em **Apps da conta**, informe o **Issuer ID**, o **Key ID** e o arquivo `.p8`, e clique em **Testar**.
+2. No painel, vá em **Contas Apple**, clique em **🔑 Cadastrar API da Apple** no cartão da conta, informe o **Issuer ID**, o **Key ID** e o arquivo `.p8`, e clique em **Testar**. Cada conta tem a sua chave.
 3. Crie o registro do app em **App Store Connect → Apps → +**, com o mesmo bundle ID do `xtool.yml`.
 4. Para a primeira versão, preencha no site da Apple as capturas de tela, a descrição, a classificação etária e a privacidade. A API não cuida dessa parte.
 
@@ -210,7 +210,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 |---|---|
 | "Conexão iPhone: desligado" | Abra o iTunes ou o Dispositivos Apple no Windows |
 | iPhone não aparece | Desbloqueie a tela, toque em **Confiar** e confira o Modo de Desenvolvedor |
-| `chave da API … não configurada` | Configure a chave em **Apps da conta** |
+| `chave da API … não configurada` | Cadastre a chave no cartão da conta em **Contas Apple** |
 | "não existe app no App Store Connect" | Crie o app com o mesmo bundle ID no site da Apple |
 | "máximo de certificados de distribuição" | Revogue um certificado antigo em developer.apple.com → Certificates |
 | A IA não conecta (Ollama/LM Studio) | Abra o app no Windows e confira se o servidor local está ligado |
@@ -236,7 +236,9 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 - Painel web com console interativo, tarefas, arquivos e terminal
 - Várias contas Apple e vários dispositivos, com status de conexão em tempo real
 - Conexão com o iPhone pelo serviço da Apple do Windows (cabo ou Wi-Fi)
-- Lista de apps e bundle IDs de cada conta
+- Registro de apps de todas as contas, com a conta dona e se ela tem API da Apple
+- Chave da API da Apple cadastrada no cartão de cada conta
+- Ícone dos apps e prévia da página da App Store (publicada e próxima versão)
 - Publicação na App Store: build, ícones, assinatura de distribuição, envio, "O que há de novo" e revisão
 - Integração com GitHub (várias contas, importar, vincular, pull e push)
 - IA para notas de versão com 11 provedores, inclusive locais

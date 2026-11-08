@@ -11,6 +11,7 @@ PANEL_DIR = os.path.expanduser("~/.config/xtool-panel")
 ACC_FILE = os.path.join(PANEL_DIR, "accounts.json")
 SECRETS = os.path.join(PANEL_DIR, "secrets.json")
 PROJECTS = os.path.join(PANEL_DIR, "projects.json")
+APPS = os.path.join(PANEL_DIR, "apps.json")
 _lock = threading.RLock()
 
 
@@ -138,3 +139,40 @@ def project_meta_update(name, patch):
         p.setdefault(name, {}).update(patch)
         save(PROJECTS, p)
         return p[name]
+
+
+# ---- registry of every app seen on each Apple account ----
+def apps_registry():
+    return load(APPS, {})
+
+
+def apps_record(acc_id, items):
+    """Merge apps found on an account. Each item: bundleId plus any of name/ascId/versions/source."""
+    import time
+    with _lock:
+        reg = apps_registry()
+        cur = reg.setdefault(acc_id, {})
+        now = int(time.time())
+        for it in items:
+            b = (it.get("bundleId") or "").strip()
+            if not b:
+                continue
+            e = cur.setdefault(b, {"bundleId": b, "added": now})
+            for k, v in it.items():
+                if k == "sources":
+                    e["sources"] = sorted(set(e.get("sources", [])) | set(v))
+                elif v not in (None, "", []):
+                    e[k] = v
+            e["updated"] = now
+        save(APPS, reg)
+        return cur
+
+
+def apps_forget(acc_id, bundle=None):
+    with _lock:
+        reg = apps_registry()
+        if bundle is None:
+            reg.pop(acc_id, None)
+        else:
+            reg.get(acc_id, {}).pop(bundle, None)
+        save(APPS, reg)

@@ -119,6 +119,54 @@ h2:first-child{margin-top:0}
 .pill.off i{background:#5d6578}
 .pill.ok{color:var(--ok);border-color:rgba(46,204,143,.35)}
 @media (max-width:860px){.switcher{display:none}}
+/* app icons + App Store preview */
+.appicon{width:46px;height:46px;border-radius:11px;flex:none;object-fit:cover;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;overflow:hidden}
+.clickable{cursor:pointer;transition:border-color .15s,transform .15s}.clickable:hover{border-color:#3a4560;transform:translateY(-1px)}
+.modal{position:fixed;inset:0;background:rgba(3,5,10,.72);backdrop-filter:blur(6px);z-index:20;display:flex;align-items:center;justify-content:center;gap:28px;padding:20px;flex-wrap:wrap;overflow:auto}
+.modal[hidden]{display:none}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;width:min(560px,100%);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.mbox h3{margin:0 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mbox p{color:var(--muted);font-size:13px;line-height:1.5}
+.regtbl{display:grid;gap:8px}
+.reg{display:grid;grid-template-columns:auto minmax(0,1.6fr) minmax(0,1.3fr) auto auto;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.reg .accchip{display:flex;align-items:center;gap:8px;min-width:0}.reg .accchip .mini{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:none}
+.reg .accchip div{min-width:0}.reg .accchip b,.reg .accchip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.reg .accchip small{color:var(--muted);font-size:11px}
+.reg .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}.reg .x:hover{color:#ff5d6c}
+@media(max-width:820px){.reg{grid-template-columns:auto minmax(0,1fr) auto}.reg .accchip{grid-column:2/-1}}
+.mside{max-width:300px;color:var(--muted);font-size:13px}
+.mside h3{color:var(--text);margin:0 0 8px;font-size:18px}
+.mside .row{margin-top:14px}
+.phone{width:390px;max-width:100%;height:min(820px,calc(100vh - 40px));border-radius:46px;background:#000;padding:12px;box-shadow:0 0 0 2px #2a2f3a,0 30px 80px rgba(0,0,0,.6);position:relative;flex:none}
+.phone .notch{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#000;border-radius:20px;z-index:3}
+.screen{height:100%;border-radius:36px;overflow-y:auto;overflow-x:hidden;background:#000;color:#fff;font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.as-top{padding:58px 18px 0;display:flex;align-items:center;justify-content:space-between;color:#0a84ff;font-size:16px}
+.as-head{display:flex;gap:16px;padding:14px 18px 6px}
+.as-head img,.as-head .ph{width:118px;height:118px;border-radius:27px;flex:none;object-fit:cover;border:.5px solid rgba(255,255,255,.12);background:#1c1c1e;display:grid;place-items:center;font-size:44px}
+.as-head h1{font-size:22px;line-height:1.15;margin:2px 0 4px;font-weight:700}
+.as-head .sub{color:#8e8e93;font-size:14px}
+.as-get{display:inline-block;margin-top:14px;background:#0a84ff;color:#fff;font-weight:700;font-size:15px;border-radius:99px;padding:6px 22px}
+.as-strip{display:flex;overflow-x:auto;border-top:.5px solid #2c2c2e;border-bottom:.5px solid #2c2c2e;margin:14px 0 0;padding:10px 0;scrollbar-width:none}
+.as-strip>div{flex:none;min-width:104px;text-align:center;border-right:.5px solid #2c2c2e;padding:0 10px}
+.as-strip>div:last-child{border:0}
+.as-strip small{display:block;color:#8e8e93;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.as-strip b{display:block;font-size:19px;color:#aeaeb2;margin:3px 0 1px}
+.as-strip span{font-size:11px;color:#8e8e93}
+.as-sec{padding:16px 18px;border-bottom:.5px solid #2c2c2e}
+.as-sec h2{font-size:21px;margin:0 0 8px;color:#fff;text-transform:none;letter-spacing:0;font-weight:700}
+.as-sec .muted{color:#8e8e93;font-size:13px}
+.as-text{font-size:14px;line-height:1.45;white-space:pre-wrap;color:#e5e5ea}
+.as-text.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.as-more{color:#0a84ff;font-size:14px;cursor:pointer}
+.as-shots{display:flex;gap:10px;overflow-x:auto;padding:4px 18px 4px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.as-shots img{height:auto;width:auto;max-height:440px;max-width:330px;border-radius:18px;flex:none;scroll-snap-align:start;border:.5px solid #2c2c2e;background:#1c1c1e}
+.as-shots.ipad img{max-height:250px;border-radius:12px}
+.as-tabs{display:flex;gap:8px;padding:0 18px 10px}
+.as-tabs span{font-size:12px;color:#8e8e93;cursor:pointer;padding:3px 10px;border-radius:99px;background:#1c1c1e}
+.as-tabs span.on{color:#fff;background:#3a3a3c}
+.as-info{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:.5px solid #2c2c2e;font-size:14px}
+.as-info span:first-child{color:#8e8e93}.as-info span:last-child{text-align:right}
+.as-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;background:#2c2c2e;color:#aeaeb2;margin:0 4px 4px 0}
+.stars{color:#aeaeb2;letter-spacing:1px;font-size:11px}
 @media (max-width:860px){
   .app{grid-template-columns:1fr}
   aside{position:fixed;inset:0 30% 0 0;z-index:5;transform:translateX(-100%);transition:.2s}
@@ -218,7 +266,9 @@ h2:first-child{margin-top:0}
     <button class="btn pri" onclick="loadApps()">Buscar apps</button>
     <span class="hint" id="appsHint"></span>
   </div>
-  <div class="card" id="ascCard" style="margin-bottom:18px"></div>
+  <h2>Apps registrados <span class="hint" id="regHint" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+  <div class="regtbl" id="regList" style="margin-bottom:22px"><div class="empty">Carregando…</div></div>
+  <div class="item" id="ascCard" style="margin-bottom:18px"></div>
   <h2>Apps na App Store Connect</h2>
   <div class="grid" id="ascApps"><div class="empty">Clique em "Buscar apps".</div></div>
   <h2>Bundle IDs registrados</h2>
@@ -375,6 +425,15 @@ h2:first-child{margin-top:0}
 
 </div>
 
+<div class="modal" id="keyModal" hidden onclick="if(event.target===this)keyModal.hidden=true">
+  <div class="mbox" id="keyBox"></div>
+</div>
+
+<div class="modal" id="storeModal" hidden onclick="if(event.target===this)closeStore()">
+  <div class="phone"><div class="notch"></div><div class="screen" id="storeScreen"></div></div>
+  <div class="mside" id="storeSide"></div>
+</div>
+
 <div class="console min" id="console">
   <div class="ctop">
     <span id="cdot" class="dot"></span><span class="title" id="ctitle">Console — nenhuma tarefa</span>
@@ -514,11 +573,12 @@ async function loadAccounts(){
       <span class="tag pill ${on?'ok':''}"><i></i>${on?'em uso':'salva'}</span>
       <div class="avatar" style="background:${colorOf(a.id)}">${esc((a.label||'?')[0].toUpperCase())}</div>
       <h3>${esc(a.label)}</h3>
-      <div class="kv"><span>Apple ID</span><span>${esc(a.appleId||'—')}</span><span>Team</span><span>${esc(a.teamId||'—')}</span><span>Login</span><span>${a.loggedIn?'✅ ativo':'⚠️ sem login'}</span>${a.expiry?`<span>Expira</span><span>${esc(a.expiry)}</span>`:''}</div>
+      <div class="kv"><span>Apple ID</span><span>${esc(a.appleId||'—')}</span><span>Team</span><span>${esc(a.teamId||'—')}</span><span>Login</span><span>${a.loggedIn?'✅ ativo':'⚠️ sem login'}</span>${a.expiry?`<span>Expira</span><span>${esc(a.expiry)}</span>`:''}<span>API Apple</span><span>${a.hasApi?'✅ configurada':'⚠️ não cadastrada'}</span></div>
       <div class="row">
         ${on?'':`<button class="btn sm pri" onclick="switchAcc('${a.id}')">Usar esta</button>`}
         ${on?`<button class="btn sm ${a.loggedIn?'':'pri'}" onclick="loginActive('${a.appleId?esc(a.appleId):''}')">${a.loggedIn?'Entrar de novo':'Fazer login'}</button>`:''}
         ${on&&a.loggedIn?`<button class="btn sm" onclick="run('auth.status',{},'Status ${esc(a.label)}')">Status</button>`:''}
+        <button class="btn sm ${a.hasApi?'':'pri'}" onclick="openKey('${a.id}')">🔑 ${a.hasApi?'API da Apple':'Cadastrar API da Apple'}</button>
         <button class="btn sm" onclick="renameAcc('${a.id}')">Renomear</button>
         ${on&&a.loggedIn?`<button class="btn sm danger" onclick="confirmRun('Sair da conta ${esc(a.label)}? O cadastro continua salvo.','auth.logout',{},'Logout ${esc(a.label)}')">Sair</button>`:''}
         <button class="btn sm danger" onclick="removeAcc('${a.id}')">Remover</button>
@@ -570,26 +630,121 @@ async function setDefaultDev(id){const d=devs.find(x=>x.id===id);if(!d)return;de
 const STATE_PT={READY_FOR_SALE:['ok','À venda'],PREPARE_FOR_SUBMISSION:['warn','Em preparação'],WAITING_FOR_REVIEW:['warn','Aguardando revisão'],IN_REVIEW:['warn','Em revisão'],PENDING_DEVELOPER_RELEASE:['ok','Aprovado (liberar)'],REJECTED:['bad','Rejeitado'],METADATA_REJECTED:['bad','Metadados rejeitados'],DEVELOPER_REJECTED:['warn','Retirado da revisão'],PROCESSING_FOR_APP_STORE:['warn','Processando'],REMOVED_FROM_SALE:['bad','Fora da venda'],READY_FOR_REVIEW:['warn','Pronto p/ revisão'],ACCEPTED:['ok','Aceito'],REPLACED_WITH_NEW_VERSION:['off','Substituída'],INVALID_BINARY:['bad','Binário inválido'],WAITING_FOR_EXPORT_COMPLIANCE:['warn','Falta conformidade']};
 const stPill=s=>{const [c,t]=STATE_PT[s]||['off',s||'—'];return `<span class="pill ${c}"><i></i>${esc(t)}</span>`};
 function accOptions(sel){return accState.accounts.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}${a.appleId?' · '+esc(a.appleId):''}</option>`).join('')}
-async function initApps(){await loadAccounts();appsAcc.innerHTML=accOptions(val('appsAcc')||accState.active);renderAscCard()}
+async function initApps(){await loadAccounts();appsAcc.innerHTML=accOptions(val('appsAcc')||accState.active);renderAscCard();loadRegistry()}
 async function renderAscCard(){
-  const id=val('appsAcc');if(!id){ascCard.innerHTML='<div class="empty">Cadastre uma conta Apple primeiro.</div>';return}
+  const id=val('appsAcc');if(!id){ascCard.innerHTML='<div class="grow hint">Cadastre uma conta Apple primeiro.</div>';return}
   const k=await api('/api/asc/key?account='+id);
-  ascCard.innerHTML=`<h3>🔑 Chave da API do App Store Connect ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>falta configurar</span>'}</h3>
-   <p>Necessária para listar apps da loja, enviar builds e publicar. Crie em <a href="https://appstoreconnect.apple.com/access/integrations/api" target="_blank">App Store Connect → Usuários e Acesso → Integrações → Chaves da equipe</a> com a função <b>App Manager</b> (ou Admin) e baixe o arquivo .p8.</p>
+  ascCard.innerHTML=`<span style="font-size:20px">🔑</span><div class="grow"><div class="name">API da Apple (App Store Connect) ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>não cadastrada</span>'}</div>
+    <div class="meta">${k.configured?'Key ID '+esc(k.keyId)+' · usada para listar apps, enviar builds e publicar':'Sem ela só aparecem os bundle IDs. Cadastre no cartão da conta em Contas Apple.'}</div></div>
+    <span class="hint" id="kMsg"></span>${k.configured?`<button class="btn sm" onclick="testAscKey('${id}')">Testar</button>`:''}<button class="btn sm ${k.configured?'':'pri'}" onclick="openKey('${id}')">${k.configured?'Gerenciar':'Cadastrar'}</button>`}
+async function openKey(id){
+  const a=accState.accounts.find(x=>x.id===id)||{};const k=await api('/api/asc/key?account='+id);
+  keyBox.innerHTML=`<h3>🔑 API da Apple · ${esc(a.label||'')} ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>não cadastrada</span>'}</h3>
+   <p>${esc(a.appleId||'')}${a.teamId?' · Team '+esc(a.teamId):''}</p>
+   <p>Crie em <a href="https://appstoreconnect.apple.com/access/integrations/api" target="_blank">App Store Connect → Usuários e Acesso → Integrações → Chaves da equipe</a> com a função <b>App Manager</b> (ou Admin) e baixe o arquivo .p8 (ele só pode ser baixado uma vez). A chave fica guardada só no seu container.</p>
    <div class="row"><div class="field" style="flex:1;min-width:220px"><label>Issuer ID</label><input type="text" id="kIss" value="${esc(k.issuerId)}" placeholder="69a6de7e-…"></div>
-   <div class="field" style="flex:1;min-width:160px"><label>Key ID</label><input type="text" id="kId" value="${esc(k.keyId)}" placeholder="2X9R4HXF34"></div></div>
+   <div class="field" style="flex:1;min-width:140px"><label>Key ID</label><input type="text" id="kId" value="${esc(k.keyId)}" placeholder="2X9R4HXF34"></div></div>
    <div class="field"><label>Arquivo .p8 ${k.configured?'(deixe vazio para manter o atual)':''}</label><input type="file" id="kFile" accept=".p8"></div>
-   <div class="row"><button class="btn pri" onclick="saveAscKey()">Salvar chave</button>${k.configured?`<button class="btn" onclick="testAscKey()">Testar</button><button class="btn danger" onclick="if(confirm('Apagar a chave desta conta?'))api('/api/asc/key/remove',{accountId:val('appsAcc')}).then(renderAscCard)">Remover</button>`:''}<span class="hint" id="kMsg"></span></div>`}
-async function saveAscKey(){const f=kFile.files[0];const p8=f?await f.text():'';try{await api('/api/asc/key',{accountId:val('appsAcc'),issuerId:val('kIss'),keyId:val('kId'),p8});toast('Chave salva');await renderAscCard();testAscKey()}catch(e){toast(e.message)}}
-async function testAscKey(){kMsg.textContent='testando…';const r=await api('/api/asc/test',{accountId:val('appsAcc')});kMsg.textContent=r.ok?`✔ funcionando — ${r.apps} app(s)`:'✖ '+r.error}
+   <div class="row"><button class="btn pri" onclick="saveAscKey('${id}')">Salvar chave</button>${k.configured?`<button class="btn" onclick="testAscKey('${id}','kMsg2')">Testar</button><button class="btn danger" onclick="removeAscKey('${id}')">Remover</button>`:''}<button class="btn" onclick="keyModal.hidden=true">Fechar</button></div>
+   <p class="hint" id="kMsg2" style="margin:10px 0 0"></p>`;
+  keyModal.hidden=false}
+async function keyChanged(){await loadAccounts();if(val('appsAcc')){renderAscCard();loadRegistry()}}
+async function saveAscKey(id){const f=kFile.files[0];const p8=f?await f.text():'';try{await api('/api/asc/key',{accountId:id,issuerId:val('kIss'),keyId:val('kId'),p8});toast('Chave salva');await openKey(id);keyChanged();testAscKey(id,'kMsg2')}catch(e){toast(e.message)}}
+async function removeAscKey(id){if(!confirm('Apagar a chave da API desta conta?'))return;await api('/api/asc/key/remove',{accountId:id});toast('Chave removida');openKey(id);keyChanged()}
+async function testAscKey(id,out='kMsg'){const el=$(out);if(el)el.textContent='testando…';const r=await api('/api/asc/test',{accountId:id});if($(out))$(out).textContent=r.ok?`✔ funcionando — ${r.apps} app(s)`:'✖ '+r.error}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!keyModal.hidden)keyModal.hidden=true});
+let regItems=[];
+async function loadRegistry(){
+  try{regItems=await api('/api/apps/registry')}catch(e){return}
+  const n=new Set(regItems.map(r=>r.accountId)).size;
+  regHint.textContent=regItems.length?`· ${regItems.length} app(s) em ${n} conta(s)`:'';
+  regList.innerHTML=regItems.length?regItems.map((r,i)=>{const v=(r.versions||[])[0];return `<div class="reg">
+    <span class="clickable" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')">${iconSlot(r.bundleId,esc((r.name||'?')[0]))}</span>
+    <div class="clickable" style="min-width:0" title="Ver página da loja" onclick="openStore('${esc(r.bundleId)}','${r.accountId}')"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name||r.bundleId)}</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.bundleId)}${v?' · v'+esc(v.versionString):''}</div></div>
+    <div class="accchip" title="Conta Apple"><span class="mini" style="background:${colorOf(r.accountId)}">${esc((r.accountLabel||'?')[0].toUpperCase())}</span><div><b>${esc(r.accountLabel)}</b><small>${esc(r.appleId||r.teamId||'')}</small></div></div>
+    ${r.hasApi?'<span class="pill ok" title="A conta tem a chave da API da Apple"><i></i>API Apple</span>':`<span class="pill warn clickable" title="Cadastrar a chave da API desta conta" onclick="openKey('${r.accountId}')"><i></i>sem API</span>`}
+    <button class="x" title="Tirar da lista" onclick="forgetApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Escolha a conta e clique em "Buscar apps": tudo que for encontrado fica salvo aqui.</div>';
+  hydrateIcons()}
+async function forgetApp(i){const r=regItems[i];if(!confirm(`Tirar "${r.name||r.bundleId}" da lista? (Não apaga nada na Apple; ele volta se for encontrado de novo.)`))return;await api('/api/apps/forget',{accountId:r.accountId,bundleId:r.bundleId});loadRegistry()}
 async function loadApps(){
   renderAscCard();appsHint.textContent='buscando…';ascApps.innerHTML='<div class="empty">Buscando…</div>';bundleIds.innerHTML='';
   try{const r=await api('/api/apps?account='+val('appsAcc'));appsHint.textContent='';
-    ascApps.innerHTML=r.apps?(r.apps.length?r.apps.map(a=>`<div class="card"><div class="devhead"><div class="avatar" style="background:${colorOf(a.id)};border-radius:12px">${esc((a.name||'?')[0])}</div><div><h3 style="margin:0">${esc(a.name)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.bundleId)}</div></div></div>
+    ascApps.innerHTML=r.apps?(r.apps.length?r.apps.map(a=>`<div class="card"><div class="devhead clickable" title="Ver página da loja" onclick="openStore('${esc(a.bundleId)}')">${iconSlot(a.bundleId,esc((a.name||'?')[0]))}<div><h3 style="margin:0">${esc(a.name)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.bundleId)}</div></div></div>
       <div class="list" style="gap:6px;margin-bottom:12px">${a.versions.map(v=>`<div class="row" style="justify-content:space-between"><span>v${esc(v.versionString)} <span class="hint">${(v.createdDate||'').slice(0,10)}</span></span>${stPill(v.appStoreState)}</div>`).join('')||'<span class="hint">sem versões</span>'}</div>
       <div class="row"><a class="btn sm" target="_blank" href="https://appstoreconnect.apple.com/apps/${a.id}/distribution">Abrir no App Store Connect</a>${linkedProject(a.bundleId)}</div></div>`).join(''):'<div class="empty">Nenhum app nesta conta.</div>'):`<div class="empty">${esc(r.ascError)}</div>`;
-    bundleIds.innerHTML=r.identifiers?(r.identifiers.length?r.identifiers.map(i=>`<div class="item"><span>🏷</span><div class="grow"><div class="name">${esc(i.name||'')}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||'')} · ${esc(i.platform||'')}</div></div></div>`).join(''):'<div class="empty">Nenhum bundle ID.</div>'):`<div class="empty">${esc(r.idError||'')}</div>`}
+    bundleIds.innerHTML=r.identifiers?(r.identifiers.length?r.identifiers.map(i=>`<div class="item clickable" title="Ver página da loja" onclick="openStore('${esc(i.identifier||'')}')">${iconSlot(i.identifier,'🏷')}<div class="grow"><div class="name">${esc(i.name||'')}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||'')} · ${esc(i.platform||'')}</div></div><span class="hint">Ver na loja ›</span></div>`).join(''):'<div class="empty">Nenhum bundle ID.</div>'):`<div class="empty">${esc(r.idError||'')}</div>`;
+    hydrateIcons();loadRegistry()}
   catch(e){appsHint.textContent='';ascApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+/* ---------- ícones + prévia da página da App Store ---------- */
+const storeCache={};
+async function storeData(bundle,full,acc){
+  acc=acc||val('appsAcc')||accState.active||'';
+  const k=acc+'|'+bundle+(full?'#full':'');
+  if(!storeCache[k]||full)storeCache[k]=api(`/api/storepage?bundle=${encodeURIComponent(bundle)}&account=${encodeURIComponent(acc)}${full?'':'&light=1'}`).catch(e=>{delete storeCache[k];throw e});
+  return storeCache[k]}
+async function retry(fn,tries=4){for(let i=0;;i++){try{return await fn()}catch(e){if(i>=tries-1||!/fetch|network/i.test(e.message))throw e;await new Promise(r=>setTimeout(r,1500))}}}
+const iconSlot=(bundle,ph)=>`<span class="appicon" data-icon="${esc(bundle)}">${ph||'📦'}</span>`;
+function hydrateIcons(){document.querySelectorAll('[data-icon]:not([data-done])').forEach(async el=>{el.dataset.done=1;try{const d=await storeData(el.dataset.icon);if(d.icon)el.innerHTML=`<img src="${esc(d.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`}catch(e){}})}
+let storeView='live',storeShots='iphone',storeCur=null;
+async function openStore(bundle,acc){
+  storeModal.hidden=false;storeScreen.innerHTML='<div style="padding:120px 20px;text-align:center;color:#8e8e93">Carregando…</div>';storeSide.innerHTML='';
+  try{storeCur=await retry(()=>storeData(bundle,true,acc))}catch(e){
+    const msg=/fetch|network/i.test(e.message)?'O painel não respondeu. O container pode estar reiniciando — tente de novo em alguns segundos.':e.message;
+    storeScreen.innerHTML=`<div style="padding:120px 24px;text-align:center;color:#8e8e93"><div style="font-size:34px;margin-bottom:10px">⚠️</div>${esc(msg)}<div style="margin-top:16px"><span class="as-get" style="cursor:pointer" onclick="openStore('${esc(bundle)}','${acc||''}')">Tentar de novo</span></div></div>`;return}
+  storeView=storeCur.sources.includes('loja')?'live':'draft';storeShots='iphone';renderStore()}
+function closeStore(){storeModal.hidden=true}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!storeModal.hidden)closeStore()});
+function renderStore(){
+  const L=storeCur,D=L.draft||{},draft=storeView==='draft';
+  const pick=k=>draft?(D[k]??L[k]):L[k];
+  const name=pick('name')||L.bundleId, shots=(draft&&D.screenshots)?D.screenshots:(L.screenshots||{iphone:[],ipad:[]});
+  const list=shots[storeShots]?.length?shots[storeShots]:(shots.iphone?.length?shots.iphone:shots.ipad||[]);
+  const ipadMode=list===shots.ipad&&shots.ipad?.length;
+  const stars=r=>'★★★★★'.slice(0,Math.round(r))+'☆☆☆☆☆'.slice(0,5-Math.round(r));
+  const size=L.size?(L.size/1e6).toFixed(1)+' MB':'—';
+  const date=L.releaseDate?new Date(L.releaseDate).toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'}):'';
+  const langs=(L.languages||[]).map(x=>({EN:'Inglês',PT:'Português',ES:'Espanhol',FR:'Francês',DE:'Alemão',IT:'Italiano',JA:'Japonês'}[x]||x));
+  storeScreen.innerHTML=`
+  <div class="as-top"><span onclick="closeStore()" style="cursor:pointer">‹ Buscar</span><span>⤴︎</span></div>
+  <div class="as-head">${L.icon?`<img src="${esc(L.icon)}" alt="">`:`<div class="ph">📦</div>`}
+    <div style="min-width:0"><h1>${esc(name)}</h1><div class="sub">${esc(draft&&D.subtitle?D.subtitle:(L.seller||''))}</div>
+    <span class="as-get">${esc(L.price&&L.price!=='Grátis'&&L.price!=='Free'?L.price:'Obter')}</span></div></div>
+  <div class="as-strip">
+    <div><small>${L.ratingCount||0} avaliações</small><b>${L.ratingCount?Number(L.rating).toFixed(1):'—'}</b><span class="stars">${stars(L.rating||0)}</span></div>
+    <div><small>Idade</small><b>${esc(L.age||'—')}</b><span>anos</span></div>
+    <div><small>Categoria</small><b style="font-size:16px">${/game|jogo/i.test(L.genre||'')?'🎮':'🗂️'}</b><span>${esc(L.genre||'—')}</span></div>
+    <div><small>Desenvolvedor</small><b style="font-size:16px">👤</b><span>${esc(L.seller||'—')}</span></div>
+    <div><small>Idioma</small><b>${esc((L.languages||['—'])[0])}</b><span>${esc(langs[0]||'')}</span></div>
+    <div><small>Tamanho</small><b>${esc(size.split(' ')[0])}</b><span>MB</span></div>
+  </div>
+  ${(pick('releaseNotes')||draft)?`<div class="as-sec"><h2>Novidades</h2><div class="muted" style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Versão ${esc(pick('version')||'')}</span><span>${draft?'próxima versão':esc(date)}</span></div><div class="as-text clamp" onclick="this.classList.toggle('clamp')">${esc(pick('releaseNotes')||'(ainda sem texto de novidades)')}</div></div>`:''}
+  ${draft&&D.promotionalText?`<div class="as-sec"><div class="as-text" style="color:#aeaeb2">${esc(D.promotionalText)}</div></div>`:''}
+  <div style="padding:16px 0 8px"><div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px 10px"><h2 style="font-size:21px;margin:0;text-transform:none;letter-spacing:0;color:#fff">Prévia</h2></div>
+    ${shots.iphone?.length&&shots.ipad?.length?`<div class="as-tabs"><span class="${storeShots==='iphone'?'on':''}" onclick="storeShots='iphone';renderStore()">iPhone</span><span class="${storeShots==='ipad'?'on':''}" onclick="storeShots='ipad';renderStore()">iPad</span></div>`:''}
+    ${list.length?`<div class="as-shots ${ipadMode?'ipad':''}">${list.map(u=>`<img src="${esc(u)}" loading="lazy" alt="">`).join('')}</div>`:'<div class="muted" style="padding:0 18px">Nenhuma captura de tela.</div>'}</div>
+  <div class="as-sec"><div class="as-text clamp" id="asDesc">${esc(pick('description')||'Sem descrição.')}</div><div class="as-more" onclick="asDesc.classList.toggle('clamp');this.textContent=asDesc.classList.contains('clamp')?'mais':'menos'">mais</div>
+    <div style="margin-top:12px;color:#0a84ff;font-size:14px">${esc(L.seller||'')}<div class="muted">Desenvolvedor</div></div></div>
+  <div class="as-sec"><h2>Avaliações e Resenhas</h2>${L.ratingCount?`<div style="font-size:48px;font-weight:700">${Number(L.rating).toFixed(1)}<span class="muted" style="font-size:14px;font-weight:400"> de 5</span></div><div class="muted">${L.ratingCount} avaliações</div>`:'<div class="muted">Ainda não há avaliações suficientes para exibir uma média.</div>'}</div>
+  <div class="as-sec" style="border:0"><h2>Informações</h2>
+    <div class="as-info"><span>Fornecedor</span><span>${esc(L.seller||'—')}</span></div>
+    <div class="as-info"><span>Tamanho</span><span>${esc(size)}</span></div>
+    <div class="as-info"><span>Categoria</span><span>${esc(L.genre||'—')}</span></div>
+    <div class="as-info"><span>Compatibilidade</span><span>${L.minOS?'Requer iOS '+esc(L.minOS)+' ou posterior':'—'}</span></div>
+    <div class="as-info"><span>Idiomas</span><span>${esc(langs.join(', ')||'—')}</span></div>
+    <div class="as-info"><span>Classificação</span><span>${esc(L.age||'—')}</span></div>
+    <div class="as-info"><span>Preço</span><span>${esc(L.price||'—')}</span></div>
+    <div class="as-info" style="border:0"><span>Bundle ID</span><span style="font-family:var(--mono);font-size:12px">${esc(L.bundleId)}</span></div>
+  </div><div style="height:40px"></div>`;
+  storeScreen.scrollTop=0;
+  storeSide.innerHTML=`<h3>${esc(name)}</h3>
+    <p>Prévia de como a página aparece na App Store do iPhone.</p>
+    <div>${L.sources.map(s=>`<span class="pill ${s==='loja'?'ok':''}" style="margin:0 6px 6px 0"><i></i>${esc({loja:'dados da loja (publicado)',projeto:'projeto local',['app store connect']:'App Store Connect'}[s]||s)}</span>`).join('')}</div>
+    ${L.draft?`<div class="row"><button class="btn sm ${!draft?'pri':''}" onclick="storeView='live';renderStore()" ${L.sources.includes('loja')?'':'disabled'}>Publicada</button><button class="btn sm ${draft?'pri':''}" onclick="storeView='draft';renderStore()">Próxima versão${D.state?' · '+esc((STATE_PT[D.state]||[0,D.state])[1]):''}</button></div>`
+      :`<p class="hint" style="margin-top:12px">Configure a chave da API do App Store Connect para ver também a <b>próxima versão</b> (texto e capturas em preparação).</p>`}
+    ${!L.sources.includes('loja')?'<p class="hint">Este app ainda não está publicado: a prévia usa o que existe no projeto e no App Store Connect.</p>':''}
+    <div class="row">${L.url?`<a class="btn sm" target="_blank" href="${esc(L.url)}">Abrir na App Store</a>`:''}${L.project?`<button class="btn sm" onclick="closeStore();pubProject.innerHTML='<option>${esc(L.project)}</option>';go('publish')">🚀 Publicar</button>`:''}<button class="btn sm" onclick="closeStore()">Fechar</button></div>`}
+
 let projCache=[];
 function linkedProject(bundle){const p=projCache.find(x=>(x.meta.bundleId||x.bundleId)===bundle);return p?`<button class="btn sm pri" onclick="pubProject.value='${esc(p.name)}';go('publish')">Publicar ${esc(p.name)}</button>`:''}
 

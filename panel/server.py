@@ -256,6 +256,7 @@ def accounts_remove(acc_id):
         st["accounts"] = [a for a in st["accounts"] if a["id"] != acc_id]
         shutil.rmtree(os.path.join(ACC_DIR, acc_id), ignore_errors=True)
         store.asc_key_remove(acc_id)
+        store.apps_forget(acc_id)
         if st["active"] == acc_id:  # removed the one in use: log the live folder out
             shutil.rmtree(XDATA, ignore_errors=True)
             st["active"] = None
@@ -512,6 +513,160 @@ def release_info(project):
     return info
 
 
+# ---- store page preview: public App Store data + local project + App Store Connect draft
+_lookup_cache = {}
+
+
+def _itunes_lookup(bundle, country):
+    import urllib.request
+    key = (bundle, country)
+    hit = _lookup_cache.get(key)
+    if hit and time.time() - hit[0] < 3600:
+        return hit[1]
+    res = None
+    try:
+        url = f"https://itunes.apple.com/lookup?bundleId={bundle}&country={country}&entity=software"
+        with urllib.request.urlopen(url, timeout=10) as r:
+            items = json.load(r).get("results") or []
+        res = items[0] if items else None
+    except Exception:  # noqa
+        return None
+    _lookup_cache[key] = (time.time(), res)
+    return res
+
+
+def _hires(url):
+    """mzstatic serves any size: ask for a sharp version instead of the 320px thumbnail."""
+    return re.sub(r"/\d+x\d+bb\.(jpg|png)$", "/1000x1000bb.jpg", url or "")
+
+
+def _strip_team(bundle):
+    """xtool registers free-provisioning IDs as <bundle>.<TEAMID>; compare both forms."""
+    return re.sub(r"\.[A-Z0-9]{10}$", "", bundle or "")
+
+
+def _local_project_for(bundle):
+    for p in projects():
+        pb = p["meta"].get("bundleId") or p["bundleId"]
+        if pb and (pb == bundle or _strip_team(pb) == _strip_team(bundle)):
+            return p
+    return None
+
+
+def _local_icon(project):
+    d = safe_path("work", project)
+    cands = []
+    try:
+        for line in open(os.path.join(d, "xtool.yml")):
+            m = re.match(r"iconPath:\s*['\"]?([^'\"\n]+)", line)
+            if m:
+                cands.append(m.group(1).strip())
+    except OSError:
+        pass
+    for root, dirs, files in os.walk(d):
+        dirs[:] = [x for x in dirs if x not in (".build", "xtool", ".git", ".swiftpm")]
+        if root.endswith(".appiconset"):
+            pngs = [f for f in files if f.lower().endswith(".png")]
+            pngs.sort(key=lambda f: os.path.getsize(os.path.join(root, f)), reverse=True)
+            cands += [os.path.relpath(os.path.join(root, f), d) for f in pngs[:1]]
+    for c in cands:
+        if os.path.isfile(os.path.join(d, c)):
+            return f"/api/download?root=work&path={project}/{c}&inline=1"
+    return None
+
+
+def _asc_draft(acc_id, bundle):
+    """Texts and screenshots of the version being prepared (needs the account's API key)."""
+    k = store.asc_key(acc_id)
+    if not k.get("p8"):
+        return None
+    api = ASC(k["issuerId"], k["keyId"], k["p8"])
+    try:
+        app = api.app_by_bundle(bundle)
+    except AscError:
+        try:
+            app = api.app_by_bundle(_strip_team(bundle))
+        except AscError:
+            return None
+    out = {"name": app["attributes"].get("name"), "locale": app["attributes"].get("primaryLocale")}
+    infos = api.get(f"/v1/apps/{app['id']}/appInfos", limit=5).get("data") or []
+    if infos:
+        locs = api.get(f"/v1/appInfos/{infos[0]['id']}/appInfoLocalizations", limit=50).get("data") or []
+        loc = next((l for l in locs if l["attributes"]["locale"] == out["locale"]), locs[0] if locs else None)
+        if loc:
+            out.update(name=loc["attributes"].get("name") or out["name"], subtitle=loc["attributes"].get("subtitle"))
+    vers = api.get(f"/v1/apps/{app['id']}/appStoreVersions", limit=1).get("data") or []
+    if vers:
+        v = vers[0]
+        out.update(version=v["attributes"]["versionString"], state=v["attributes"]["appStoreState"])
+        locs = api.get(f"/v1/appStoreVersions/{v['id']}/appStoreVersionLocalizations", limit=50).get("data") or []
+        loc = next((l for l in locs if l["attributes"]["locale"] == out["locale"]), locs[0] if locs else None)
+        if loc:
+            a = loc["attributes"]
+            out.update(description=a.get("description"), releaseNotes=a.get("whatsNew"),
+                       promotionalText=a.get("promotionalText"))
+            shots = {"iphone": [], "ipad": []}
+            r = api.get(f"/v1/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets",
+                        limit=50, include="appScreenshots")
+            kind_of = {}  # screenshot id -> iphone/ipad, from the set's display type (APP_IPHONE_67, APP_IPAD_PRO_129…)
+            for st in r.get("data") or []:
+                kind = "ipad" if "IPAD" in (st["attributes"].get("screenshotDisplayType") or "") else "iphone"
+                for x in ((st.get("relationships") or {}).get("appScreenshots") or {}).get("data") or []:
+                    kind_of[x["id"]] = kind
+            for s in r.get("included") or []:
+                ia = (s.get("attributes") or {}).get("imageAsset") or {}
+                if ia.get("templateUrl") and s["id"] in kind_of:
+                    w = 700
+                    url = ia["templateUrl"].replace("{w}", str(w)).replace("{h}", str(int(w * ia["height"] / ia["width"]))).replace("{f}", "jpg")
+                    shots[kind_of[s["id"]]].append(url)
+            if shots["iphone"] or shots["ipad"]:
+                out["screenshots"] = shots
+    return out
+
+
+def store_page(bundle, acc_id=None, country="br", light=False):
+    page = {"bundleId": bundle, "sources": []}
+    live = None
+    for b in dict.fromkeys([bundle, _strip_team(bundle)]):
+        for c in dict.fromkeys([country, "us"]):
+            live = _itunes_lookup(b, c)
+            if live:
+                break
+        if live:
+            break
+    if live:
+        page["sources"].append("loja")
+        page.update({
+            "name": live.get("trackName"), "seller": live.get("sellerName") or live.get("artistName"),
+            "icon": live.get("artworkUrl512") or live.get("artworkUrl100"),
+            "version": live.get("version"), "releaseNotes": live.get("releaseNotes"),
+            "releaseDate": live.get("currentVersionReleaseDate"), "description": live.get("description"),
+            "genre": live.get("primaryGenreName"), "age": live.get("contentAdvisoryRating") or live.get("trackContentRating"),
+            "rating": live.get("averageUserRating") or 0, "ratingCount": live.get("userRatingCount") or 0,
+            "price": live.get("formattedPrice"), "size": live.get("fileSizeBytes"),
+            "minOS": live.get("minimumOsVersion"), "languages": live.get("languageCodesISO2A") or [],
+            "url": live.get("trackViewUrl"), "screenshots": {"iphone": [_hires(u) for u in live.get("screenshotUrls") or []],
+                                                           "ipad": [_hires(u) for u in live.get("ipadScreenshotUrls") or []]},
+        })
+    proj = _local_project_for(bundle)
+    if proj:
+        page["project"] = proj["name"]
+        if not page.get("icon"):
+            page["icon"] = _local_icon(proj["name"])
+        page.setdefault("name", proj["name"])
+        page["sources"].append("projeto")
+    if light and page.get("icon"):  # list icons only need the picture
+        return page
+    try:
+        draft = _asc_draft(acc_id or accounts_state().get("active"), bundle)
+    except Exception:  # noqa
+        draft = None
+    if draft:
+        page["draft"] = draft
+        page["sources"].append("app store connect")
+    return page
+
+
 def apple_apps(acc_id):
     """Apps of an Apple account: App Store Connect apps (needs API key) + registered bundle IDs."""
     st = accounts_state()
@@ -541,6 +696,30 @@ def apple_apps(acc_id):
             out["idError"] = txt.strip()[:400]
     else:
         out["idError"] = "troque para esta conta para listar os bundle IDs"
+    # remember everything we saw, so the app stays listed even when it can't be fetched now
+    found = [{"bundleId": a.get("bundleId"), "name": a.get("name"), "ascId": a.get("id"),
+              "versions": a.get("versions", [])[:3], "sources": ["asc"]} for a in out["apps"] or []]
+    found += [{"bundleId": i.get("identifier"), "name": i.get("name"), "sources": ["bundle"]}
+              for i in out["identifiers"] or []]
+    if found:
+        store.apps_record(acc_id, found)
+    return out
+
+
+def apps_registry():
+    """Every app ever seen, with its Apple account and whether that account has an API key."""
+    st = accounts_state()
+    accs = {a["id"]: a for a in st["accounts"]}
+    out = []
+    for acc_id, apps in store.apps_registry().items():
+        a = accs.get(acc_id)
+        if not a:
+            continue
+        api = store.asc_key_public(acc_id)["configured"]
+        for e in apps.values():
+            out.append({**e, "accountId": acc_id, "accountLabel": a.get("label", ""),
+                        "appleId": a.get("appleId", ""), "teamId": a.get("teamId", ""), "hasApi": api})
+    out.sort(key=lambda x: ((x.get("name") or x["bundleId"]).lower(), x["accountLabel"]))
     return out
 
 
@@ -716,7 +895,7 @@ class H(BaseHTTPRequestHandler):
         if not ctype:
             ext = path.rsplit(".", 1)[-1].lower()
             ctype = {"html": "text/html; charset=utf-8", "js": "text/javascript", "css": "text/css",
-                     "svg": "image/svg+xml", "png": "image/png"}.get(ext, "application/octet-stream")
+                     "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, "application/octet-stream")
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(os.path.getsize(path)))
         if download:
@@ -744,9 +923,13 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/files":
                 return self._json(list_dir(qs.get("root", "work"), qs.get("path", "")))
             if u.path == "/api/download":
-                return self._file(safe_path(qs.get("root", "work"), qs.get("path", "")), download=True)
+                return self._file(safe_path(qs.get("root", "work"), qs.get("path", "")), download=not qs.get("inline"))
             if u.path == "/api/accounts":
-                return self._json(accounts_state())
+                st = accounts_state()
+                return self._json({**st, "accounts": [{**a, "hasApi": store.asc_key_public(a["id"])["configured"]}
+                                                      for a in st["accounts"]]})
+            if u.path == "/api/apps/registry":
+                return self._json(apps_registry())
             if u.path == "/api/devices":
                 return self._json(devices_list())
             if u.path == "/api/asc/key":
@@ -759,6 +942,9 @@ class H(BaseHTTPRequestHandler):
                 return self._json(github.accounts())
             if u.path == "/api/gh/repos":
                 return self._json(github.repos(qs.get("user", ""), qs.get("q", "")))
+            if u.path == "/api/storepage":
+                return self._json(store_page(qs.get("bundle", ""), qs.get("account"), qs.get("country", "br"),
+                                             bool(qs.get("light"))))
             if u.path == "/api/release/info":
                 return self._json(release_info(qs.get("project", "")))
             if u.path == "/api/devices/status":
@@ -814,6 +1000,7 @@ class H(BaseHTTPRequestHandler):
                 "/api/devices/remove": lambda b: devices_remove(b.get("id")),
                 "/api/asc/key": lambda b: (store.asc_key_set(b["accountId"], b.get("issuerId", ""), b.get("keyId", ""),
                                                              b.get("p8", "")), store.asc_key_public(b["accountId"]))[1],
+                "/api/apps/forget": lambda b: (store.apps_forget(b["accountId"], b["bundleId"]), {"ok": True})[1],
                 "/api/asc/key/remove": lambda b: (store.asc_key_remove(b["accountId"]), {"ok": True})[1],
                 "/api/asc/test": lambda b: asc_test(b["accountId"]),
                 "/api/ai/save": lambda b: (store.ai_save(b["provider"], b.get("conf", {}), b.get("default")),
