@@ -385,17 +385,55 @@ def xtool_installed():
     return m.group(1) if m else ""
 
 
-def xtool_latest(force=False):
-    if force or time.time() - _latest["at"] > 3600:
-        try:
-            import urllib.request
-            req = urllib.request.Request("https://api.github.com/repos/xtool-org/xtool/releases/latest",
-                                         headers={"Accept": "application/vnd.github+json", "User-Agent": "xtool-painel"})
-            with urllib.request.urlopen(req, timeout=10) as r:
-                _latest["tag"] = json.load(r).get("tag_name", "").lstrip("v")
-            _latest["at"] = time.time()
-        except Exception:  # noqa — offline or rate-limited: try again in 10 min
-            _latest["at"] = time.time() - 3000
+BASE_XTOOL = "/opt/xtool"  # baked into the image from base/ in the repository
+_base_ver = {}
+
+
+def xtool_source(path):
+    """"base" = the xtool shipped in the repository; "xtool-org" = downloaded from GitHub by the panel."""
+    if not path:
+        return ""
+    return "base" if os.path.realpath(path).startswith(BASE_XTOOL + os.sep) else "xtool-org"
+
+
+def xtool_versions():
+    """Every xtool available: the base one plus updates kept in the volume (~/.xtool/<version>)."""
+    if "v" not in _base_ver:
+        m = re.search(r"(\d+\.\d+(?:\.\d+)?)", quick([os.path.join(BASE_XTOOL, "AppRun"), "--version"]))
+        _base_ver["v"] = m.group(1) if m else ""
+    active = os.path.realpath(shutil.which("xtool") or "")
+    out = [{"version": _base_ver["v"], "source": "base",
+            "active": active.startswith(BASE_XTOOL + os.sep)}]
+    try:
+        for d in sorted(os.listdir(XTOOL_HOME), key=_vtuple):
+            p = os.path.join(XTOOL_HOME, d)
+            if d != "current" and not d.endswith(".tmp") and os.path.isdir(p) and not os.path.islink(p):
+                out.append({"version": d, "source": "xtool-org", "active": active.startswith(p + os.sep)})
+    except OSError:
+        pass
+    return out
+
+
+def xtool_latest(force=False, wait=True):
+    """Newest xtool on GitHub — optional: the panel works without it (offline it stays None).
+    With wait=False a stale value is refreshed in the background instead of blocking."""
+    if not (force or time.time() - _latest["at"] > 3600):
+        return _latest["tag"]
+    if not wait:
+        if not _latest.get("busy"):
+            _latest["busy"] = True
+            threading.Thread(target=lambda: (xtool_latest(force=True), _latest.update(busy=False)),
+                             daemon=True).start()
+        return _latest["tag"]
+    try:
+        import urllib.request
+        req = urllib.request.Request("https://api.github.com/repos/xtool-org/xtool/releases/latest",
+                                     headers={"Accept": "application/vnd.github+json", "User-Agent": "xtool-painel"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            _latest["tag"] = json.load(r).get("tag_name", "").lstrip("v")
+        _latest["at"] = time.time()
+    except Exception:  # noqa — offline or rate-limited: try again in 10 min
+        _latest["at"] = time.time() - 3000
     return _latest["tag"]
 
 
@@ -433,8 +471,10 @@ def status():
     jv = quick(["java", "-version"]) if shutil.which("java") else ""
     return {
         "xtool": xt, "swift": sw[0] if sw else "",
-        "xtoolLatest": xtool_latest(),
-        "xtoolUpdate": bool(xtool_latest()) and _vtuple(xtool_latest()) > _vtuple(xt),
+        "xtoolSource": xtool_source(os.path.realpath(shutil.which("xtool") or "")),
+        "xtoolVersions": xtool_versions(),
+        "xtoolLatest": xtool_latest(wait=False),
+        "xtoolUpdate": bool(xtool_latest(wait=False)) and _vtuple(xtool_latest(wait=False)) > _vtuple(xt),
         "auth": auth, "sdk": sdk,
         "disk": {"free": du.free, "total": du.total},
         "usbmuxd": usbmux_ok(),
@@ -773,6 +813,82 @@ def play_app(acc_id, pkg):
     return info
 
 
+def _android_project_for(pkg):
+    for p in projects():
+        if "android" not in (p.get("platforms") or []):
+            continue
+        d = safe_path("work", p["name"])
+        mp = (store.project_meta(p["name"]).get("android") or {}).get("packageName")
+        if (mp or (android.detect(d) or {}).get("packageName")) == pkg:
+            return p["name"], d
+    return None, None
+
+
+def _android_icon(project, d):
+    """Launcher icon of the Android project (largest density first)."""
+    det = android.detect(d) or {}
+    res = os.path.join(d, det.get("gradleDir", "android"), "app", "src", "main", "res")
+    for dens in ("xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "mdpi"):
+        for f in ("ic_launcher.png", "ic_launcher_round.png", "ic_launcher.webp"):
+            p = os.path.join(res, "mipmap-" + dens, f)
+            if os.path.isfile(p):
+                return f"/api/download?root=work&path={project}/{os.path.relpath(p, d)}&inline=1"
+    return None
+
+
+_play_page_cache = {}
+
+
+def play_store_page(acc_id, pkg, light=False):
+    """Preview of the Google Play page: Play Console listing + local Android project as fallback."""
+    project, d = _android_project_for(pkg)
+    local_icon = _android_icon(project, d) if project else None
+    key = (acc_id, pkg)
+    hit = _play_page_cache.get(key)
+    if light and hit:
+        return {"packageName": pkg, "icon": hit[1].get("icon") or local_icon}
+    if light and local_icon:
+        return {"packageName": pkg, "icon": local_icon}
+    if hit and time.time() - hit[0] < 300 and not light:
+        return hit[1]
+    page = {"packageName": pkg, "project": project, "sources": [], "url":
+            f"https://play.google.com/store/apps/details?id={pkg}"}
+    acc = next((a for a in store.play_accounts() if a["id"] == acc_id), None)
+    if acc:
+        page["developer"] = acc.get("label", "")
+        try:
+            L = Play(store.play_account(acc_id)["json"]).listing(pkg)
+            page["sources"].append("play console")
+            imgs = L.pop("images", {})
+            page.update(L)
+            page["icon"] = (imgs.get("icon") or [None])[0]
+            page["featureGraphic"] = (imgs.get("featureGraphic") or [None])[0]
+            page["screenshots"] = {"phone": imgs.get("phoneScreenshots", []),
+                                   "tablet": imgs.get("tenInchScreenshots", []) or imgs.get("sevenInchScreenshots", [])}
+        except (PlayError, ValueError, KeyError) as e:
+            page["playError"] = str(e)
+    if not page.get("icon") and local_icon:
+        page["icon"] = local_icon
+    if project:
+        page["sources"].append("projeto")
+        if not page.get("title"):
+            page["title"] = project
+    # newest release per track, for "Novidades"
+    rels = []
+    for t in page.get("tracks") or []:
+        for r in t.get("releases") or []:
+            vcs = [int(v) for v in r.get("versionCodes") or [] if str(v).isdigit()]
+            rels.append({"track": t.get("track"), "name": r.get("name", ""), "status": r.get("status", ""),
+                         "versionCode": max(vcs) if vcs else 0, "notes": r.get("releaseNotes") or []})
+    rels.sort(key=lambda r: r["versionCode"], reverse=True)
+    page["releases"] = rels
+    if "play console" in page["sources"]:
+        _play_page_cache[key] = (time.time(), page)
+    if light:
+        return {"packageName": pkg, "icon": page.get("icon")}
+    return page
+
+
 def android_info(project, with_play=True):
     d = safe_path("work", project)
     meta = store.project_meta(project).get("android", {})
@@ -1085,6 +1201,9 @@ class H(BaseHTTPRequestHandler):
                 return self._json(play_apps_list())
             if u.path == "/api/play/app":
                 return self._json(play_app(qs.get("account", ""), qs.get("package", "")))
+            if u.path == "/api/play/storepage":
+                return self._json(play_store_page(qs.get("account", ""), qs.get("package", ""),
+                                                  qs.get("light") == "1"))
             if u.path == "/api/android/info":
                 return self._json(android_info(qs.get("project", ""), qs.get("play") != "0"))
             if u.path == "/api/android/key":

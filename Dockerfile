@@ -20,9 +20,16 @@ RUN apt-get update \
       openjdk-21-jdk-headless xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
+# Base xtool comes from the repository (base/xtool-<version>-<arch>.zip), so building and
+# starting don't depend on github.com/xtool-org. Newer versions installed from the panel
+# go to the volume and take precedence; this one stays as the fallback.
 # AppImages need FUSE, which containers don't have: extract it instead.
+COPY base/xtool-${XTOOL_VERSION}-x86_64.zip /tmp/xtool.zip
 RUN cd /opt \
- && curl -fL "https://github.com/xtool-org/xtool/releases/download/${XTOOL_VERSION}/xtool-$(uname -m).AppImage" -o xtool.AppImage \
+ && [ "$(uname -m)" = x86_64 ] || { echo "base/ só tem o xtool x86_64"; exit 1; } \
+ && unzip -q /tmp/xtool.zip -d /tmp/xtool-zip \
+ && mv /tmp/xtool-zip/xtool-${XTOOL_VERSION}-x86_64.AppImage xtool.AppImage \
+ && rm -rf /tmp/xtool.zip /tmp/xtool-zip \
  && chmod +x xtool.AppImage \
  && ./xtool.AppImage --appimage-extract >/dev/null \
  && mv squashfs-root xtool \

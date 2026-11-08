@@ -9,6 +9,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 import jwt  # python3-jwt (+ python3-cryptography for RS256)
 
@@ -194,6 +195,38 @@ class Play:
             self.edit_delete(pkg, eid)
         return {"packageName": pkg, "title": title, "defaultLanguage": lang,
                 "tracks": tracks, "maxVersionCode": max_vc}
+
+    def listing(self, pkg):
+        """Store page as it is in the Play Console: texts, images, contact and the newest releases."""
+        eid = self.edit_open(pkg)
+        try:
+            det = self.req("GET", f"/{pkg}/edits/{eid}/details")
+            lang = det.get("defaultLanguage", "")
+            lst = {}
+            if lang:
+                try:
+                    lst = self.req("GET", f"/{pkg}/edits/{eid}/listings/{lang}")
+                except PlayError:
+                    lst = {}
+            def images(kind):
+                try:
+                    r = self.req("GET", f"/{pkg}/edits/{eid}/listings/{lang}/{kind}")
+                except PlayError:
+                    return kind, []
+                return kind, [i["url"] for i in r.get("images", []) if isinstance(i, dict) and i.get("url")]
+
+            kinds = ("icon", "featureGraphic", "phoneScreenshots", "sevenInchScreenshots", "tenInchScreenshots")
+            with ThreadPoolExecutor(6) as ex:  # one request per image type: run them together
+                fut_tracks = ex.submit(self.tracks, pkg, eid)
+                imgs = dict(ex.map(images, kinds)) if lang else {}
+                tracks = fut_tracks.result()
+        finally:
+            self.edit_delete(pkg, eid)
+        return {"packageName": pkg, "defaultLanguage": lang, "title": lst.get("title", ""),
+                "shortDescription": lst.get("shortDescription", ""), "fullDescription": lst.get("fullDescription", ""),
+                "video": lst.get("video", ""), "contactEmail": det.get("contactEmail", ""),
+                "contactWebsite": det.get("contactWebsite", ""), "contactPhone": det.get("contactPhone", ""),
+                "images": imgs, "tracks": tracks}
 
     def test(self):
         self.token()

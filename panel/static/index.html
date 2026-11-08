@@ -13,12 +13,34 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('xtool-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')}catch(e){document.documentElement.dataset.theme='dark'}</script>
 <style>
 :root{
   --bg:#0b0d12; --panel:#12151c; --panel2:#181c25; --line:#232836; --text:#e6e9f0; --muted:#8a93a6;
   --accent:#4f8cff; --accent2:#7c5cff; --ok:#2ecc8f; --warn:#f5b041; --bad:#ff5d6c;
   --radius:14px; --mono:"JetBrains Mono",ui-monospace,monospace;
+  --dim:#5d6578; --hover:#36405a; --input:#0e1117; --console:#07080c;
+  --sb:#2a3142; --sbh:#3d4760; color-scheme:dark;
 }
+/* tema claro */
+:root[data-theme=light]{
+  --bg:#f3f5f9; --panel:#ffffff; --panel2:#eef1f6; --line:#dde2eb; --text:#1a1f2b; --muted:#5f6b80;
+  --accent:#2f6fe8; --accent2:#6b4be0; --ok:#12a26c; --warn:#c98500; --bad:#e0384b;
+  --dim:#8a93a6; --hover:#b9c3d6; --input:#ffffff; --console:#fbfcfe;
+  --sb:#c9d0dc; --sbh:#a9b3c4; color-scheme:light;
+}
+:root[data-theme=light] .card,:root[data-theme=light] .item{box-shadow:0 1px 2px rgba(20,30,50,.05)}
+:root[data-theme=light] .modal{background:rgba(30,40,60,.45)}
+/* barras de rolagem finas, no tema */
+*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sb);border-radius:99px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--sbh);border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-corner{background:transparent}
+.xterm .xterm-viewport{scrollbar-width:thin;scrollbar-color:var(--sb) transparent;background:transparent!important}
+.themebtn{width:34px;justify-content:center;padding:6px 0}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
@@ -29,7 +51,7 @@ aside{background:var(--panel);border-right:1px solid var(--line);display:flex;fl
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
 .logo{width:38px;height:38px;border-radius:10px;box-shadow:0 4px 14px rgba(79,140,255,.35)}
 .vtag{font-size:10px;font-weight:600;color:var(--accent);background:rgba(79,140,255,.12);border-radius:6px;padding:1px 6px;vertical-align:2px}
-.by{margin-top:auto;padding:18px 12px 4px;font-size:12px;color:#5d6578;line-height:1.6}
+.by{margin-top:auto;padding:18px 12px 4px;font-size:12px;color:var(--dim);line-height:1.6}
 .by a{color:var(--muted);text-decoration:none;font-weight:600}.by a:hover{color:var(--text)}
 .brand b{display:block;font-size:16px}.brand small{color:var(--muted)}
 .nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--muted);border:0;background:none;text-align:left;width:100%}
@@ -37,7 +59,7 @@ aside{background:var(--panel);border-right:1px solid var(--line);display:flex;fl
 .nav.on{background:linear-gradient(90deg,rgba(79,140,255,.18),transparent);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
 .nav svg{width:18px;height:18px;flex:none}
 .nav .badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:99px;font-size:11px;padding:0 7px}
-.navsep{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#5d6578;padding:14px 12px 4px}
+.navsep{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);padding:14px 12px 4px}
 main{display:flex;flex-direction:column;min-width:0;min-height:0}
 header{display:flex;align-items:center;gap:12px;padding:18px 28px;border-bottom:1px solid var(--line)}
 header h1{font-size:20px;margin:0}
@@ -57,7 +79,7 @@ header .sp{flex:1}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .pill.ok i{background:var(--ok)}.pill.bad i{background:var(--bad)}.pill.warn i{background:var(--warn)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:500;white-space:nowrap}
-.btn:hover{border-color:#36405a}
+.btn:hover{border-color:var(--hover)}
 .btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff}
 .btn.danger{color:var(--bad)}
 .btn.sm{padding:6px 10px;font-size:13px}
@@ -65,7 +87,7 @@ header .sp{flex:1}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
 .field label{font-size:12px;color:var(--muted)}
-input[type=text],input[type=password],select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0e1117;outline:none}
+input[type=text],input[type=password],select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--input);outline:none}
 input:focus,select:focus{border-color:var(--accent)}
 .check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:10px}
 .section{display:none}.section.on{display:block}
@@ -82,7 +104,7 @@ h2:first-child{margin-top:0}
 .drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);margin-bottom:12px}
 .drop.over{border-color:var(--accent);color:var(--text)}
 /* console */
-.console{border-top:1px solid var(--line);background:#07080c;display:flex;flex-direction:column;flex:none;height:min(320px,45vh);min-height:120px;overflow:hidden;transition:height .2s}
+.console{border-top:1px solid var(--line);background:var(--console);display:flex;flex-direction:column;flex:none;height:min(320px,45vh);min-height:120px;overflow:hidden;transition:height .2s}
 .console.min{height:44px}
 .ctop{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13px}
 .ctop .title{font-family:var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
@@ -113,15 +135,15 @@ h2:first-child{margin-top:0}
 .star.on{color:var(--warn)}
 .devhead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .devhead .avatar{margin:0;position:relative}
-.sdot{position:absolute;right:-1px;bottom:-1px;width:14px;height:14px;border-radius:50%;border:2px solid var(--panel);background:#5d6578}
+.sdot{position:absolute;right:-1px;bottom:-1px;width:14px;height:14px;border-radius:50%;border:2px solid var(--panel);background:var(--dim)}
 .sdot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .sdot.warn{background:var(--warn)}
-.pill.off i{background:#5d6578}
+.pill.off i{background:var(--dim)}
 .pill.ok{color:var(--ok);border-color:rgba(46,204,143,.35)}
 @media (max-width:860px){.switcher{display:none}}
 /* app icons + App Store preview */
 .appicon{width:46px;height:46px;border-radius:11px;flex:none;object-fit:cover;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;overflow:hidden}
-.clickable{cursor:pointer;transition:border-color .15s,transform .15s}.clickable:hover{border-color:#3a4560;transform:translateY(-1px)}
+.clickable{cursor:pointer;transition:border-color .15s,transform .15s}.clickable:hover{border-color:var(--hover);transform:translateY(-1px)}
 .modal{position:fixed;inset:0;background:rgba(3,5,10,.72);backdrop-filter:blur(6px);z-index:20;display:flex;align-items:center;justify-content:center;gap:28px;padding:20px;flex-wrap:wrap;overflow:auto}
 .modal[hidden]{display:none}
 .mbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;width:min(560px,100%);box-shadow:0 30px 80px rgba(0,0,0,.5)}
@@ -167,6 +189,54 @@ h2:first-child{margin-top:0}
 .as-tabs span.on{color:#fff;background:#3a3a3c}
 .as-info{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:.5px solid #2c2c2e;font-size:14px}
 .as-info span:first-child{color:#8e8e93}.as-info span:last-child{text-align:right}
+/* Google Play page preview */
+.gp{background:#131314;color:#e3e3e3;min-height:100%;font-family:'Google Sans',Roboto,system-ui,sans-serif}
+.gp-top{padding:52px 16px 6px;display:flex;align-items:center;justify-content:space-between;color:#c4c7c5;font-size:20px}
+.gp-head{display:flex;gap:18px;padding:10px 20px 4px;align-items:center}
+.gp-head img,.gp-head .ph{width:72px;height:72px;border-radius:18px;flex:none;object-fit:cover;background:#1e1f20;display:grid;place-items:center;font-size:30px;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.gp-head h1{font-size:22px;line-height:1.2;margin:0 0 4px;font-weight:500;color:#e3e3e3}
+.gp-dev{color:#a8c7fa;font-size:14px;font-weight:500}.gp-sub{color:#c4c7c5;font-size:12px;margin-top:2px}
+.gp-strip{display:flex;padding:16px 8px 6px}
+.gp-strip>div{flex:1;text-align:center;font-size:12px;color:#c4c7c5;border-right:1px solid #444746;padding:0 6px}
+.gp-strip>div:last-child{border:0}.gp-strip b{display:block;font-size:14px;color:#e3e3e3;font-weight:500;margin-bottom:2px}
+.gp-install{margin:14px 20px 4px;background:#a8c7fa;color:#062e6f;text-align:center;font-weight:500;font-size:14px;border-radius:99px;padding:10px}
+.gp-feat{margin:14px 20px 0;border-radius:12px;overflow:hidden;aspect-ratio:1024/500;background:#1e1f20}.gp-feat img{width:100%;height:100%;object-fit:cover;display:block}
+.gp-shots{display:flex;gap:8px;overflow-x:auto;padding:16px 20px 4px;scrollbar-width:none}
+.gp-shots img{height:220px;width:auto;max-width:280px;border-radius:10px;flex:none;background:#1e1f20}
+.gp-sec{padding:18px 20px 4px}
+.gp-sec h2{font-size:18px;font-weight:500;margin:0 0 10px;color:#e3e3e3;display:flex;justify-content:space-between;align-items:center;text-transform:none;letter-spacing:0}
+.gp-sec h2 span{color:#c4c7c5;font-size:20px}
+.gp-text{font-size:14px;line-height:1.5;color:#c4c7c5;white-space:pre-wrap}
+.gp-text.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.gp-chip{display:inline-block;border:1px solid #444746;border-radius:8px;padding:5px 12px;font-size:13px;color:#c4c7c5;margin:12px 6px 0 0}
+.gp-row{display:flex;gap:16px;align-items:center;padding:10px 0;font-size:14px;color:#e3e3e3}.gp-row small{display:block;color:#c4c7c5;font-size:12px}
+/* prévias das lojas no tema claro (como o celular em modo claro) */
+:root[data-theme=light] .screen{background:#fff;color:#000}
+:root[data-theme=light] .as-head img,:root[data-theme=light] .as-head .ph{background:#f2f2f7;border-color:rgba(0,0,0,.1)}
+:root[data-theme=light] .as-head .sub,:root[data-theme=light] .as-strip small,:root[data-theme=light] .as-strip span,
+:root[data-theme=light] .as-sec .muted,:root[data-theme=light] .as-info span:first-child{color:#6e6e73}
+:root[data-theme=light] .as-strip b{color:#3c3c43}
+:root[data-theme=light] .as-strip,:root[data-theme=light] .as-strip>div,:root[data-theme=light] .as-sec,
+:root[data-theme=light] .as-info,:root[data-theme=light] .as-shots img{border-color:#d1d1d6}
+:root[data-theme=light] .as-sec h2,:root[data-theme=light] .screen h2{color:#000!important}
+:root[data-theme=light] .as-text{color:#1c1c1e}
+:root[data-theme=light] .as-get{background:#007aff}
+:root[data-theme=light] .as-top,:root[data-theme=light] .as-more{color:#007aff}
+:root[data-theme=light] .as-shots img{background:#f2f2f7}
+:root[data-theme=light] .as-tabs span{background:#f2f2f7;color:#6e6e73}:root[data-theme=light] .as-tabs span.on{background:#d1d1d6;color:#000}
+:root[data-theme=light] .as-badge{background:#f2f2f7;color:#3c3c43}
+:root[data-theme=light] .gp{background:#fff;color:#1f1f1f}
+:root[data-theme=light] .gp-top,:root[data-theme=light] .gp-sub,:root[data-theme=light] .gp-strip>div,
+:root[data-theme=light] .gp-text,:root[data-theme=light] .gp-sec h2 span,:root[data-theme=light] .gp-row small,:root[data-theme=light] .gp-chip{color:#444746}
+:root[data-theme=light] .gp-head h1,:root[data-theme=light] .gp-strip b,:root[data-theme=light] .gp-sec h2,:root[data-theme=light] .gp-row{color:#1f1f1f}
+:root[data-theme=light] .gp-dev{color:#0b57d0}
+:root[data-theme=light] .gp-install{background:#0b57d0;color:#fff}
+:root[data-theme=light] .gp-strip>div,:root[data-theme=light] .gp-chip{border-color:#c4c7c5}
+:root[data-theme=light] .gp-head img,:root[data-theme=light] .gp-head .ph,:root[data-theme=light] .gp-shots img,:root[data-theme=light] .gp-feat{background:#f0f4f9}
+:root[data-theme=light] .gp-head img,:root[data-theme=light] .gp-head .ph{box-shadow:0 1px 3px rgba(0,0,0,.2)}
+:root[data-theme=light] .gp a{color:#0b57d0!important}
+:root[data-theme=light] .gp .as-tabs span{background:#f0f4f9;color:#444746}:root[data-theme=light] .gp .as-tabs span.on{background:#c2e7ff;color:#001d35}
+:root[data-theme=light] .mside{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(20,30,50,.18)}
 .as-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;background:#2c2c2e;color:#aeaeb2;margin:0 4px 4px 0}
 .stars{color:#aeaeb2;letter-spacing:1px;font-size:11px}
 @media (max-width:860px){
@@ -211,6 +281,7 @@ h2:first-child{margin-top:0}
   <div class="sp"></div>
   <div class="switcher" title="Conta Apple em uso"><span>👤</span><select id="accSwitch" onchange="switchAcc(this.value)"></select></div>
   <div class="switcher" title="Dispositivo padrão"><span>📱</span><select id="devSwitch" onchange="setDefaultDev(this.value)"></select></div>
+  <button class="btn sm themebtn" id="themeBtn" onclick="toggleTheme()" title="Alternar tema claro/escuro"></button>
   <button class="btn sm" onclick="refreshAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>Atualizar</button>
 </header>
 
@@ -539,7 +610,16 @@ function go(s){document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>go(n.dataset.s));
 
 /* terminal */
-const term=new Terminal({fontFamily:'JetBrains Mono, monospace',fontSize:13,theme:{background:'#07080c',foreground:'#e6e9f0',cursor:'#4f8cff'},convertEol:true,cursorBlink:true,scrollback:20000});
+const TERM_THEMES={
+  dark:{background:'#07080c',foreground:'#e6e9f0',cursor:'#4f8cff',selectionBackground:'rgba(79,140,255,.35)'},
+  light:{background:'#fbfcfe',foreground:'#1a1f2b',cursor:'#2f6fe8',selectionBackground:'rgba(47,111,232,.25)',
+    black:'#1a1f2b',red:'#c8263a',green:'#0f8a5c',yellow:'#9a6a00',blue:'#2f6fe8',magenta:'#8a3fd1',cyan:'#0b7f99',white:'#5f6b80',
+    brightBlack:'#5f6b80',brightRed:'#e0384b',brightGreen:'#12a26c',brightYellow:'#b07a00',brightBlue:'#4f8cff',brightMagenta:'#a35be8',brightCyan:'#0f97b5',brightWhite:'#1a1f2b'}};
+const curTheme=()=>document.documentElement.dataset.theme==='light'?'light':'dark';
+const term=new Terminal({fontFamily:'JetBrains Mono, monospace',fontSize:13,theme:TERM_THEMES[curTheme()],convertEol:true,cursorBlink:true,scrollback:20000});
+function paintThemeBtn(){themeBtn.textContent=curTheme()==='light'?'🌙':'☀️';themeBtn.title=curTheme()==='light'?'Usar tema escuro':'Usar tema claro'}
+function toggleTheme(){const t=curTheme()==='light'?'dark':'light';document.documentElement.dataset.theme=t;try{localStorage.setItem('xtool-theme',t)}catch(e){}term.options.theme=TERM_THEMES[t];paintThemeBtn()}
+paintThemeBtn();
 const fit=new FitAddon.FitAddon();term.loadAddon(fit);term.open($('term'));
 const fitT=()=>{try{fit.fit()}catch(e){}};addEventListener('resize',fitT);setTimeout(fitT,100);
 new ResizeObserver(()=>requestAnimationFrame(fitT)).observe($('term'));
@@ -578,11 +658,14 @@ async function refreshStatus(){
     const authOk=/logged in|signed in|team/i.test(s.auth)&&!/not/i.test(s.auth);
     const sdkOk=/installed/i.test(s.sdk)&&!/not installed/i.test(s.sdk);
     const c=(k,v,cls,ico)=>`<div class="card stat"><span class="k">${ico} ${k}</span><span class="v">${v}</span>${cls?`<span class="pill ${cls[0]}"><i></i>${cls[1]}</span>`:''}</div>`;
+    // origem do xtool: "base" vem do repositório (base/), "xtool-org" foi baixado do GitHub pelo painel
+    const srcTag=x=>`<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px" title="${x==='base'?'versão base, guardada no repositório (base/)':'baixada do github.com/xtool-org'}">${x==='base'?'base':'xtool-org'}</span>`;
+    const xv=esc(s.xtool)+(s.xtoolSource?srcTag(s.xtoolSource):'')+((s.xtoolVersions||[]).filter(v=>!v.active).length?`<div class="hint" style="font-weight:400">também instalado: ${(s.xtoolVersions||[]).filter(v=>!v.active).map(v=>esc(v.version)+' ('+v.source+')').join(', ')}</div>`:'');
     $('stats').innerHTML=
       (s.xtoolUpdate
-        ?`<div class="card stat" style="border-color:rgba(245,176,65,.5)"><span class="k">🛠 xtool</span><span class="v">${esc(s.xtool)}</span><span class="pill warn"><i></i>nova versão: ${esc(s.xtoolLatest)}</span>
+        ?`<div class="card stat" style="border-color:rgba(245,176,65,.5)"><span class="k">🛠 xtool</span><span class="v">${xv}</span><span class="pill warn"><i></i>nova versão: ${esc(s.xtoolLatest)}</span>
            <div class="row" style="margin-top:4px"><button class="btn sm pri" onclick="confirmRun('Atualizar o xtool para ${esc(s.xtoolLatest)}?','xtool.update',{version:'${esc(s.xtoolLatest)}'},'Atualizar xtool')">⬆ Atualizar</button><a class="btn sm" target="_blank" href="https://github.com/xtool-org/xtool/releases/tag/${esc(s.xtoolLatest)}">Novidades</a></div></div>`
-        :c('xtool',esc(s.xtool),['ok',s.xtoolLatest?'atualizado':'instalado'],'🛠'))+
+        :c('xtool',xv,['ok',s.xtoolLatest?'atualizado':'instalado'],'🛠'))+
       c('Swift',esc(s.swift.replace(/\(.*\)/,'')),['ok','pronto'],'🐦')+
       c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'👤')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
@@ -914,7 +997,7 @@ async function setVerSrc(kind,v){
 function bump(v,state){if(state&&['PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED','REJECTED','METADATA_REJECTED'].includes(state))return v;const p=v.split('.').map(Number);while(p.length<3)p.push(0);p[2]++;return p.join('.')}
 const whatsNew={};
 function renderTexts(){const locs=[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value);
-  pubTexts.innerHTML=locs.map(l=>`<div class="card"><h3>📝 ${esc((LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="8" oninput="whatsNew['${l}']=this.value;this.nextElementSibling.textContent=this.value.length+'/4000'" style="width:100%;background:#0e1117;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(whatsNew[l]||'')}</textarea><div class="hint" style="text-align:right">${(whatsNew[l]||'').length}/4000</div></div>`).join('')}
+  pubTexts.innerHTML=locs.map(l=>`<div class="card"><h3>📝 ${esc((LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="8" oninput="whatsNew['${l}']=this.value;this.nextElementSibling.textContent=this.value.length+'/4000'" style="width:100%;background:var(--input);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(whatsNew[l]||'')}</textarea><div class="hint" style="text-align:right">${(whatsNew[l]||'').length}/4000</div></div>`).join('')}
 async function genWhatsNew(){
   const locales=[...pubLocales.querySelectorAll('input:checked')].map(i=>i.value);if(!locales.length)return toast('Escolha ao menos um idioma');
   if(!val('pubAi'))return toast('Configure uma IA na seção IA');
@@ -1002,13 +1085,67 @@ async function loadPlayApps(){
   playApps.innerHTML='<div class="empty">Carregando…</div>';
   try{playAppsCache=await api('/api/play/apps')}catch(e){playApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   playApps.innerHTML=playAppsCache.length?playAppsCache.map((a,i)=>{const tr=(a.tracks||[]).filter(t=>t.releases&&t.releases.length).map(t=>`${esc(t.track)}: ${esc(t.releases[0].name||'?')}(${esc(t.releases[0].status||'?')})`).join(' · ');
-    return `<div class="item"><span style="font-size:20px">🤖</span><div class="grow">
-      <div class="name">${esc(a.name||a.packageName)}</div>
+    return `<div class="item"><span class="clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${playIconSlot(a)}</span><div class="grow">
+      <div class="name clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${esc(a.name||a.packageName)} <span class="hint" style="font-weight:400">Ver na loja ›</span></div>
       <div class="meta" style="font-family:var(--mono)">${esc(a.packageName)}</div>
       <div class="meta linked"><span class="mini" style="background:${colorOf(a.accountId||'x')}">${esc((a.accountLabel||'?')[0].toUpperCase())}</span>${esc(a.accountLabel||'conta removida')}</div>
       <div class="meta">${tr||'sem faixas'}</div></div>
       <button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>
-      <button class="btn sm danger" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app na Play. Adicione o package name acima.</div>'}
+      <button class="btn sm danger" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app na Play. Adicione o package name acima.</div>';
+  hydratePlayIcons()}
+/* ---------- prévia da página do Google Play ---------- */
+const playIconSlot=a=>`<span class="appicon" data-picon="${esc(a.accountId)}|${esc(a.packageName)}">🤖</span>`;
+function hydratePlayIcons(){document.querySelectorAll('[data-picon]:not([data-done])').forEach(async el=>{el.dataset.done=1;const [acc,pkg]=el.dataset.picon.split('|');
+  try{const d=await api(`/api/play/storepage?account=${encodeURIComponent(acc)}&package=${encodeURIComponent(pkg)}&light=1`);if(d.icon)el.innerHTML=`<img src="${esc(d.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`}catch(e){}})}
+let playCur=null,playShots='phone';
+async function openPlayStore(i){
+  const a=playAppsCache[i];if(!a)return;
+  storeModal.hidden=false;storeSide.innerHTML='';storeScreen.innerHTML='<div class="gp" style="padding:120px 20px;text-align:center;color:#c4c7c5">Carregando do Google Play…</div>';
+  try{playCur=await retry(()=>api(`/api/play/storepage?account=${encodeURIComponent(a.accountId)}&package=${encodeURIComponent(a.packageName)}`))}
+  catch(e){storeScreen.innerHTML=`<div class="gp" style="padding:120px 24px;text-align:center;color:#c4c7c5"><div style="font-size:34px;margin-bottom:10px">⚠️</div>${esc(e.message)}<div class="gp-install" style="cursor:pointer" onclick="openPlayStore(${i})">Tentar de novo</div></div>`;return}
+  playCur.idx=i;playShots='phone';renderPlayStore();
+  document.querySelectorAll(`[data-picon="${CSS.escape(a.accountId+'|'+a.packageName)}"]`).forEach(el=>{if(playCur.icon)el.innerHTML=`<img src="${esc(playCur.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`})}
+function renderPlayStore(){
+  const P=playCur,a=playAppsCache[P.idx]||{},name=P.title||a.name||P.packageName;
+  const sh=P.screenshots||{phone:[],tablet:[]},list=(sh[playShots]&&sh[playShots].length?sh[playShots]:(sh.phone&&sh.phone.length?sh.phone:sh.tablet))||[];
+  const live=(P.releases||[]).find(r=>r.track==='production'&&r.status==='completed');
+  const newest=(P.releases||[])[0];
+  const rel=live||newest;
+  const notes=rel?((rel.notes.find(n=>n.language===P.defaultLanguage)||rel.notes[0]||{}).text||''):'';
+  const TR={production:'Produção',beta:'Teste aberto',alpha:'Teste fechado',internal:'Teste interno'};
+  const ST={completed:'publicada',inProgress:'em lançamento gradual',draft:'rascunho',halted:'interrompida'};
+  storeScreen.innerHTML=`<div class="gp">
+  <div class="gp-top"><span onclick="closeStore()" style="cursor:pointer">←</span><span style="font-size:18px">🔍 &nbsp;⋮</span></div>
+  <div class="gp-head">${P.icon?`<img src="${esc(P.icon)}" alt="">`:'<div class="ph">🤖</div>'}
+    <div style="min-width:0"><h1>${esc(name)}</h1><div class="gp-dev">${esc(P.developer||a.accountLabel||'')}</div><div class="gp-sub">${live?'':'Ainda não publicado em produção'}</div></div></div>
+  <div class="gp-strip"><div><b>— ★</b>sem avaliações</div><div><b>${live?'1+':'0'}</b>downloads</div><div><b>L</b>Livre</div></div>
+  <div class="gp-install">Instalar</div>
+  ${P.video?`<div class="gp-sec" style="padding-bottom:0"><a href="${esc(P.video)}" target="_blank" style="color:#a8c7fa;font-size:13px">▶ vídeo promocional</a></div>`:''}
+  ${list.length?`<div class="gp-shots">${list.map(u=>`<img src="${esc(u)}" loading="lazy" alt="">`).join('')}</div>`:(P.featureGraphic?'':'<div class="gp-sec"><div class="gp-text">Nenhuma captura de tela no Play Console.</div></div>')}
+  ${sh.phone?.length&&sh.tablet?.length?`<div class="as-tabs" style="padding:8px 20px 0"><span class="${playShots==='phone'?'on':''}" onclick="playShots='phone';renderPlayStore()">Smartphone</span><span class="${playShots==='tablet'?'on':''}" onclick="playShots='tablet';renderPlayStore()">Tablet</span></div>`:''}
+  <div class="gp-sec"><h2>Sobre este app <span>→</span></h2>
+    <div class="gp-text">${esc(P.shortDescription||'')}</div>
+    ${P.fullDescription?`<div class="gp-text clamp" style="margin-top:10px" onclick="this.classList.toggle('clamp')">${esc(P.fullDescription)}</div>`:''}
+    ${!P.shortDescription&&!P.fullDescription?'<div class="gp-text">Sem descrição no Play Console.</div>':''}
+    <span class="gp-chip">${esc(P.packageName)}</span></div>
+  ${P.featureGraphic?`<div class="gp-sec" style="padding-bottom:0"><h2 style="font-size:14px">Recurso gráfico</h2></div><div class="gp-feat" style="margin-top:0"><img src="${esc(P.featureGraphic)}" alt=""></div>`:''}
+  ${rel?`<div class="gp-sec"><h2>Novidades <span>→</span></h2><div class="gp-text" style="margin-bottom:6px;color:#e3e3e3">Versão ${esc(rel.name||'')} · ${esc(TR[rel.track]||rel.track)} · ${esc(ST[rel.status]||rel.status)}</div><div class="gp-text">${esc(notes||'(sem notas da versão)')}</div></div>`:''}
+  <div class="gp-sec"><h2>Segurança dos dados <span>→</span></h2><div class="gp-text">Os desenvolvedores informam como o app coleta e usa os dados no Play Console.</div></div>
+  <div class="gp-sec"><h2>Avaliações e resenhas</h2><div class="gp-text">Ainda não há avaliações suficientes.</div></div>
+  <div class="gp-sec"><h2>Suporte do app</h2>
+    ${P.contactWebsite?`<div class="gp-row">🌐<div>Site<small>${esc(P.contactWebsite)}</small></div></div>`:''}
+    ${P.contactEmail?`<div class="gp-row">✉️<div>E-mail de suporte<small>${esc(P.contactEmail)}</small></div></div>`:''}
+    ${P.contactPhone?`<div class="gp-row">📞<div>Telefone<small>${esc(P.contactPhone)}</small></div></div>`:''}
+    ${!P.contactWebsite&&!P.contactEmail&&!P.contactPhone?'<div class="gp-text">Sem contato cadastrado.</div>':''}</div>
+  <div style="height:40px"></div></div>`;
+  storeScreen.scrollTop=0;
+  const SRC={'play console':'Play Console (ficha da loja)',projeto:'projeto local'};
+  storeSide.innerHTML=`<h3>${esc(name)}</h3>
+    <p>Prévia de como a página aparece na Google Play do celular, montada com a ficha da loja do Play Console.</p>
+    <div>${(P.sources||[]).map(s=>`<span class="pill ${s==='play console'?'ok':''}" style="margin:0 6px 6px 0"><i></i>${esc(SRC[s]||s)}</span>`).join('')}</div>
+    ${P.playError?`<p class="hint" style="color:var(--warn)">${esc(P.playError)}</p>`:''}
+    ${(P.releases||[]).length?`<div style="margin-top:10px">${P.releases.map(r=>`<div class="hint">${esc(TR[r.track]||r.track)}: ${esc(r.name||'?')} (${r.versionCode}) · ${esc(ST[r.status]||r.status)}</div>`).join('')}</div>`:''}
+    <div class="row">${live?`<a class="btn sm" target="_blank" href="${esc(P.url)}">Abrir na Google Play</a>`:''}<a class="btn sm" target="_blank" href="https://play.google.com/console">Abrir no Play Console</a>${P.project?`<button class="btn sm" onclick="closeStore();go('android')">🚀 Publicar</button>`:''}<button class="btn sm" onclick="closeStore()">Fechar</button></div>`}
 async function addPlayApp(){const accountId=val('playAppAcc'),packageName=val('playAppPkg');if(!accountId)return toast('Cadastre uma conta Google Play primeiro');if(!packageName)return toast('Informe o package name (ex: com.exemplo.app)');toast('conferindo no Google Play…');try{await api('/api/play/apps/add',{accountId,packageName});playAppPkg.value='';loadPlayApps()}catch(e){toast(e.message)}}
 async function refreshPlayApp(i){const a=playAppsCache[i];if(!a)return;toast('Atualizando '+a.packageName+'…');try{await api(`/api/play/app?account=${encodeURIComponent(a.accountId)}&package=${encodeURIComponent(a.packageName)}`);loadPlayApps()}catch(e){toast(e.message)}}
 async function forgetPlayApp(i){const a=playAppsCache[i];if(!a)return;if(!confirm(`Tirar "${a.name||a.packageName}" da lista? (Não apaga nada no Google Play.)`))return;try{await api('/api/play/apps/forget',{accountId:a.accountId,packageName:a.packageName});loadPlayApps()}catch(e){toast(e.message)}}
@@ -1119,7 +1256,7 @@ async function removeAndKey(){
   if(prompt('Para confirmar, digite o package name do app:\n'+pkg)!==pkg)return toast('Cancelado: o package name não confere');
   try{await api('/api/android/key/remove',{package:pkg});toast('Chave removida');await refreshAndInfo()}catch(e){toast(e.message)}}
 function renderAndTexts(){const locs=[...andLocales.querySelectorAll('input:checked')].map(i=>i.value);
-  andTexts.innerHTML=locs.map(l=>{const n=(andNotes[l]||'').length;return `<div class="card"><h3>📝 ${esc((PLAY_LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="6" oninput="andNoteChanged(this)" style="width:100%;background:#0e1117;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(andNotes[l]||'')}</textarea><div class="hint" data-cnt="${l}" style="text-align:right;${n>500?'color:var(--bad)':''}">${n}/500</div></div>`}).join('')}
+  andTexts.innerHTML=locs.map(l=>{const n=(andNotes[l]||'').length;return `<div class="card"><h3>📝 ${esc((PLAY_LOCALES.find(x=>x[0]===l)||[l,l])[1])}</h3><textarea data-loc="${l}" rows="6" oninput="andNoteChanged(this)" style="width:100%;background:var(--input);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit;resize:vertical">${esc(andNotes[l]||'')}</textarea><div class="hint" data-cnt="${l}" style="text-align:right;${n>500?'color:var(--bad)':''}">${n}/500</div></div>`}).join('')}
 function andNoteChanged(t){const l=t.dataset.loc,n=t.value.length;andNotes[l]=t.value;const c=andTexts.querySelector(`[data-cnt="${l}"]`);if(c){c.textContent=n+'/500';c.style.color=n>500?'var(--bad)':''}}
 async function genAndNotes(){
   if(!andCur)return;
