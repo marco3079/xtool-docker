@@ -4,11 +4,13 @@
 
 # xtool Painel
 
-**Desenvolva, instale e publique apps iOS sem Mac, direto pelo navegador.**
+**Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.0.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.1.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
+[![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
+[![Google Play](https://img.shields.io/badge/Google%20Play-publicação-414141?style=flat-square&logo=googleplay&logoColor=white)](#publicar-no-google-play)
 [![Docker](https://img.shields.io/badge/Docker-pronto-2496ED?style=flat-square&logo=docker&logoColor=white)](#instalação)
 [![Plataforma](https://img.shields.io/badge/host-Windows%20%7C%20Linux-555?style=flat-square)](#requisitos)
 
@@ -28,6 +30,10 @@ By **[marco3079](https://github.com/marco3079)**
 - [Primeiros passos](#primeiros-passos)
 - [Conectar o iPhone](#conectar-o-iphone)
 - [Publicar na App Store](#publicar-na-app-store)
+- [Android e Google Play](#android-e-google-play)
+- [Rodar no celular Android](#rodar-no-celular-android)
+- [Publicar no Google Play](#publicar-no-google-play)
+- [Versão do app](#versão-do-app)
 - [IA para notas de versão](#ia-para-notas-de-versão)
 - [GitHub](#github)
 - [Arquitetura](#arquitetura)
@@ -42,7 +48,13 @@ By **[marco3079](https://github.com/marco3079)**
 
 ## Visão geral
 
-O **xtool Painel** coloca o [xtool](https://github.com/xtool-org/xtool) (uma alternativa ao Xcode que roda em qualquer sistema) dentro de um container Docker e adiciona um painel web completo. No navegador você gerencia todo o ciclo de um app iOS: contas Apple, aparelhos, projetos, repositórios do GitHub, compilação, assinatura, envio ao App Store Connect e publicação. O texto "O que há de novo" de cada versão pode ser escrito por IA.
+O **xtool Painel** coloca o [xtool](https://github.com/xtool-org/xtool) (uma alternativa ao Xcode que roda em qualquer sistema) e o **SDK do Android** dentro de um container Docker e adiciona um painel web completo. No navegador você gerencia todo o ciclo de um app:
+
+- **iOS:** contas Apple, iPhones, compilação, assinatura, envio ao App Store Connect e publicação na App Store.
+- **Android:** contas do Google Play, compilação de APK e AAB com Gradle, chave de assinatura, instalação no celular por Wi-Fi e publicação nas faixas da Google Play.
+- **Para os dois:** projetos (inclusive um mesmo projeto Capacitor com iOS e Android), repositórios do GitHub, versão do app tirada do próprio projeto e notas de versão escritas por IA.
+
+O xtool 1.24.0 vem dentro do repositório (`base/`), então o painel funciona sem depender do GitHub do xtool.
 
 ```
 http://localhost:8080
@@ -52,11 +64,12 @@ http://localhost:8080
 
 | Área | O que faz |
 |---|---|
-| **Painel** | Mostra num relance as versões do xtool e do Swift, a conta Apple em uso, o SDK do iOS, o espaço em disco e a conexão com o iPhone. Avisa quando sai uma versão nova do xtool e atualiza com um clique |
+| **Painel** | Mostra num relance as versões do xtool (`base`, do repositório, ou `xtool-org`, baixada pelo painel) e do Swift, a conta Apple em uso, o SDK do iOS, o Android (JDK, Node e SDK), o espaço em disco e a conexão com o iPhone. Avisa quando sai uma versão nova do xtool e atualiza com um clique |
 | **Contas Apple** | Cadastra várias contas Apple, cada uma com o próprio login, e troca a conta em uso com um clique |
-| **Apps da conta** | Registro de todos os apps de todas as contas (com a conta dona e se ela tem API da Apple), apps do App Store Connect com o estado de cada versão, bundle IDs com ícone e prévia da página da App Store em um iPhone |
-| **Projetos** | Cria apps SwiftUI; compila em debug ou release; gera `.ipa`; roda no iPhone; gera projeto Xcode |
-| **Publicar** | Compila em release, gera o ícone (`Assets.car`), assina para distribuição, envia ao App Store Connect, preenche "O que há de novo" e submete para revisão |
+| **Contas Google Play** | Cadastra várias contas do Google Play (chave JSON de conta de serviço) e testa a conexão |
+| **Apps da conta** | Aba **Apple**: registro de todos os apps de todas as contas, apps do App Store Connect com o estado de cada versão, bundle IDs com ícone e prévia da página da App Store num iPhone. Aba **Google Play**: apps de cada conta, versões por faixa (interno, fechado, aberto, produção) e prévia da página da Google Play com a ficha do Play Console |
+| **Projetos** | Cria apps SwiftUI e reconhece projetos Android e Capacitor; compila em debug ou release; gera `.ipa` e `.apk`; roda no iPhone e no celular Android; gera projeto Xcode |
+| **Publicar** | Aba **App Store**: compila em release, gera o ícone (`Assets.car`), assina para distribuição, envia ao App Store Connect, preenche "O que há de novo" e submete para revisão. Aba **Google Play**: gera APK/AAB assinado com a chave de upload, escreve as notas da versão e envia para a faixa escolhida |
 | **GitHub** | Várias contas; lista os repositórios (inclusive de organizações); importa como projeto; vincula ou cria repositório; pull e push |
 | **IA** | OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Ollama e LM Studio (locais) ou qualquer API compatível com OpenAI |
 | **Dispositivos** | Cadastra vários aparelhos com status em tempo real (cabo, Wi-Fi ou desconectado); instala, abre e remove apps |
@@ -64,6 +77,7 @@ http://localhost:8080
 | **Arquivos** | Navega em `/work` e nos Downloads do Windows; envia, baixa e apaga arquivos |
 | **Terminal** | Shell interativo dentro do container |
 | **Tarefas** | Histórico de todos os comandos, com a saída completa |
+| **Tema** | Escuro ou claro, no botão do topo |
 
 Todo comando roda num terminal real (PTY). As perguntas interativas, como o código 2FA, a senha ou o caminho do Xcode.xip, são respondidas pelo console do próprio painel.
 
@@ -118,11 +132,14 @@ Todo comando roda num terminal real (PTY). As perguntas interativas, como o cód
 | Item | Observação |
 |---|---|
 | Docker Desktop (Windows) ou Docker Engine (Linux) | Com o Compose v2 |
-| ~15 GB livres | Imagem, SDK do iOS e builds |
-| Xcode 27.x (`.xip`) | Baixe em [developer.apple.com/download](https://developer.apple.com/download/all/?q=Xcode) |
-| Apple ID | Qualquer conta serve para instalar no próprio iPhone |
-| Apple Developer Program | **Necessário para publicar na App Store**, junto com uma chave da API do App Store Connect |
-| iTunes ou Dispositivos Apple (Windows) | Faz a ponte com o iPhone por cabo ou Wi-Fi |
+| ~20 GB livres | Imagem, SDK do iOS, SDK do Android e builds |
+| **iOS** · Xcode 27.x (`.xip`) | Baixe em [developer.apple.com/download](https://developer.apple.com/download/all/?q=Xcode) |
+| **iOS** · Apple ID | Qualquer conta serve para instalar no próprio iPhone |
+| **iOS** · Apple Developer Program | **Necessário para publicar na App Store**, junto com uma chave da API do App Store Connect |
+| **iOS** · iTunes ou Dispositivos Apple (Windows) | Faz a ponte com o iPhone por cabo ou Wi-Fi |
+| **Android** · nada a instalar | JDK 21, Node 22 e o SDK do Android (plataforma 36, build-tools 36) já vêm na imagem |
+| **Android** · Conta de desenvolvedor Google Play | **Necessária para publicar**, junto com uma conta de serviço do Google Cloud com acesso ao Play Console |
+| **Android** · Celular com Android 11+ | Para instalar por Wi-Fi (depuração sem fio), na mesma rede do PC |
 
 ## Instalação
 
@@ -140,6 +157,8 @@ Depois abra **http://localhost:8080**. O primeiro build demora alguns minutos, p
 2. **Conta Apple:** em **Contas Apple → Nova conta**, entre com o Apple ID. O código 2FA é pedido no console.
 3. **Projeto:** em **Projetos → Novo projeto**, ou importe um repositório em **GitHub → Importar como projeto**.
 4. **Rodar no iPhone:** com o iPhone conectado, clique em **▶ Rodar no iPhone**.
+5. **Android:** projetos com pasta `android/` (Gradle ou Capacitor) aparecem com a etiqueta 🤖 Android. Clique em **Gerar .apk** ou, com o celular pareado, em **▶ Rodar no Android**.
+6. **Google Play:** em **Contas Google Play**, envie o JSON da conta de serviço. Depois adicione o app em **Apps da conta → Google Play**.
 
 ## Conectar o iPhone
 
@@ -176,9 +195,78 @@ Na seção **Publicar**: escolha o projeto, confira a versão (o build é autom�
 
 Cada etapa pode ser desligada. Por exemplo, dá para só gerar o `.ipa` assinado ou só enviar para o TestFlight.
 
+## Android e Google Play
+
+O painel reconhece como Android qualquer projeto com Gradle na raiz ou numa pasta `android/`. Projetos **Capacitor** são detectados pelo `capacitor.config.*`. Um mesmo projeto pode ser iOS e Android ao mesmo tempo, e aparece com as duas etiquetas em **Projetos**.
+
+| Botão (em Projetos) | O que faz |
+|---|---|
+| **Gerar .apk** | Só gera o APK, sem enviar para a loja. Sai assinado se o app tiver chave de upload; senão, em debug |
+| **▶ Rodar no Android** | Gera o APK de debug, instala no celular escolhido e abre o app |
+| **🤖 Android** | Abre **Publicar → Google Play** com o projeto já escolhido |
+
+Antes do Gradle, o painel roda o pré-build do projeto. Para Capacitor, o padrão é `npm ci && npm run build… && npx cap sync android`, e dá para trocar ou pular. Os arquivos gerados ficam em `<projeto>/xtool/android/`.
+
+## Rodar no celular Android
+
+A instalação usa o `adb` por Wi-Fi, então não precisa de cabo nem de drivers no Windows.
+
+1. No celular (Android 11+): **Opções do desenvolvedor → Depuração por Wi-Fi → Parear com código**.
+2. Em **Publicar → Google Play**, no card **📲 Instalar no celular Android**, informe o `ip:porta` e o código de pareamento e clique em **Parear**.
+3. Informe o `ip:porta` de conexão e clique em **Conectar**. O celular aparece na lista e em **Projetos → Rodar no Android (adb)**.
+
+O PC e o celular precisam estar na mesma rede.
+
+## Publicar no Google Play
+
+### Pré-requisitos (uma vez por conta)
+
+1. No [Google Cloud](https://console.cloud.google.com/iam-admin/serviceaccounts), crie uma **conta de serviço**, gere uma **chave JSON** e ative a **Google Play Android Developer API** no projeto.
+2. No [Play Console → Usuários e permissões](https://play.google.com/console/users-and-permissions), convide o e-mail da conta de serviço com permissão para lançar versões.
+3. No painel, em **Contas Google Play**, dê um nome à conta, envie o JSON e clique em **Testar**. Dá para cadastrar várias contas.
+4. O app precisa já existir no Play Console, porque a API do Google não cria apps. Adicione-o pelo package name em **Apps da conta → Google Play**.
+5. Na primeira vez, gere ou importe a **chave de upload** do app no card **🔑 Chave de assinatura**. Clique em **Baixar backup** e guarde o arquivo: sem essa chave não dá para atualizar o app na Play.
+
+### Fluxo
+
+Na seção **Publicar → Google Play**: escolha o projeto e a conta, confira a versão, gere ou escreva as notas da versão (até 500 caracteres por idioma), escolha a faixa e o status e clique em **🚀 Iniciar**.
+
+| Etapa | O que acontece |
+|---|---|
+| 1/5 | Lê a versão e busca na Play o maior `versionCode` já enviado, para usar o próximo |
+| 2/5 | Roda o pré-build do projeto web (Capacitor) |
+| 3/5 | Compila com Gradle, grava `versionName`/`versionCode` e assina com a chave de upload |
+| 4/5 | Junta o `.aab` e o `.apk` e confere a versão gravada dentro deles |
+| 5/5 | Envia o AAB pela Google Play Developer API, grava as notas e lança na faixa escolhida |
+
+| Faixa | Na Play |
+|---|---|
+| Teste interno | Até 100 testadores, liberado na hora |
+| Teste fechado | Grupos de testadores (alpha) |
+| Teste aberto | Qualquer pessoa pode entrar (beta) |
+| Produção | Todos os usuários; dá para fazer lançamento gradual |
+
+Com **Enviar para o Google Play** desmarcado, o painel só gera os arquivos assinados. Se o app nunca foi publicado, a Play só aceita o lançamento como rascunho, e o painel avisa no console.
+
+## Versão do app
+
+Cada projeto escolhe de onde vem a versão, tanto no Publicar da App Store quanto no da Google Play:
+
+| Origem | De onde lê |
+|---|---|
+| Automático | Próxima versão depois da última enviada para a loja |
+| `package.json` | Campo `version` |
+| `xtool.yml` | Campo `version` (quando não é o número do esquema) |
+| Gradle | `versionName` do `build.gradle` do Android |
+| Xcode | `MARKETING_VERSION` do projeto iOS |
+| Tag do git | Última tag, como `v1.2.0` |
+| Manual | Você digita a cada envio |
+
+O número do build (`CFBundleVersion` no iOS, `versionCode` no Android) é sempre calculado para ficar acima do último enviado.
+
 ## IA para notas de versão
 
-Em **IA**, configure um ou mais provedores e marque um como padrão (★). Ao publicar, o painel junta os commits feitos desde a última publicação e pede à IA um texto curto, voltado ao usuário final, em cada idioma escolhido. O texto sempre pode ser revisado antes de enviar.
+Em **IA**, configure um ou mais provedores e marque um como padrão (★). Ao publicar, na App Store ou na Google Play, o painel junta os commits feitos desde a última publicação e pede à IA um texto curto, voltado ao usuário final, em cada idioma escolhido. Na Google Play, o painel pede à IA no máximo 500 caracteres (o limite da loja) e mostra um contador em cada idioma. O texto sempre pode ser revisado antes de enviar.
 
 | Provedor | Tipo | URL padrão |
 |---|---|---|
@@ -208,20 +296,29 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 │ server.py   jobs PTY · contas · aparelhos · rotas             │
 │ release.py  build → Info.plist → accord → rcodesign → upload  │
 │ asc.py      App Store Connect API (JWT ES256)                 │
+│ android.py  pré-build → Gradle → assinatura → AAB/APK → Play  │
+│ play.py     Google Play Developer API (JWT RS256)             │
+│ versions.py versão do app (package.json, Gradle, Xcode, git)  │
 │ github.py   gh CLI (várias contas)   ai.py  provedores de IA  │
 │ xtool · accord · rcodesign · gh · git · libimobiledevice      │
-└──────┬─────────────────────────────┬─────────────────────────┘
-       │ host.docker.internal:27015  │ HTTPS
-   Serviço Apple do Windows    Apple · GitHub · IA
-   (iTunes) ⇄ iPhone
+│ JDK 21 · Node 22 · Android SDK 36 · Gradle · adb              │
+└──────┬──────────────────┬──────────────────┬────────────────┘
+       │ host.docker.     │ adb por Wi-Fi    │ HTTPS
+       │ internal:27015   │                  │
+   Serviço Apple do   Celular Android   Apple · Google Play
+   Windows ⇄ iPhone                     GitHub · IA
 ```
 
 | Arquivo | Função |
 |---|---|
-| `Dockerfile` | Imagem com xtool, accord (compilado a partir do código), rcodesign, gh e Python |
+| `Dockerfile` | Imagem com xtool, accord (compilado a partir do código), rcodesign, gh, Python, JDK, Node e SDK do Android |
+| `base/` | xtool 1.24.0 zipado (versão base, instalada no build sem baixar do GitHub do xtool) |
 | `docker-compose.yml` | Porta, volumes e acesso ao serviço da Apple |
 | `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos e rotas |
-| `panel/release.py` | Pipeline de publicação, executado como tarefa |
+| `panel/release.py` | Pipeline de publicação na App Store, executado como tarefa |
+| `panel/android.py` | Build Android (Gradle), chaves de upload, instalação por adb e envio ao Google Play |
+| `panel/play.py` | Cliente da Google Play Developer API |
+| `panel/versions.py` | Lê a versão do app de cada origem do projeto |
 | `panel/asc.py` | Cliente da API do App Store Connect |
 | `panel/github.py` | Contas e repositórios do GitHub |
 | `panel/ai.py` | Provedores de IA e geração do "O que há de novo" |
@@ -232,16 +329,17 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 
 | Volume | Caminho | Conteúdo |
 |---|---|---|
-| `xtool-home` | `/root` | Logins Apple, chaves (`.config/xtool-panel/secrets.json`), certificados de distribuição, contas do GitHub, SDK do iOS |
-| `xtool-work` | `/work` | Projetos |
-| Downloads do Windows | `/downloads` | `Xcode.xip` e `.ipa` |
+| `xtool-home` | `/root` | Logins Apple, chaves das APIs e contas do Google Play (`.config/xtool-panel/secrets.json`), chaves de upload do Android (`.config/xtool-panel/android-keys/`), certificados de distribuição, contas do GitHub, SDK do iOS, versões do xtool baixadas pelo painel (`.xtool/`) |
+| `xtool-work` | `/work` | Projetos (os builds ficam em `<projeto>/xtool/`, e os do Android em `<projeto>/xtool/android/`) |
+| Downloads do Windows | `/downloads` | `Xcode.xip`, `.ipa` e `.apk` |
 
-> **Backup:** o volume `xtool-home` guarda os seus certificados e chaves. Faça backup antes de apagá-lo.
+> **Backup:** o volume `xtool-home` guarda os seus certificados e as chaves de upload do Android. Perder a chave de upload impede de atualizar o app na Google Play: baixe o backup de cada uma pelo painel e guarde fora do container.
 
 ## Segurança
 
 - O painel **não tem login** e executa comandos no container. Por isso ele só escuta em `127.0.0.1`. **Não exponha a porta 8080 na rede.**
-- As chaves de API ficam em `secrets.json`, com permissão `600`, e nunca voltam completas para o navegador.
+- As chaves de API e os JSON das contas de serviço do Google Play ficam em `secrets.json`, com permissão `600`, e nunca voltam completos para o navegador.
+- As chaves de upload do Android ficam em `android-keys/`. As senhas delas (geradas pelo painel, ou as que você informou ao importar) ficam no `secrets.json` e não voltam para o navegador.
 - As senhas Apple vão direto para o xtool pelo console. O painel não as grava.
 - O login Apple por senha usa APIs privadas da Apple. Para contas importantes, prefira o modo **API Key**.
 
@@ -250,7 +348,9 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 - **Ícone para a App Store:** o `Assets.car` é gerado pelo accord, um projeto novo. Ainda não houve um envio de verdade que comprove que a Apple aceita esse arquivo. Se a validação recusar o ícone, a mensagem da Apple aparece no console.
 - **Primeira versão:** as capturas de tela e os metadados obrigatórios precisam ser preenchidos no site do App Store Connect.
 - **Recursos avançados:** extensões (widgets), App Groups e outras capacidades especiais podem exigir perfis com permissões extras.
-- **USB direto:** o Docker Desktop não repassa USB. Use o serviço da Apple (recomendado) ou o usbipd.
+- **USB direto:** o Docker Desktop não repassa USB. Use o serviço da Apple (recomendado) ou o usbipd. No Android, use o adb por Wi-Fi.
+- **Apps novos na Google Play:** a API do Google não cria apps nem preenche a ficha da loja. Crie o app e envie a primeira versão pelo Play Console; depois o painel cuida das atualizações.
+- **Lista de apps do Google Play:** a API não lista os apps da conta, então cada app é adicionado pelo package name.
 
 ## Solução de problemas
 
@@ -261,12 +361,17 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `chave da API … não configurada` | Cadastre a chave no cartão da conta em **Contas Apple** |
 | "não existe app no App Store Connect" | Crie o app com o mesmo bundle ID no site da Apple |
 | "máximo de certificados de distribuição" | Revogue um certificado antigo em developer.apple.com → Certificates |
+| "Google recusou a chave da conta de serviço" | Gere uma chave JSON nova da conta de serviço e envie de novo em **Contas Google Play** |
+| `Google Play 403` / "permission" | Convide o e-mail da conta de serviço no Play Console com permissão para lançar versões e ative a Google Play Android Developer API |
+| `Google Play 404` / "package not found" | O app ainda não existe no Play Console, ou o package name está diferente |
+| A Play recusa o `versionCode` | Deixe o código em **auto**: o painel usa o próximo depois do maior que já está na Play |
+| Celular Android não aparece | Pareie de novo (o código muda a cada vez), confira a mesma rede e clique em **Conectar** com a porta de conexão, que é diferente da de pareamento |
 | A IA não conecta (Ollama/LM Studio) | Abra o app no Windows e confira se o servidor local está ligado |
 | `no configuration file provided` | Rode o `docker compose` dentro da pasta do repositório |
 
 ## Atualização
 
-**xtool:** o painel consulta a cada hora os [Releases do xtool](https://github.com/xtool-org/xtool/releases). Quando sai uma versão nova, o card **xtool** mostra **⬆ Atualizar**. A versão nova é instalada em `/root/.xtool`, no volume, e continua valendo depois de reiniciar o container.
+**xtool:** a versão **base** (1.24.0) vem do repositório, em `base/`, e é instalada no build da imagem sem acessar o GitHub do xtool. Com internet, o painel consulta a cada hora os [Releases do xtool](https://github.com/xtool-org/xtool/releases). Quando sai uma versão nova, o card **xtool** mostra **⬆ Atualizar**. A versão baixada aparece como **xtool-org**, fica em `/root/.xtool`, no volume, e continua valendo depois de reiniciar o container. Sem internet, o painel segue com a versão base.
 
 **Painel inteiro** (imagem, ferramentas e interface):
 
@@ -275,9 +380,22 @@ git pull
 docker compose up -d --build
 ```
 
-As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `ACCORD_VERSION`).
+As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `ACCORD_VERSION`, `NODE_VERSION`, `ANDROID_PLATFORM`, `ANDROID_BUILD_TOOLS`).
 
 ## Changelog
+
+### 1.1.0
+
+- **Android:** build de APK e AAB com Gradle (inclusive Capacitor), em debug ou assinado com a chave de upload
+- Chave de upload por app: gerar, importar e baixar o backup
+- Instalar e abrir o app no celular Android por adb Wi-Fi (**▶ Rodar no Android**)
+- **Google Play:** várias contas (conta de serviço), apps por conta com as faixas e publicação em teste interno, fechado, aberto ou produção
+- Prévia da página da Google Play com a ficha do Play Console (ícone, capturas, recurso gráfico, descrição, novidades e contato)
+- Versão do app escolhida por projeto: automática, `package.json`, `xtool.yml`, Gradle, Xcode, tag do git ou manual
+- Menu reorganizado: **Apps da conta** e **Publicar** com abas Apple / Google Play
+- xtool 1.24.0 dentro do repositório (`base/`), identificado no painel como **base**; versões baixadas aparecem como **xtool-org**
+- Tema claro, barras de rolagem novas e capturas de tela arrastáveis nas prévias das lojas
+- IDs de desenvolvimento do xtool (`XTL-…`) escondidos da lista de apps
 
 ### 1.0.0
 
@@ -306,11 +424,12 @@ A Action [Guarda das branches](.github/workflows/guarda-branches.yml) confere ca
 - [accord / dine-accord](https://github.com/MiloLug/dine-accord), compilador de asset catalogs para Linux
 - [apple-codesign (rcodesign)](https://github.com/indygreg/apple-platform-rs), de Gregory Szorc
 - [xterm.js](https://xtermjs.org) e [GitHub CLI](https://cli.github.com)
+- [Android SDK](https://developer.android.com/tools), [Gradle](https://gradle.org) e [Google Play Developer API](https://developers.google.com/android-publisher)
 
 <div align="center">
 
 ---
 
-**xtool Painel 1.0.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.1.0** · By [marco3079](https://github.com/marco3079)
 
 </div>
