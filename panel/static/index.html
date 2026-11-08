@@ -888,13 +888,25 @@ async function loadRegistry(){
     <button class="x" title="Tirar da lista" onclick="forgetApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Escolha a conta e clique em "Buscar apps": tudo que for encontrado fica salvo aqui.</div>';
   hydrateIcons()}
 async function forgetApp(i){const r=regItems[i];if(!confirm(`Tirar "${r.name||r.bundleId}" da lista? (Não apaga nada na Apple; ele volta se for encontrado de novo.)`))return;await api('/api/apps/forget',{accountId:r.accountId,bundleId:r.bundleId});loadRegistry()}
+/* Bundle IDs: os IDs de desenvolvimento que o xtool cria para assinar (XTL-…) ficam escondidos */
+let showDevIds=false;
+function renderBundleIds(list){
+  const isDev=i=>(i.identifier||"").startsWith("XTL-");
+  const main=list.filter(i=>!isDev(i)),dev=list.filter(isDev);
+  const row=i=>isDev(i)
+    ?`<div class="item" style="opacity:.7">${iconSlot(i.identifier,"🛠")}<div class="grow"><div class="name">${esc(i.name||"")}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||"")} · ${esc(i.platform||"")}</div></div><span class="pill" title="Criado pelo xtool para assinar builds de desenvolvimento; não é um app da loja"><i></i>desenvolvimento (xtool)</span></div>`
+    :`<div class="item clickable" title="Ver página da loja" onclick="openStore('${esc(i.identifier||"")}')">${iconSlot(i.identifier,"🏷")}<div class="grow"><div class="name">${esc(i.name||"")}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||"")} · ${esc(i.platform||"")}</div></div><span class="hint">Ver na loja ›</span></div>`;
+  let h=main.length?main.map(row).join(""):`<div class="empty">Nenhum bundle ID.</div>`;
+  if(dev.length){h+=`<div class="row" style="margin-top:4px"><button class="btn sm" onclick="showDevIds=!showDevIds;bundleIds.innerHTML=renderBundleIds(bundleIdsCache);hydrateIcons()">🛠 ${showDevIds?"Esconder":"Mostrar"} IDs de desenvolvimento do xtool <span class="pill" style="font-size:11px;padding:0 7px">${dev.length}</span></button></div>`;if(showDevIds)h+=dev.map(row).join("")}
+  bundleIdsCache=list;return h}
+let bundleIdsCache=[];
 async function loadApps(){
   renderAscCard();appsHint.textContent='buscando…';ascApps.innerHTML='<div class="empty">Buscando…</div>';bundleIds.innerHTML='';
   try{const r=await api('/api/apps?account='+val('appsAcc'));appsHint.textContent='';
     ascApps.innerHTML=r.apps?(r.apps.length?r.apps.map(a=>`<div class="card"><div class="devhead clickable" title="Ver página da loja" onclick="openStore('${esc(a.bundleId)}')">${iconSlot(a.bundleId,esc((a.name||'?')[0]))}<div><h3 style="margin:0">${esc(a.name)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.bundleId)}</div></div></div>
       <div class="list" style="gap:6px;margin-bottom:12px">${a.versions.map(v=>`<div class="row" style="justify-content:space-between"><span>v${esc(v.versionString)} <span class="hint">${(v.createdDate||'').slice(0,10)}</span></span>${stPill(v.appStoreState)}</div>`).join('')||'<span class="hint">sem versões</span>'}</div>
       <div class="row"><a class="btn sm" target="_blank" href="https://appstoreconnect.apple.com/apps/${a.id}/distribution">Abrir no App Store Connect</a>${linkedProject(a.bundleId)}</div></div>`).join(''):'<div class="empty">Nenhum app nesta conta.</div>'):`<div class="empty">${esc(r.ascError)}</div>`;
-    bundleIds.innerHTML=r.identifiers?(r.identifiers.length?r.identifiers.map(i=>`<div class="item clickable" title="Ver página da loja" onclick="openStore('${esc(i.identifier||'')}')">${iconSlot(i.identifier,'🏷')}<div class="grow"><div class="name">${esc(i.name||'')}</div><div class="meta" style="font-family:var(--mono)">${esc(i.identifier||'')} · ${esc(i.platform||'')}</div></div><span class="hint">Ver na loja ›</span></div>`).join(''):'<div class="empty">Nenhum bundle ID.</div>'):`<div class="empty">${esc(r.idError||'')}</div>`;
+    bundleIds.innerHTML=r.identifiers?renderBundleIds(r.identifiers):`<div class="empty">${esc(r.idError||"")}</div>`;
     hydrateIcons();loadRegistry()}
   catch(e){appsHint.textContent='';ascApps.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 /* ---------- ícones + prévia da página da App Store ---------- */
