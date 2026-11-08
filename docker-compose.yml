@@ -1,0 +1,17 @@
+name: xtool
+services:
+  xtool:
+    build: .
+    image: xtool
+    container_name: xtool
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"   # painel: http://localhost:8080
+    volumes:
+      - xtool-home:/root          # login Apple + SDK do iOS
+      - xtool-work:/work          # seus projetos
+      - ${USERPROFILE:-~}/Downloads:/downloads   # Xcode.xip e .ipa do Windows
+
+volumes:
+  xtool-home:
+  xtool-work:
