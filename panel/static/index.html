@@ -210,6 +210,8 @@ h2:first-child{margin-top:0}
 .gp-text.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .gp-chip{display:inline-block;border:1px solid #444746;border-radius:8px;padding:5px 12px;font-size:13px;color:#c4c7c5;margin:12px 6px 0 0}
 .gp-row{display:flex;gap:16px;align-items:center;padding:10px 0;font-size:14px;color:#e3e3e3}.gp-row small{display:block;color:#c4c7c5;font-size:12px}
+.as-shots,.gp-shots{cursor:grab;user-select:none}.as-shots.dragging,.gp-shots.dragging{cursor:grabbing;scroll-snap-type:none}
+.as-shots img,.gp-shots img{-webkit-user-drag:none;pointer-events:none}
 /* prévias das lojas no tema claro (como o celular em modo claro) */
 :root[data-theme=light] .screen{background:#fff;color:#000}
 :root[data-theme=light] .as-head img,:root[data-theme=light] .as-head .ph{background:#f2f2f7;border-color:rgba(0,0,0,.1)}
@@ -1093,6 +1095,15 @@ async function loadPlayApps(){
       <button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>
       <button class="btn sm danger" onclick="forgetPlayApp(${i})">✕</button></div>`}).join(''):'<div class="empty">Nenhum app na Play. Adicione o package name acima.</div>';
   hydratePlayIcons()}
+/* arrastar as capturas de tela das prévias com o mouse (e rolar de lado com a roda) */
+(()=>{let el=null,x0=0,s0=0,moved=false;
+  document.addEventListener('pointerdown',e=>{const t=e.target.closest('.as-shots,.gp-shots');if(!t||e.button!==0)return;el=t;x0=e.clientX;s0=t.scrollLeft;moved=false;t.classList.add('dragging');t.setPointerCapture(e.pointerId)});
+  document.addEventListener('pointermove',e=>{if(!el)return;const dx=e.clientX-x0;if(Math.abs(dx)>3)moved=true;el.scrollLeft=s0-dx});
+  const end=()=>{if(!el)return;el.classList.remove('dragging');el=null};
+  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+  document.addEventListener('wheel',e=>{const t=e.target.closest('.as-shots,.gp-shots');if(!t||Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
+    const max=t.scrollWidth-t.clientWidth;if(max<=0)return;const next=t.scrollLeft+e.deltaY;if((next<=0&&t.scrollLeft<=0)||(next>=max&&t.scrollLeft>=max))return;
+    e.preventDefault();t.scrollLeft=next},{passive:false})})();
 /* ---------- prévia da página do Google Play ---------- */
 const playIconSlot=a=>`<span class="appicon" data-picon="${esc(a.accountId)}|${esc(a.packageName)}">🤖</span>`;
 function hydratePlayIcons(){document.querySelectorAll('[data-picon]:not([data-done])').forEach(async el=>{el.dataset.done=1;const [acc,pkg]=el.dataset.picon.split('|');
