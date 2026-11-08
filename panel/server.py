@@ -734,6 +734,11 @@ def store_page(bundle, acc_id=None, country="br", light=False):
     return page
 
 
+def _xtool_dev_id(bundle):
+    """App IDs xtool registers just to sign development builds (XTL-<team>.<bundle>.<team>): not store apps."""
+    return (bundle or "").startswith("XTL-")
+
+
 def apple_apps(acc_id):
     """Apps of an Apple account: App Store Connect apps (needs API key) + registered bundle IDs."""
     st = accounts_state()
@@ -767,7 +772,7 @@ def apple_apps(acc_id):
     found = [{"bundleId": a.get("bundleId"), "name": a.get("name"), "ascId": a.get("id"),
               "versions": a.get("versions", [])[:3], "sources": ["asc"]} for a in out["apps"] or []]
     found += [{"bundleId": i.get("identifier"), "name": i.get("name"), "sources": ["bundle"]}
-              for i in out["identifiers"] or []]
+              for i in out["identifiers"] or [] if not _xtool_dev_id(i.get("identifier"))]
     if found:
         store.apps_record(acc_id, found)
     return out
@@ -783,7 +788,10 @@ def apps_registry():
         if not a:
             continue
         api = store.asc_key_public(acc_id)["configured"]
-        for e in apps.values():
+        for e in list(apps.values()):
+            if _xtool_dev_id(e.get("bundleId")):  # saved before this filter existed: clean it up
+                store.apps_forget(acc_id, e["bundleId"])
+                continue
             out.append({**e, "accountId": acc_id, "accountLabel": a.get("label", ""),
                         "appleId": a.get("appleId", ""), "teamId": a.get("teamId", ""), "hasApi": api})
     out.sort(key=lambda x: ((x.get("name") or x["bundleId"]).lower(), x["accountLabel"]))
