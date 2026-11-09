@@ -487,3 +487,55 @@ class Play:
             if not ok:
                 self.edit_delete(pkg, eid)
         log(f"Google Play: notas da versão {version_code} gravadas na faixa {track}")
+
+    def promote(self, pkg, from_track, to_track, version_code, status="completed",
+                user_fraction=None, log=print):
+        """Copia a release que contém `version_code` da faixa `from_track` para a faixa `to_track`.
+
+        `status` ∈ {completed, inProgress, draft}. Com inProgress, `user_fraction` (0 < f <= 1, padrão
+        0.1) vai para `userFraction`; com os outros status ela é ignorada. Mantém o nome e as notas
+        (releaseNotes) da release de origem. Uma edição, commit no fim; em erro a edição é apagada sem
+        commit. Devolve {"track": to_track, "status": status, "versionCode": int(version_code)}.
+        """
+        if status not in ("completed", "inProgress", "draft"):
+            raise PlayError(f"status inválido: {status}")
+        if not from_track or not to_track:
+            raise PlayError("faixa de origem ou de destino não informada")
+        if from_track == to_track:
+            raise PlayError("a faixa de origem e a de destino são iguais")
+        try:
+            vc = int(version_code)
+        except (TypeError, ValueError):
+            raise PlayError(f"versionCode inválido: {version_code}")
+        fraction = None
+        if status == "inProgress":
+            try:
+                fraction = float(0.1 if user_fraction is None else user_fraction)
+            except (TypeError, ValueError):
+                raise PlayError("fração de liberação inválida")
+            if not (0 < fraction <= 1):
+                raise PlayError("fração de liberação deve estar entre 0 e 1")
+        eid = self.edit_open(pkg)
+        ok = False
+        try:
+            t = self.req("GET", f"/{pkg}/edits/{eid}/tracks/{from_track}")
+            rel = None
+            for r in t.get("releases") or []:
+                if isinstance(r, dict) and str(vc) in [str(v) for v in (r.get("versionCodes") or [])]:
+                    rel = r
+                    break
+            if rel is None:
+                raise PlayError(f"esse build não está na faixa {from_track}")
+            notes = {}
+            for n in rel.get("releaseNotes") or []:
+                if isinstance(n, dict) and n.get("language"):
+                    notes[n["language"]] = n.get("text", "") or ""
+            self.set_track(pkg, eid, to_track, [vc], status, notes,
+                           name=rel.get("name") or None, user_fraction=fraction)
+            self.edit_commit(pkg, eid)
+            ok = True
+        finally:
+            if not ok:
+                self.edit_delete(pkg, eid)
+        log(f"Google Play: build {vc} copiado de {from_track} para {to_track} ({status})")
+        return {"track": to_track, "status": status, "versionCode": vc}

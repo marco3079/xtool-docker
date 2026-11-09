@@ -5,6 +5,7 @@ Todos os idiomas que entram e saem daqui são os códigos estilo App Store; só 
 se converte para os códigos do Google Play (lojas.play_lang / lojas.from_play_lang).
 """
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 import ai
@@ -414,3 +415,80 @@ def delete_image(project, store, version, locale, kind, image_id):
         pkg = ln["packageName"]
         play_cli.delete_image(pkg, lojas.play_lang(locale), kind, image_id)
         return {"images": _play_imagens(play_cli, pkg, locale)}
+
+
+# ---------------- envio para revisão (App Store) e promoção (Google Play) ----------------
+PROMO_STATUS = ("completed", "inProgress", "draft")
+TRACK_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+
+
+def _play_faixas_do_build(tracks, build):
+    """Nomes das faixas que têm uma release com o versionCode `build` (na ordem das faixas)."""
+    alvo = str(build)
+    out = []
+    for t in tracks:
+        for r in t.get("releases") or []:
+            if alvo in [str(v) for v in r.get("versionCodes") or []]:
+                out.append(t.get("track"))
+                break
+    return out
+
+
+def submit_review(project, store, version, build=""):
+    """App Store: anexa o maior build processado da versão (sem criptografia) e envia para revisão."""
+    _loja(store)
+    _versao(version)
+    if store != "ios":
+        raise lojas.LojasError("o envio para revisão é só da App Store: no Google Play use Promover para produção")
+    with _erros():
+        cli, app_id = _ios_ctx(project)
+        rec = cli.version_record(app_id, version)
+        if rec is None:
+            raise lojas.LojasError(f"A versão {version} ainda não existe na App Store: "
+                                   "grave os textos em Atualizar na loja primeiro")
+        if rec["state"] not in asc.ASC.EDITABLE:
+            raise lojas.LojasError(f"A versão {version} está em {asc.state_label(rec['state'])} "
+                                   "e não pode ser enviada de novo")
+        b = cli.build_for_version(app_id, version, str(build or "").strip())
+        if b is None:
+            raise lojas.LojasError(f"Não há build processado da versão {version} no App Store Connect: "
+                                   "envie o .ipa em 📤 Enviar para a loja e espere o processamento")
+        cli.set_no_encryption(b["id"])
+        cli.attach_build(rec["id"], b["id"], log=_nada)
+        cli.submit_for_review(app_id, rec["id"], log=_nada)
+    return {"ok": True, "version": version, "build": b["version"],
+            "message": f"Versão {version} (build {b['version']}) enviada para revisão da Apple"}
+
+
+def promote(project, store, version, build, to_track="production", status="completed", fraction=None,
+            from_track=""):
+    """Google Play: copia a release do build (versionCode) da faixa de origem para a faixa de destino."""
+    _loja(store)
+    _versao(version)
+    if store != "android":
+        raise lojas.LojasError("promover para produção é só do Google Play")
+    b = str(build or "").strip()
+    if not b.isdigit():
+        raise lojas.LojasError("o build precisa ser o número do versionCode do Google Play")
+    to_track = str(to_track or "production").strip()
+    if not TRACK_RE.match(to_track):
+        raise lojas.LojasError(f"faixa de destino inválida: {to_track}")
+    if status not in PROMO_STATUS:
+        raise lojas.LojasError(f"status inválido: {status}")
+    origem = str(from_track or "").strip()
+    if origem and not TRACK_RE.match(origem):
+        raise lojas.LojasError(f"faixa de origem inválida: {origem}")
+    with _erros():
+        ln = lojas.link(project, "android")
+        cli = lojas.play_client(ln["accountId"])
+        pkg = ln["packageName"]
+        if not origem:
+            faixas = _play_faixas_do_build(_play_tracks(cli, pkg), b)
+            if not faixas:
+                raise lojas.LojasError(f"o build {b} não está em nenhuma release do Google Play")
+            outras = [f for f in faixas if f != to_track]
+            origem = outras[0] if outras else faixas[0]
+        if origem == to_track:
+            raise lojas.LojasError(f"o build {b} já está na faixa {to_track}: escolha outra faixa de destino")
+        cli.promote(pkg, origem, to_track, int(b), status=status, user_fraction=fraction, log=_nada)
+    return {"ok": True, "message": f"Build {b} promovido de {origem} para {to_track} ({status})"}

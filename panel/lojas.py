@@ -7,6 +7,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+import asc
 import builds
 import store
 from asc import ASC, AscError
@@ -45,6 +46,10 @@ NOT_PUBLISHED_STEPS = ["Gere um build Release em 🔨 Build",
                        "Envie para a loja em 📤 Enviar para a loja",
                        "Depois de aprovada, volte aqui para gerenciar a ficha"]
 ACC_ACTIONS = ("accounts", "configure")
+# versões que NÃO são "pendentes": à venda ou encerradas (terminais)
+_NOT_PENDING = set(asc.LIVE_STATES) | {"REPLACED_WITH_NEW_VERSION", "REMOVED_FROM_SALE",
+                                       "DEVELOPER_REMOVED_FROM_SALE"}
+PENDING_REVIEW_LABEL = " — falta enviar para a revisão"
 
 
 def play_lang(code):
@@ -252,7 +257,8 @@ def _version_for_build(blist, plat, build):
 def _new(key, enabled):
     return {"key": key, "label": STORE_LABELS[key], "enabled": bool(enabled), "state": "error",
             "problem": "", "steps": [], "actions": [], "account": None, "appRef": "", "store": None,
-            "latest": None, "versions": [], "upToDate": False, "newer": False}
+            "latest": None, "versions": [], "pending": None,
+            "upToDate": False, "newer": False}
 
 
 def _set(s, state, problem="", steps=(), actions=()):
@@ -336,6 +342,56 @@ def _isint(v):
     return str(v or "").isdigit()
 
 
+def _is_editable(state):
+    editable = getattr(asc, "EDITABLE", None) or ASC.EDITABLE
+    return state in editable
+
+
+def _ios_pending(api, app_id, live, apple_rows):
+    """Versão criada na App Store que ainda não está à venda (e é mais nova que a ao vivo), ou None."""
+    try:
+        versions = api.app_versions(app_id)
+    except Exception:  # noqa — o cartão pendente é extra: erro aqui não derruba a loja
+        return None
+    live_vs = (live or {}).get("versionString") or ""
+    best = None
+    for v in versions or []:
+        vs = v.get("versionString") or ""
+        if v.get("state") in _NOT_PENDING:
+            continue
+        if live and not _newer(vs, live_vs):
+            continue
+        if best is None or _vkey(vs) > _vkey(best.get("versionString")):
+            best = v
+    if best is None:
+        return None
+    vs, state = best.get("versionString") or "", best.get("state") or ""
+    build = next((r["build"] for r in apple_rows or [] if r["version"] == vs), "")
+    can = _is_editable(state)
+    label = asc.state_label(state) + (PENDING_REVIEW_LABEL if can else "")
+    return {"version": vs, "build": build, "state": state, "label": label, "canSubmit": can,
+            "canPromote": False, "track": "", "id": best.get("id") or ""}
+
+
+def _android_pending(prod, others):
+    """Release mais nova fora da produção (que falta promover), ou None.
+
+    Sem produção: a release mais nova das outras faixas (é a que a ficha mostra).
+    Com produção: só se alguma outra faixa tiver versionCode maior que o da produção.
+    """
+    usable = [o for o in others or [] if str(o.get("status") or "") not in ("draft", "halted")]
+    if not usable:
+        return None
+    top = max(usable, key=lambda o: int(o.get("versionCode") or 0))
+    if prod and int(top.get("versionCode") or 0) <= int(prod.get("versionCode") or 0):
+        return None
+    track = top.get("track") or ""
+    where = f"Na faixa {track}" if prod else f"Está na faixa {track}"
+    return {"version": top.get("name") or "", "build": str(top.get("versionCode") or ""),
+            "state": top.get("status") or "", "label": f"{where}: falta promover para produção",
+            "canSubmit": False, "canPromote": True, "track": track, "id": ""}
+
+
 def _ios_body(s, meta, plats, blist):
     raw = _raw("ios", meta, plats)
     s["appRef"] = raw["bundleId"]
@@ -364,6 +420,7 @@ def _ios_body(s, meta, plats, blist):
     except AscError:
         s["_apple"] = []
     live = api.live_version(app["id"])
+    s["pending"] = _ios_pending(api, app["id"], live, s.get("_apple"))
     if not live:
         return _set(s, "not_published", "Nenhuma versão deste app está publicada na App Store",
                     NOT_PUBLISHED_STEPS, ("build", "deliver"))
@@ -389,8 +446,10 @@ def _android_body(s, meta, plats, blist):
     except LojasError as e:
         return _set(s, "no_account", str(e), NO_ACCOUNT_STEPS, ACC_ACTIONS)
     summary = cli.release_summary(raw["packageName"])
-    live = summary.get("live")
+    prod = summary.get("live")
+    live = prod
     others = summary.get("others") or []
+    s["pending"] = _android_pending(prod, others)
     if not live:
         # sem produção: vale a release mais nova das outras faixas (teste fechado/aberto/interno), exceto rascunhos
         cand = [o for o in others if str(o.get("status") or "") not in ("draft", "halted")]

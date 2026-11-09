@@ -24,6 +24,37 @@ SCREENSHOT_TYPES = [("APP_IPHONE_67", "iPhone 6,7\"", "1290×2796"), ("APP_IPHON
                     ("APP_IPAD_PRO_129", "iPad Pro 12,9\" (2ª ger.)", "2048×2732"), ("APP_IPAD_105", "iPad 10,5\"", "1668×2224")]
 # Estados de versão que significam "à venda agora"
 LIVE_STATES = {"READY_FOR_SALE"}
+# Rótulos (pt-BR) dos estados de versão do App Store Connect
+STATE_LABELS = {
+    "PREPARE_FOR_SUBMISSION": "Preparar para envio",
+    "READY_FOR_REVIEW": "Pronta para revisão",
+    "WAITING_FOR_REVIEW": "Aguardando revisão",
+    "IN_REVIEW": "Em revisão",
+    "PENDING_DEVELOPER_RELEASE": "Aprovada, aguardando sua liberação",
+    "PENDING_APPLE_RELEASE": "Aprovada, aguardando liberação",
+    "PROCESSING_FOR_APP_STORE": "Processando para a App Store",
+    "READY_FOR_SALE": "Pronta para distribuição",
+    "DEVELOPER_REJECTED": "Rejeitada por você",
+    "REJECTED": "Rejeitada pela Apple",
+    "METADATA_REJECTED": "Metadados rejeitados",
+    "INVALID_BINARY": "Binário inválido",
+    "WAITING_FOR_EXPORT_COMPLIANCE": "Aguardando conformidade de exportação",
+    "DEVELOPER_REMOVED_FROM_SALE": "Removida da venda",
+    "REMOVED_FROM_SALE": "Removida da venda",
+    "REPLACED_WITH_NEW_VERSION": "Substituída por versão nova",
+}
+
+
+def state_label(state):
+    """Rótulo pt-BR de um estado de versão; estado desconhecido volta como está."""
+    return STATE_LABELS.get(state, state or "")
+
+
+def _build_number(v):
+    try:
+        return int(str(v))
+    except ValueError:
+        return -1
 
 
 class AscError(Exception):
@@ -491,3 +522,25 @@ class ASC:
     def delete_screenshot(self, screenshot_id):
         """Apaga uma captura da App Store."""
         self.req("DELETE", f"/v1/appScreenshots/{screenshot_id}")
+
+    def version_record(self, app_id, version):
+        """Versão iOS com versionString == version: {id, versionString, state}, ou None."""
+        for v in self.app_versions(app_id):
+            if v["versionString"] == version:
+                return {"id": v["id"], "versionString": v["versionString"], "state": v["state"]}
+        return None
+
+    def build_for_version(self, app_id, version, build=""):
+        """Maior build processado (VALID) e não expirado da versão. Com `build`, só o de número igual.
+        Devolve {id, version (nº do build), uploadedDate} ou None."""
+        r = self.get("/v1/builds", **{"filter[app]": app_id, "filter[preReleaseVersion.version]": version,
+                                      "filter[processingState]": "VALID", "filter[expired]": "false",
+                                      "sort": "-version", "limit": 20})
+        cands = r.get("data") or []
+        if build:
+            cands = [b for b in cands if str((b.get("attributes") or {}).get("version")) == str(build)]
+        if not cands:
+            return None
+        best = max(cands, key=lambda b: _build_number((b.get("attributes") or {}).get("version")))
+        a = best.get("attributes") or {}
+        return {"id": best["id"], "version": str(a.get("version") or ""), "uploadedDate": a.get("uploadedDate")}

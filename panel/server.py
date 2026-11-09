@@ -38,7 +38,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -1814,6 +1814,47 @@ def lojas_image_delete(b):
                                  _txt(b, "kind"), image_id)
 
 
+def _lojas_version(b):
+    v = _txt(b, "version")
+    if not re.fullmatch(r"\d+(\.\d+){0,3}", v):
+        raise ValueError("versão inválida")
+    return v
+
+
+def _lojas_store_is(b, want):
+    st = _lojas_store(b)
+    if st != want:
+        raise ValueError("esta ação só existe para " + ("App Store" if want == "ios" else "Google Play"))
+    return st
+
+
+def lojas_submit(b):
+    """Envia a versão do App Store Connect para a revisão da Apple (só iOS)."""
+    project = _lojas_project(b)
+    _lojas_store_is(b, "ios")
+    return lojas_io.submit_review(project, "ios", _lojas_version(b), _txt(b, "build"))
+
+
+def lojas_promote(b):
+    """Copia a release do Google Play de uma faixa para outra (só Android)."""
+    project = _lojas_project(b)
+    _lojas_store_is(b, "android")
+    version = _lojas_version(b)
+    fraction = b.get("fraction")
+    if fraction is not None and str(fraction).strip() != "":
+        try:
+            fraction = float(fraction)
+        except (TypeError, ValueError):
+            raise ValueError("fração inválida")
+    else:
+        fraction = None
+    return lojas_io.promote(project, "android", version, _txt(b, "build"),
+                            to_track=_txt(b, "to_track") or "production",
+                            status=_txt(b, "status") or "completed",
+                            fraction=fraction,
+                            from_track=_txt(b, "from_track"))
+
+
 def write_args(a):
     os.makedirs("/tmp/panel-args", exist_ok=True)
     p = f"/tmp/panel-args/{uuid.uuid4().hex}.json"
@@ -2045,6 +2086,8 @@ class H(BaseHTTPRequestHandler):
                 "/api/lojas/generate": lojas_generate,
                 "/api/lojas/image/upload": lojas_image_upload,
                 "/api/lojas/image/delete": lojas_image_delete,
+                "/api/lojas/submit": lojas_submit,
+                "/api/lojas/promote": lojas_promote,
                 "/api/projects/pull": project_pull,
             }
             if u.path in acc_routes:

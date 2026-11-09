@@ -126,6 +126,9 @@ function ljAct(id){
   if(!id)return;
   if(id==='ia')return ljIa();
   if(id==='save')return ljSave(ljS.tab);
+  if(id==='pedit')return ljEditPending(ljS.tab);
+  if(id==='submit')return ljSubmit(ljS.tab);
+  if(id==='promote')return ljPromote(ljS.tab);
   if(!ljActs[id])return;
   if(ljDirtyAny(ljS.tab)&&!confirm('Há alterações não salvas. Sair mesmo assim?'))return;
   const p=ljS.project;
@@ -219,16 +222,24 @@ function ljHeadHtml(S){
   const latestTxt=lt?`<div>v${esc(lt.version)}${bld(lt)}</div>
       ${lt.source==='apple'?'<div class="hint">já enviado ao App Store Connect (TestFlight)</div>':''}
       ${lt.database?`<div class="hint">🗄 ${esc(lt.database.name||'')}${lt.database.role?' · '+esc(ljRoleLabels[lt.database.role]||lt.database.role):''}</div>`:''}`:'<div class="hint">Nenhum build release enviável</div>';
+  const pd=S.pending||null;
+  /* versão criada na loja que espera envio (ou promoção): cartão próprio, sem o selo "nova versão" dela */
+  const showNewer=!!S.newer&&!(pd&&lt&&String(pd.version)===String(lt.version));
+  const pendHtml=pd?`<div class="pm-card" style="border-left:4px solid var(--warn);margin-bottom:12px"><b>v${esc(pd.version)} · ${esc(pd.label||'')}</b>
+      ${pd.canSubmit?'<div class="hint">Criada na loja: falta enviar para a revisão</div>':''}
+      ${pd.canPromote?'<div class="hint">Falta promover para produção</div>':''}
+      <div class="pm-row" style="margin:10px 0 0"><button type="button" class="btn sm" data-lj-act="pedit">✏️ Editar</button>${pd.canSubmit?'<button type="button" class="btn sm pri" data-lj-act="submit">📨 Enviar para revisão</button>':''}${pd.canPromote?'<button type="button" class="btn sm pri" data-lj-act="promote">🚀 Promover para produção</button>':''}</div></div>`:'';
   return `<div class="pm-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-bottom:12px">
       <div class="pm-card"><b>Na loja</b>${storeTxt}<div class="hint">${esc(S.appRef||'')}${acc}</div></div>
       <div class="pm-card"><b>Mais recente disponível</b>${latestTxt}</div>
     </div>
-    ${S.upToDate&&lt?`<div style="margin-bottom:12px"><span class="pill ok"><i></i>✔ Já está publicada: a versão ${esc(lt.version)} é a mais recente</span></div>`:''}
-    ${S.newer?'<div style="margin-bottom:12px"><span class="pill warn"><i></i>Nova versão disponível para publicar</span></div>':''}`}
+    ${pendHtml}${S.upToDate&&lt?`<div style="margin-bottom:12px"><span class="pill ok"><i></i>✔ Já está publicada: a versão ${esc(lt.version)} é a mais recente</span></div>`:''}
+    ${showNewer?'<div style="margin-bottom:12px"><span class="pill warn"><i></i>Nova versão disponível para publicar</span></div>':''}`}
 
-/* versão padrão: a mais recente; senão a da loja */
+/* versão padrão: a pendente (criada na loja), depois a mais recente; senão a da loja */
 function ljDefaultVer(S){
   const lt=S.latest,sv=S.store;
+  if(S.pending&&S.pending.version)return {version:String(S.pending.version),build:String(S.pending.build||'')};
   if(lt&&lt.version)return {version:String(lt.version),build:String(lt.build||'')};
   if(sv&&sv.version)return {version:String(sv.version),build:String(sv.build||'')};
   const first=(S.versions||[])[0];
@@ -240,6 +251,10 @@ function ljVerOpts(S,sel){
   /* a versão da loja pode não ter build local: entra como opção própria */
   if(storeV&&!list.some(v=>String(v.version)===storeV))
     html+=`<option value="${esc(storeV)}" data-build="${esc(sv.build||'')}" ${storeV===sel?'selected':''}>v${esc(storeV)} · na loja (sem build local)</option>`;
+  /* a versão pendente (criada na loja) também pode não ter build local: entra como opção própria */
+  const pd=S.pending||null,pv=pd&&pd.version?String(pd.version):'';
+  if(pv&&pv!==storeV&&!list.some(v=>String(v.version)===pv))
+    html+=`<option value="${esc(pv)}" data-build="${esc(pd.build||'')}" ${pv===sel?'selected':''}>v${esc(pv)} · pendente na loja (sem build local)</option>`;
   html+=list.map(v=>{
     const na=storeV&&String(v.version)===storeV;
     const blocked=v.deliverable===false;
@@ -311,14 +326,32 @@ function ljFieldsListHtml(k){
       <textarea id="ljF-${esc(fid)}" data-lj-field="${esc(fid)}" rows="${ljRows(fid)}"${ro}>${lead}${esc(txt)}</textarea>
       <div class="hint lj-cnt${ljOver(txt,lim)?' lj-over':''}" data-lj-cnt="${esc(fid)}">${esc(ljCntTxt(txt,lim))}</div></div>`}).join('')}
 
+/* motivos de desabilitar "Enviar para revisão" (ios) e "Promover" (android); '' = pode usar */
+function ljSubmitWhy(P,st){
+  if(!P||!P.canSubmit)return 'Só é possível enviar uma versão criada na App Store em estado editável';
+  if(String(P.version)!==String(st.version))return 'Selecione a versão '+P.version+' para enviar';
+  return ''}
+function ljPromoteWhy(P,st){
+  if(!P||!P.canPromote)return 'Não há release pendente de promoção nesta loja';
+  if(String(P.build||'')!==String(st.build||''))return 'Selecione o build '+(P.build||'')+' para promover';
+  return ''}
+
 function ljBarHtml(k){
-  const st=ljSt(k),f=st.f||{},c=ljCount(k);
+  const st=ljSt(k),f=st.f||{},c=ljCount(k),P=ljStore(k).pending||null;
   const canSave=!!f.editable&&c.sendable>0;
   const msg=c.changed?`${c.changed} campo(s) alterado(s)`:'Nenhuma alteração';
   const emp=c.emptied?` · ${c.emptied} apagado(s): não são enviados`:'';
+  let extra='';
+  if(k==='ios'){
+    const why=ljSubmitWhy(P,st);
+    extra=`<button type="button" class="btn pri" data-lj-act="submit" title="${esc(why||'Anexa o maior build válido da versão e envia para a revisão da Apple')}"${why?' disabled':''}>📨 Enviar para revisão</button>`}
+  else if(k==='android'){
+    const why=ljPromoteWhy(P,st);
+    extra=`<button type="button" class="btn pri" data-lj-act="promote" title="${esc(why||'Copia este build para a faixa de destino')}"${why?' disabled':''}>🚀 Promover para produção</button>`}
   return `<div class="pm-row lj-bar" data-lj-bar style="margin-top:12px">
     <button type="button" class="btn" data-lj-act="ia"${f.editable?'':' disabled'}>✨ Gerar com IA</button>
     <button type="button" class="btn pri" data-lj-act="save"${canSave?'':' disabled'}>💾 Atualizar na loja</button>
+    ${extra}
     <span class="hint">${esc(msg+emp)}</span></div>`}
 
 /* repinta só chips e barra (sem recriar o textarea, para não perder o foco) */
@@ -413,4 +446,96 @@ async function ljSave(k){
   if(!r)return;
   toast(`${(r.saved||[]).length} campo(s) atualizados na loja`);
   if((r.warnings||[]).length)toast(r.warnings.join(' · '));
-  await ljLoad(k)}
+  await ljLoad(k);
+  await ljRefreshOv()}
+
+/* recarrega o overview (cartão pendente, selos) sem mexer em aba, versão, idioma nem textos */
+async function ljRefreshOv(){
+  if(!ljAlive())return;
+  const project=ljS.project;
+  let ov=null;
+  try{ov=await api('/api/lojas/overview?project='+encodeURIComponent(project))}
+  catch(e){toast(e.message)}
+  if(!ov||!ljAlive())return;
+  ljS.ov=ov;
+  ljRenderPane()}
+
+/* seleciona uma versão no select e recarrega os campos (confirma se há alterações não salvas) */
+function ljSetVersion(k,v,b){
+  const st=ljSt(k);
+  if(ljDirtyAny(k)&&!confirm('Descartar as alterações não salvas e carregar a versão '+v+'?'))return false;
+  st.version=v;st.build=b||'';
+  const sel=ljS.body.querySelector('select[data-lj-ver]');
+  if(sel)sel.value=v;
+  ljLoad(k);
+  return true}
+
+/* "✏️ Editar" do cartão pendente: seleciona a versão pendente, recarrega os campos e rola até eles */
+function ljEditPending(k){
+  if(!ljAlive()||ljS.tab!==k)return;
+  const P=ljStore(k).pending||null;
+  if(!P||!P.version)return;
+  if(!ljSetVersion(k,String(P.version),String(P.build||'')))return;
+  const sel=ljS.body.querySelector('select[data-lj-ver]');
+  if(sel)sel.scrollIntoView({block:'center'})}
+
+/* "📨 Enviar para revisão" (ios): anexa o maior build válido da versão pendente e envia */
+async function ljSubmit(k){
+  if(!ljAlive()||ljS.tab!==k)return;
+  const P=ljStore(k).pending||null;
+  if(!P||!P.canSubmit)return toast('Esta versão não pode ser enviada para revisão agora');
+  const v=String(P.version),b=P.build?String(P.build):'';
+  const unsaved=ljDirtyAny(k)?'\n\nHá alterações não salvas nos campos: elas não entram neste envio.':'';
+  if(!confirm(`A versão ${v}${b?' (build '+b+')':''} será anexada e enviada para a revisão da Apple. Continuar?`+unsaved))return;
+  const done=pmBusy('Enviando para revisão…');
+  let r=null;
+  try{r=await api('/api/lojas/submit',{project:ljS.project,store:k,version:v,build:b})}
+  catch(e){toast(e.message)}
+  finally{done()}
+  if(!r)return;
+  toast(r.message||'Versão enviada para revisão');
+  await ljRefreshOv()}
+
+/* "🚀 Promover para produção" (android): diálogo com faixa de destino, status e fração; depois POST */
+function ljPromote(k){
+  if(!ljAlive()||ljS.tab!==k)return;
+  const P=ljStore(k).pending||null;
+  if(!P||!P.canPromote)return toast('Não há release pendente de promoção nesta loja');
+  const from=String(P.track||'');
+  const TL={production:'Produção',beta:'Teste aberto (beta)',alpha:'Teste fechado (alpha)',internal:'Teste interno (internal)'};
+  const targets=['production','beta','alpha','internal'].filter(t=>t!==from);
+  const html=`<p class="hint" style="margin:0 0 10px">Copia o build <b>${esc(P.build||'')}</b> (v${esc(P.version)}) da faixa <b>${esc(from)}</b> para a faixa de destino, mantendo as notas da versão.</p>
+    <div class="field"><label for="ljPrTo">Faixa de destino</label><select id="ljPrTo">${targets.map(t=>`<option value="${esc(t)}"${t==='production'?' selected':''}>${esc(TL[t])}</option>`).join('')}</select></div>
+    <div class="field"><label for="ljPrSt">Status</label><select id="ljPrSt">
+      <option value="completed" selected>Liberar para todos</option>
+      <option value="inProgress">Liberação gradual</option>
+      <option value="draft">Só rascunho</option></select></div>
+    <div class="field" id="ljPrFrW" style="display:none"><label for="ljPrFr">Percentual dos usuários (1 a 100)</label><input id="ljPrFr" type="number" min="1" max="100" step="1" value="10"></div>
+    <div class="pm-err" id="ljPrMsg"></div>`;
+  if(typeof lojasOverlay!=='function')return toast('Diálogo indisponível (lojas2.js não carregado)');
+  const done=pmBusy('Abrindo…');
+  let ov=null;
+  const doPromote=async()=>{
+    const q=sel=>ov.body.querySelector(sel);
+    const body={project:ljS.project,store:k,version:String(P.version),build:String(P.build||''),
+      to_track:q('#ljPrTo').value,status:q('#ljPrSt').value,from_track:from};
+    if(body.status==='inProgress'){
+      const pct=Number(q('#ljPrFr').value);
+      if(!(pct>=1&&pct<=100)){q('#ljPrMsg').textContent='Informe um percentual entre 1 e 100';return}
+      body.fraction=pct/100}
+    q('#ljPrMsg').textContent='';
+    const busy=pmBusy('Promovendo…');
+    let r=null;
+    try{r=await api('/api/lojas/promote',body)}
+    catch(e){q('#ljPrMsg').textContent=e.message||String(e)}
+    finally{busy()}
+    if(!r)return;
+    ov.close();
+    toast(r.message||'Build promovido');
+    await ljRefreshOv()};
+  ov=lojasOverlay('Promover para produção — v'+P.version,html,[
+    {label:'Cancelar',cls:'',onClick:()=>ov.close()},
+    {label:'🚀 Promover',cls:'pri',onClick:()=>doPromote()}]);
+  ov.body.querySelector('#ljPrSt').onchange=e=>{
+    ov.body.querySelector('#ljPrFrW').style.display=e.target.value==='inProgress'?'':'none'};
+  done()}

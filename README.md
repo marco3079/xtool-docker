@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.4.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.5.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -238,7 +238,7 @@ Detalhes técnicos: os bancos ficam em `~/.config/xtool-panel/projects.json`, na
 
 No card do projeto, o botão **🏪 Gerenciar lojas publicadas** (sempre visível, logo depois de **📤 Enviar para a loja**) abre a ficha do app em cada loja, em três abas: **App Store** (iOS), **Google Play** (Android) e **Steam** (PC). Antes de abrir, aparece um popup de carregamento.
 
-O popup lê o que já está na loja e grava só os textos e imagens que você alterar. Ele não envia builds: para isso existe **📤 Enviar para a loja**.
+O popup lê o que já está na loja e grava só os textos e imagens que você alterar. Ele não envia builds: para isso existe **📤 Enviar para a loja**. Ele só envia uma versão para revisão ou promove uma release que já existe, sempre com confirmação (veja [Enviar para revisão e promover](#enviar-para-revisão-e-promover)).
 
 ### Estados das abas
 
@@ -261,8 +261,38 @@ Nas abas App Store e Google Play, o topo do popup mostra:
 - **Na loja:** a versão, o estado (App Store) ou a faixa (Google Play) e a data.
 - **Mais recente disponível:** a maior versão entre os builds release locais que podem ser enviados (com o banco usado; veja [Banco de dados por projeto](#banco-de-dados-por-projeto)) e, na App Store, os builds já enviados e processados no App Store Connect (TestFlight), marcados "· no App Store Connect".
 - Selo **✔ Já está publicada** quando a mais recente é a que está na loja, ou **Nova versão disponível para publicar** quando a local é maior.
+- Se a versão mais recente já foi criada na App Store e espera envio ou revisão, o cartão **pendente** (veja [Versão pendente](#versão-pendente)) aparece no lugar desse selo.
 
 O seletor **Versão** lista um build por versão (o mais novo de cada uma), da maior para a menor. A versão da loja aparece com "· na loja". Builds que não podem ser enviados ficam desabilitados, com o motivo (por exemplo, um build sem o banco de produção). Ao escolher uma versão, o popup carrega os textos dela.
+
+### Versão pendente
+
+Quando a versão mais recente já foi criada na App Store e ainda espera o envio (por exemplo, **1.0.3 · Preparar para envio**), o topo do popup mostra um cartão de aviso em vez do selo **Nova versão disponível para publicar**:
+
+- **App Store:** o cartão diz "Criada na loja: falta enviar para a revisão" e tem **✏️ Editar** (seleciona essa versão e carrega os textos dela) e **📨 Enviar para revisão**. Versões em revisão, aguardando ou já aprovadas mostram só o rótulo do estado, sem botão de envio.
+- **Google Play:** o cartão diz "Falta promover para produção", mostra a faixa em que a release está (por exemplo, teste fechado) e tem **🚀 Promover para produção**.
+
+Rótulos dos estados da App Store:
+
+| Estado na App Store Connect | Rótulo no painel |
+|---|---|
+| `PREPARE_FOR_SUBMISSION` | Preparar para envio |
+| `READY_FOR_REVIEW` | Pronta para revisão |
+| `WAITING_FOR_REVIEW` | Aguardando revisão |
+| `IN_REVIEW` | Em revisão |
+| `PENDING_DEVELOPER_RELEASE` | Aprovada, aguardando sua liberação |
+| `PENDING_APPLE_RELEASE` | Aprovada, aguardando liberação |
+| `PROCESSING_FOR_APP_STORE` | Processando para a App Store |
+| `READY_FOR_SALE` | Pronta para distribuição |
+| `DEVELOPER_REJECTED` | Rejeitada por você |
+| `REJECTED` | Rejeitada pela Apple |
+| `METADATA_REJECTED` | Metadados rejeitados |
+| `INVALID_BINARY` | Binário inválido |
+| `WAITING_FOR_EXPORT_COMPLIANCE` | Aguardando conformidade de exportação |
+| `DEVELOPER_REMOVED_FROM_SALE`, `REMOVED_FROM_SALE` | Removida da venda |
+| `REPLACED_WITH_NEW_VERSION` | Substituída por versão nova |
+
+Estado que o painel não conhece aparece como o próprio código.
 
 ### Campos por loja
 
@@ -282,7 +312,27 @@ O botão **💾 Atualizar na loja** fica desabilitado enquanto não há alteraç
 
 - **App Store:** se a versão ainda não existe na loja, ela é criada ao atualizar. Se a versão já está publicada ou em revisão, os textos não mudam: crie uma versão nova do app.
 - **Google Play:** os textos da ficha valem para o app inteiro e são aplicados ao atualizar. As notas "O que há de novo" valem só para a release do build escolhido. Se o build não estiver em nenhuma release da faixa, as notas não são gravadas e o aviso aparece no popup.
-- **O botão não envia build e não submete para revisão.** Para enviar um build, use **📤 Enviar para a loja**. A submissão para revisão da App Store continua sendo feita pelo **Publicar** ou no App Store Connect.
+- **O botão não envia build e não submete para revisão.** Para enviar um build, use **📤 Enviar para a loja**. Para submeter a versão à revisão da App Store, use **📨 Enviar para revisão**, e para promover uma release no Google Play, use **🚀 Promover para produção** (veja [Enviar para revisão e promover](#enviar-para-revisão-e-promover)). A submissão também continua possível pelo **Publicar** ou no App Store Connect.
+
+### Enviar para revisão e promover
+
+Dois botões fazem ações reais nas lojas. Os dois pedem confirmação antes de agir e só valem para aquela ação.
+
+**App Store: 📨 Enviar para revisão** (ao lado de **💾 Atualizar na loja**, ou no cartão pendente):
+
+- Anexa o maior build válido da versão no App Store Connect (processado e não expirado), responde a pergunta de criptografia como "sem criptografia" (o padrão do painel) e envia a versão para a revisão da Apple.
+- Só vale se a versão já existe na App Store em estado editável: Preparar para envio, Rejeitada por você, Rejeitada pela Apple, Metadados rejeitados ou Binário inválido. Se a versão ainda não existe, grave os textos em **Atualizar na loja** antes.
+- Precisa de um build processado da versão. Sem ele, envie o `.ipa` em **📤 Enviar para a loja** e espere o processamento.
+- A confirmação diz a versão e o build, por exemplo: "A versão X (build N) será anexada e enviada para a revisão da Apple. Continuar?".
+
+**Google Play: 🚀 Promover para produção** (no cartão pendente e ao lado de **💾 Atualizar na loja**):
+
+- Copia a release do build (pelo `versionCode`) da faixa em que ela está (por exemplo, teste fechado) para a faixa de destino, mantendo as notas da release. Não envia build novo.
+- **Destino:** Produção (padrão), teste aberto, teste fechado ou teste interno. A faixa de origem não aparece na lista.
+- **Status:** **Liberar para todos** (completa), **Liberação gradual** (com a porcentagem, padrão 10%) ou **Só rascunho**.
+- A confirmação mostra a faixa de destino e o status antes de promover.
+
+**💾 Atualizar na loja** continua gravando só textos e imagens, sem enviar build e sem submeter para revisão.
 
 ### Gerar com IA
 
@@ -321,10 +371,12 @@ Os códigos seguem o padrão da App Store (por exemplo, `pt-BR`, `en-US` e `zh-H
 | `POST /api/lojas/generate` | Gera textos com IA para os campos e idiomas escolhidos |
 | `POST /api/lojas/image/upload` | Envia para a loja uma imagem já carregada em `<projeto>/xtool/lojas-img/` |
 | `POST /api/lojas/image/delete` | Apaga uma imagem da loja |
+| `POST /api/lojas/submit` | Envia a versão para revisão na App Store (`project`, `store` = `ios`, `version` e `build` opcional); só versões em estado editável |
+| `POST /api/lojas/promote` | Promove a release do build para outra faixa do Google Play (`project`, `store` = `android`, `version`, `build` obrigatório, e `to_track`, `status`, `fraction` e `from_track` opcionais) |
 
 Os idiomas do app são gravados pela rota de configurações do projeto (`/api/project/settings`, plataforma `locales`).
 
-Detalhes técnicos: a visão geral e os vínculos com as lojas ficam em `panel/lojas.py`; a leitura e a gravação de textos e imagens, em `panel/lojas_io.py`; o popup, em `panel/static/lojas.js`; e a IA e as imagens, em `panel/static/lojas2.js`.
+Detalhes técnicos: a visão geral e os vínculos com as lojas ficam em `panel/lojas.py`; a leitura e a gravação de textos e imagens, o envio para revisão e a promoção entre faixas, em `panel/lojas_io.py`; o popup, em `panel/static/lojas.js`; e a IA e as imagens, em `panel/static/lojas2.js`.
 
 ## Conectar o iPhone
 
@@ -589,11 +641,11 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais e barra do topo (`/api/topbar`, `/api/defaults/set`), status do PC (`/api/pc/status`), perfil do tipo de projeto do build de PC (`/api/pc/profile`), conexão das contas Steam (`/api/steam/check`), visão geral e configuração dos projetos (`/api/project/overview`, `/api/project/settings`), bancos de dados por projeto (`/api/project/databases`), as ações `init.android` e `multi`, a ficha das lojas (`/api/lojas/*`, veja [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas)) e rotas |
 | `panel/release.py` | Pipeline de publicação na App Store, executado como tarefa; com `ipaFile` envia um `.ipa` de release pronto, sem compilar |
 | `panel/android.py` | Build Android (Gradle), chaves de upload, instalação por adb e envio ao Google Play; com `existing` envia um `.aab` ou `.apk` de release pronto, sem compilar |
-| `panel/play.py` | Cliente da Google Play Developer API; fichas por idioma, imagens da ficha e notas de release (usados em Gerenciar lojas publicadas) |
+| `panel/play.py` | Cliente da Google Play Developer API; fichas por idioma, imagens da ficha, notas de release e promoção de release entre faixas (usados em Gerenciar lojas publicadas) |
 | `panel/pc.py` | Build Electron para PC (Windows, Linux e macOS): copia o site, gera o app e zipa |
 | `panel/steam.py` | Arquivos `.vdf` do SteamPipe e chamadas ao steamcmd (login e envio); com `fromZips` envia zips de PC já prontos, sem recompilar |
 | `panel/versions.py` | Lê a versão do app de cada origem do projeto |
-| `panel/asc.py` | Cliente da API do App Store Connect; versões, localizações, informações do app e capturas de tela (usados em Gerenciar lojas publicadas) |
+| `panel/asc.py` | Cliente da API do App Store Connect; versões, localizações, informações do app, capturas de tela, builds e envio para revisão (usados em Gerenciar lojas publicadas) |
 | `panel/github.py` | Contas e repositórios do GitHub |
 | `panel/ai.py` | Provedores de IA, geração do "O que há de novo" e dos textos da ficha das lojas (`generate_listing`) |
 | `panel/store.py` | Configurações e segredos salvos, inclusive as contas principais (`defaults.json`, sem segredos) |
@@ -606,7 +658,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/dbdetect.py` | Detecta bancos no código do projeto (Firebase, Supabase, MongoDB, PostgreSQL, MySQL, SQLite e `.env`) |
 | `panel/dbenv.py` | Aplica a receita do banco no build: comando antes do build, arquivos copiados e variáveis de ambiente |
 | `panel/lojas.py` | Gerenciar lojas publicadas: estado de cada loja (App Store, Google Play e Steam), vínculos com conta e app, versão na loja × mais recente e idiomas do projeto |
-| `panel/lojas_io.py` | Gerenciar lojas publicadas: lê e grava textos e imagens da ficha na App Store e no Google Play |
+| `panel/lojas_io.py` | Gerenciar lojas publicadas: lê e grava textos e imagens da ficha na App Store e no Google Play; envia a versão para revisão (App Store) e promove a release entre faixas (Google Play) |
 | `panel/static/lojas.js` | Popup **🏪 Gerenciar lojas publicadas**: abas, versões, campos e **Atualizar na loja** |
 | `panel/static/lojas2.js` | Popup **✨ Gerar com IA** e seção de imagens da ficha das lojas |
 
@@ -681,6 +733,10 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | "não há mudanças registradas no git" | Escreva um resumo em **Observações para a IA** antes de gerar "O que há de novo" |
 | "A Steam não tem página editável pelo painel" | Edite a página no Steamworks. O painel da Steam só envia builds |
 | Build novo não aparece na loja depois de **Atualizar na loja** | Comportamento esperado: o botão só grava textos e imagens. Para enviar um build, use **📤 Enviar para a loja** |
+| "Não há build processado da versão X no App Store Connect" | Envie o `.ipa` em **📤 Enviar para a loja** e espere a Apple processar o build; depois clique em **📨 Enviar para revisão** de novo |
+| "A versão X ainda não existe na App Store" | Grave os textos da versão em **💾 Atualizar na loja** antes; ela é criada na App Store ao atualizar, e depois você envia para revisão |
+| "A versão X está em Em revisão e não pode ser enviada de novo" (ou outro estado que não é editável) | Só versões em Preparar para envio, Rejeitada por você, Rejeitada pela Apple, Metadados rejeitados ou Binário inválido aceitam o envio. Em revisão ou aprovada, acompanhe a Apple no App Store Connect |
+| "esse build não está na faixa X" | O build escolhido não está na faixa de origem do cartão pendente. Confira a faixa no seletor de versões e promova de novo |
 
 ## Atualização
 
@@ -698,6 +754,15 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.5.0
+
+- **Versão pendente:** quando a versão já foi criada na App Store e espera o envio, o popup mostra o cartão "Criada na loja: falta enviar para a revisão" (com **✏️ Editar**) em vez do selo de nova versão
+- **📨 Enviar para revisão (App Store):** anexa o maior build processado da versão, responde "sem criptografia" e envia para a revisão, sempre com confirmação
+- **🚀 Promover para produção (Google Play):** copia a release do build de uma faixa para a faixa de destino, com status (liberar para todos, liberação gradual ou rascunho) e confirmação
+- Rótulos em português para os estados da App Store (por exemplo, "Preparar para envio" e "Em revisão")
+- Rotas `/api/lojas/submit` e `/api/lojas/promote`
+- **Atualizar na loja** continua gravando só textos e imagens, sem enviar build nem submeter para revisão
 
 ### 1.4.0
 
@@ -786,6 +851,6 @@ A Action [Guarda das branches](.github/workflows/guarda-branches.yml) confere ca
 
 ---
 
-**xtool Painel 1.4.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.5.0** · By [marco3079](https://github.com/marco3079)
 
 </div>
