@@ -27,6 +27,8 @@ import builds
 import dbdetect
 import dbenv
 import github
+import lojas
+import lojas_io
 import pc
 import steam
 import store
@@ -36,7 +38,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -1161,6 +1163,7 @@ def project_overview(project):
         "steamApps": store.steam_apps_list(),
         "changes": changes,
         "databases": dbenv.databases(project),
+        "locales": {"selected": meta.get("locales") or [], "catalog": lojas.catalog()},
     }
 
 
@@ -1187,6 +1190,16 @@ def project_settings(b):
         cur = dict(store.project_meta(project).get("targets") or {})
         cur.update(patch)
         store.project_meta_update(project, {"targets": cur})
+    elif plat == "locales":
+        lista = patch.get("locales")
+        known = {c["code"] for c in lojas.catalog()}
+        if set(patch) != {"locales"} or not isinstance(lista, list):
+            raise ValueError("configuração inválida")
+        # all() antes de set(): itens não-texto (dict, lista) não chegam ao set()
+        if (not all(isinstance(c, str) and c in known for c in lista)
+                or len(lista) > 30 or len(set(lista)) != len(lista)):
+            raise ValueError("configuração inválida")
+        store.project_meta_update(project, {"locales": list(lista)})
     elif plat in ("android", "pc", "steam"):
         cur = dict(store.project_meta(project).get(plat) or {})
         cur.update(patch)
@@ -1680,6 +1693,127 @@ def ai_whats_new(b):
     return out
 
 
+# ---------------------------------------------------------------------------
+# Gerenciar lojas publicadas (App Store, Google Play): rotas /api/lojas/*
+# ---------------------------------------------------------------------------
+LOJAS_IMG_SUBDIR = "xtool/lojas-img"  # dentro da pasta do projeto
+LOJAS_IMG_EXT = (".png", ".jpg", ".jpeg")
+LOJAS_IMG_MAX = 10 * 1024 * 1024  # 10 MB
+
+
+def _txt(b, key):
+    v = b.get(key)
+    return "" if v is None else str(v).strip()
+
+
+def _lojas_project(b):
+    project = _txt(b, "project")
+    if not project or not os.path.isdir(safe_path("work", project)):
+        raise ValueError("projeto não encontrado")
+    return project
+
+
+def _lojas_store(b):
+    st = _txt(b, "store")
+    if st == "pc":
+        raise ValueError("a Steam não tem página editável pelo painel")
+    if st not in ("ios", "android"):
+        raise ValueError("loja inválida")
+    return st
+
+
+def lojas_overview(qs):
+    return lojas.overview(_lojas_project(qs))
+
+
+def lojas_fields(qs):
+    project = _lojas_project(qs)
+    return lojas_io.load_fields(project, _lojas_store(qs), _txt(qs, "version"), _txt(qs, "build"))
+
+
+def lojas_save(b):
+    data = b.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("dados inválidos")
+    project = _lojas_project(b)
+    return lojas_io.save_fields(project, _lojas_store(b), _txt(b, "version"), _txt(b, "build"),
+                                data, _txt(b, "track"))
+
+
+def lojas_changes(project, store_key):
+    """Mudanças no git desde o último lançamento: da loja, se houver; senão a geral (como ai_whats_new)."""
+    meta = store.project_meta(project)
+    rel = {}
+    if store_key == "android":
+        rel = (meta.get("android") or {}).get("lastRelease") or {}
+    if not rel.get("commit"):
+        rel = meta.get("lastRelease") or {}
+    return github.changes_since(safe_path("work", project), rel.get("commit"))
+
+
+def lojas_generate(b):
+    project = _lojas_project(b)
+    store_key = _lojas_store(b)
+    fields = b.get("fields") or []
+    locales = b.get("locales") or lojas.project_locales(project)
+    current = b.get("current") or {}
+    if not isinstance(fields, list) or not isinstance(locales, list) or not isinstance(current, dict):
+        raise ValueError("dados inválidos")
+    extra = _txt(b, "extra")
+    changes = lojas_changes(project, store_key)
+    if "whatsNew" in fields and not changes.strip() and not extra:
+        raise ValueError("não há mudanças registradas no git; escreva um resumo no campo de observações")
+    return ai.generate_listing(ai_conf_for(b), store_key, _txt(b, "appName") or project, _txt(b, "version"),
+                               locales, fields, current, changes, extra)
+
+
+def _lojas_img_file(project, rel):
+    """Caminho absoluto do upload; ValueError se não estiver dentro de <project>/xtool/lojas-img/."""
+    if not rel:
+        raise ValueError("arquivo não informado")
+    p = safe_path("work", rel)
+    base = safe_path("work", project + "/" + LOJAS_IMG_SUBDIR)
+    if not p.startswith(base + os.sep):
+        raise ValueError("arquivo fora da pasta de imagens do projeto")
+    return p
+
+
+def _lojas_remove(p):
+    try:
+        os.remove(p)
+    except OSError:
+        pass
+
+
+def lojas_image_upload(b):
+    absp = ""  # só recebe valor depois de validado: nunca apagamos nada fora de lojas-img
+    try:
+        project = _lojas_project(b)
+        store_key = _lojas_store(b)
+        absp = _lojas_img_file(project, _txt(b, "path"))
+        if os.path.splitext(absp)[1].lower() not in LOJAS_IMG_EXT:
+            raise ValueError("formato inválido: envie PNG ou JPG")
+        if not os.path.isfile(absp):
+            raise ValueError("arquivo não encontrado: envie de novo")
+        if os.path.getsize(absp) > LOJAS_IMG_MAX:
+            raise ValueError("imagem maior que 10 MB")
+        return lojas_io.upload_image(project, store_key, _txt(b, "version"), _txt(b, "locale"),
+                                     _txt(b, "kind"), absp)
+    finally:
+        if absp:
+            _lojas_remove(absp)
+
+
+def lojas_image_delete(b):
+    project = _lojas_project(b)
+    store_key = _lojas_store(b)
+    image_id = _txt(b, "id")
+    if not image_id:
+        raise ValueError("imagem inválida")
+    return lojas_io.delete_image(project, store_key, _txt(b, "version"), _txt(b, "locale"),
+                                 _txt(b, "kind"), image_id)
+
+
 def write_args(a):
     os.makedirs("/tmp/panel-args", exist_ok=True)
     p = f"/tmp/panel-args/{uuid.uuid4().hex}.json"
@@ -1826,6 +1960,10 @@ class H(BaseHTTPRequestHandler):
                 return self._json(project_overview(qs.get("project", "")))
             if u.path == "/api/project/databases":
                 return self._json(project_databases_get(qs))
+            if u.path == "/api/lojas/overview":
+                return self._json(lojas_overview(qs))
+            if u.path == "/api/lojas/fields":
+                return self._json(lojas_fields(qs))
             if u.path == "/api/pull/state":  # leve: só lê o dicionário, não roda git
                 with PULL_LOCK:
                     return self._json({k: dict(v) for k, v in PULL_STATE.items()})
@@ -1903,6 +2041,10 @@ class H(BaseHTTPRequestHandler):
                 "/api/defaults/set": lambda b: (store.defaults_set(b), topbar())[1],
                 "/api/project/settings": project_settings,
                 "/api/project/databases": project_databases_save,
+                "/api/lojas/save": lojas_save,
+                "/api/lojas/generate": lojas_generate,
+                "/api/lojas/image/upload": lojas_image_upload,
+                "/api/lojas/image/delete": lojas_image_delete,
                 "/api/projects/pull": project_pull,
             }
             if u.path in acc_routes:

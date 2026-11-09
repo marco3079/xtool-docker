@@ -16,6 +16,15 @@ import jwt  # python3-jwt (+ python3-cryptography for ES256)
 
 API = "https://api.appstoreconnect.apple.com"
 
+# Tipos de tela aceitos pelo App Store Connect: (displayType, rótulo, tamanho em px)
+SCREENSHOT_TYPES = [("APP_IPHONE_67", "iPhone 6,7\"", "1290×2796"), ("APP_IPHONE_65", "iPhone 6,5\"", "1242×2688 ou 1284×2778"),
+                    ("APP_IPHONE_61", "iPhone 6,1\"", "1179×2556"), ("APP_IPHONE_58", "iPhone 5,8\"", "1125×2436"),
+                    ("APP_IPHONE_55", "iPhone 5,5\"", "1242×2208"),
+                    ("APP_IPAD_PRO_3GEN_129", "iPad Pro 12,9\"", "2048×2732"), ("APP_IPAD_PRO_3GEN_11", "iPad Pro 11\"", "1668×2388"),
+                    ("APP_IPAD_PRO_129", "iPad Pro 12,9\" (2ª ger.)", "2048×2732"), ("APP_IPAD_105", "iPad 10,5\"", "1668×2224")]
+# Estados de versão que significam "à venda agora"
+LIVE_STATES = {"READY_FOR_SALE"}
+
 
 class AscError(Exception):
     pass
@@ -316,3 +325,169 @@ class ASC:
                  "id": sub_id, "attributes": {"submitted": True}}})
         log("Enviado para revisão da Apple ✔")
         return sub_id
+
+    # ---------------- lojas: ficha publicada ----------------
+    def app_versions(self, app_id):
+        """Versões de iOS do app (até 20), da mais nova para a mais antiga."""
+        vs = self.get(f"/v1/apps/{app_id}/appStoreVersions", **{"filter[platform]": "IOS", "limit": 20,
+                      "fields[appStoreVersions]": "versionString,appStoreState,createdDate,platform"}).get("data", [])
+        out = []
+        for v in vs:
+            a = v.get("attributes") or {}
+            out.append({"id": v["id"], "versionString": a.get("versionString"),
+                        "state": a.get("appStoreState"), "createdDate": a.get("createdDate")})
+        return sorted(out, key=lambda x: x["createdDate"] or "", reverse=True)
+
+    def live_version(self, app_id):
+        """Versão que está à venda agora (estado em LIVE_STATES), ou None."""
+        for v in self.app_versions(app_id):
+            if v["state"] in LIVE_STATES:
+                return v
+        return None
+
+    def version_localizations(self, version_id):
+        """Textos da versão por idioma: {locale: {id, description, keywords, promotionalText, whatsNew}}."""
+        locs = self.all(f"/v1/appStoreVersions/{version_id}/appStoreVersionLocalizations", limit=50,
+                        **{"fields[appStoreVersionLocalizations]": "locale,description,keywords,promotionalText,whatsNew"})
+        out = {}
+        for l in locs:
+            a = l.get("attributes") or {}
+            out[a.get("locale")] = {"id": l["id"], **{k: (a.get(k) or "") for k in
+                                    ("description", "keywords", "promotionalText", "whatsNew")}}
+        return out
+
+    def save_version_localization(self, version_id, locale, fields, log=print):
+        """Grava textos da versão num idioma: PATCH se o idioma já existe, senão cria. Devolve o id da localização."""
+        allowed = ("description", "keywords", "promotionalText", "whatsNew")
+        attrs = {k: v for k, v in (fields or {}).items() if k in allowed}
+        existing = self.version_localizations(version_id).get(locale)
+        if existing:
+            if attrs:
+                self.req("PATCH", f"/v1/appStoreVersionLocalizations/{existing['id']}", {"data": {
+                    "type": "appStoreVersionLocalizations", "id": existing["id"], "attributes": attrs}})
+            loc_id = existing["id"]
+        else:
+            r = self.req("POST", "/v1/appStoreVersionLocalizations", {"data": {
+                "type": "appStoreVersionLocalizations", "attributes": {"locale": locale, **attrs},
+                "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}}}})
+            loc_id = r["data"]["id"]
+        log(f"Textos da versão salvos em {locale}")
+        return loc_id
+
+    def app_info_localizations(self, app_id):
+        """Nome e subtítulo por idioma das informações do app: {locale: {id, name, subtitle}}.
+        Usa o appInfo editável; se não houver, o primeiro."""
+        editable = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED",
+                    "WAITING_FOR_REVIEW", "READY_FOR_REVIEW"}
+        infos = self.all(f"/v1/apps/{app_id}/appInfos")
+        pick = None
+        for i in infos:
+            a = i.get("attributes") or {}
+            if (a.get("state") or a.get("appStoreState")) in editable:
+                pick = i
+                break
+        if pick is None and infos:
+            pick = infos[0]
+        if pick is None:
+            return {}
+        locs = self.all(f"/v1/appInfos/{pick['id']}/appInfoLocalizations",
+                        **{"fields[appInfoLocalizations]": "locale,name,subtitle"})
+        out = {}
+        for l in locs:
+            a = l.get("attributes") or {}
+            out[a.get("locale")] = {"id": l["id"], "name": a.get("name") or "", "subtitle": a.get("subtitle") or ""}
+        return out
+
+    def save_info_localization(self, app_id, locale, subtitle, log=print):
+        """Grava o subtítulo do app no idioma. O idioma precisa já existir nas informações do app."""
+        loc = self.app_info_localizations(app_id).get(locale)
+        if not loc:
+            raise AscError(f"o idioma {locale} ainda não existe nas informações do app: adicione-o no App Store Connect")
+        self.req("PATCH", f"/v1/appInfoLocalizations/{loc['id']}", {"data": {
+            "type": "appInfoLocalizations", "id": loc["id"], "attributes": {"subtitle": subtitle}}})
+        log(f"Subtítulo salvo em {locale}")
+
+    def screenshot_sets(self, localization_id):
+        """Conjuntos de capturas da localização: [{id, displayType, screenshots:[{id, fileName, width, height, url, state}]}].
+        url usa 300 de largura, 650 de altura e png."""
+        fields = {"fields[appScreenshotSets]": "screenshotDisplayType",
+                  "fields[appScreenshots]": "fileName,imageAsset,assetDeliveryState"}
+        sets, inc = [], {}
+        r = self.get(f"/v1/appStoreVersionLocalizations/{localization_id}/appScreenshotSets",
+                     include="appScreenshots", limit=50, **fields)
+        while True:
+            sets += r.get("data", [])
+            for x in r.get("included", []):
+                inc[x["id"]] = x
+            nxt = (r.get("links") or {}).get("next")
+            if not nxt:
+                break
+            r = self.req("GET", nxt)
+
+        def shot(x):
+            a = x.get("attributes") or {}
+            ia = a.get("imageAsset") or {}
+            tpl = ia.get("templateUrl") or ""
+            url = tpl.replace("{w}", "300").replace("{h}", "650").replace("{f}", "png") if tpl else ""
+            return {"id": x["id"], "fileName": a.get("fileName"), "width": ia.get("width"),
+                    "height": ia.get("height"), "url": url,
+                    "state": (a.get("assetDeliveryState") or {}).get("state")}
+
+        out = []
+        for s in sets:
+            rel = ((s.get("relationships") or {}).get("appScreenshots") or {}).get("data") or []
+            ids = [x["id"] for x in rel]
+            shots = [inc[i] for i in ids if i in inc]
+            # a Apple costuma devolver só os links do relacionamento (sem os ids): busca os prints do conjunto
+            if len(shots) < len(ids) or (not ids and not shots):
+                shots = self.all(f"/v1/appScreenshotSets/{s['id']}/appScreenshots", **fields)
+            out.append({"id": s["id"], "displayType": (s.get("attributes") or {}).get("screenshotDisplayType"),
+                        "screenshots": [shot(x) for x in shots]})
+        return out
+
+    def upload_screenshot(self, localization_id, display_type, path, log=print):
+        """Envia uma captura para o tipo de tela (cria o conjunto se faltar). Devolve o id do screenshot."""
+        if display_type not in {k for k, _, _ in SCREENSHOT_TYPES}:
+            raise AscError(f"tipo de tela desconhecido: {display_type}")
+        size = os.path.getsize(path)
+        name = os.path.basename(path)
+        sets = self.all(f"/v1/appStoreVersionLocalizations/{localization_id}/appScreenshotSets",
+                        **{"fields[appScreenshotSets]": "screenshotDisplayType"})
+        st = next((s for s in sets if (s.get("attributes") or {}).get("screenshotDisplayType") == display_type), None)
+        if st is None:
+            st = self.req("POST", "/v1/appScreenshotSets", {"data": {"type": "appScreenshotSets",
+                "attributes": {"screenshotDisplayType": display_type},
+                "relationships": {"appStoreVersionLocalization": {"data": {
+                    "type": "appStoreVersionLocalizations", "id": localization_id}}}}})["data"]
+        log(f"Enviando {name} ({display_type})…")
+        sc = self.req("POST", "/v1/appScreenshots", {"data": {"type": "appScreenshots",
+            "attributes": {"fileName": name, "fileSize": size},
+            "relationships": {"appScreenshotSet": {"data": {"type": "appScreenshotSets", "id": st["id"]}}}}})["data"]
+        ops = sc["attributes"].get("uploadOperations") or []
+        md5 = hashlib.md5()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                md5.update(chunk)
+        with open(path, "rb") as fh:
+            for i, op in enumerate(ops, 1):
+                fh.seek(op["offset"])
+                data = fh.read(op["length"])
+                headers = {h["name"]: h["value"] for h in op.get("requestHeaders") or []}
+                r = urllib.request.Request(op["url"], data=data, method=op.get("method", "PUT"), headers=headers)
+                for attempt in range(4):
+                    try:
+                        urllib.request.urlopen(r, timeout=600).read()
+                        break
+                    except urllib.error.URLError as e:
+                        if attempt == 3:
+                            raise AscError(f"falha ao enviar parte {i}: {e}")
+                        time.sleep(3 * (attempt + 1))
+                log(f"  parte {i}/{len(ops)} enviada")
+        self.req("PATCH", f"/v1/appScreenshots/{sc['id']}", {"data": {"type": "appScreenshots", "id": sc["id"],
+            "attributes": {"uploaded": True, "sourceFileChecksum": md5.hexdigest()}}})
+        log(f"Captura enviada: {name}")
+        return sc["id"]
+
+    def delete_screenshot(self, screenshot_id):
+        """Apaga uma captura da App Store."""
+        self.req("DELETE", f"/v1/appScreenshots/{screenshot_id}")

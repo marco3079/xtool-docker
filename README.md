@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.3.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.4.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -32,6 +32,7 @@ By **[marco3079](https://github.com/marco3079)**
 - [Primeiros passos](#primeiros-passos)
 - [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)
 - [Banco de dados por projeto](#banco-de-dados-por-projeto)
+- [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas)
 - [Conectar o iPhone](#conectar-o-iphone)
 - [Publicar na App Store](#publicar-na-app-store)
 - [Android e Google Play](#android-e-google-play)
@@ -77,7 +78,7 @@ http://localhost:8080
 | **Contas** → Steam | Aba **Steam** do menu **Contas**: cadastra contas Steam (nome e usuário de build do Steamworks, sem senha) e faz o login pelo console do steamcmd. Cada conta mostra se está **Conectada**, **Sem login**, **Ocupado…** ou **Não verificado** (checagem com o login salvo, com o botão **↻ Verificar**). O botão **★ Principal** define a conta do topo |
 | **Apps da conta** | Aba **Apple**: registro de todos os apps de todas as contas, apps do App Store Connect com o estado de cada versão, bundle IDs com ícone e prévia da página da App Store num iPhone. Aba **Google Play**: apps de cada conta, versões por faixa (interno, fechado, aberto, produção) e prévia da página da Google Play com a ficha do Play Console. Aba **Steam**: apps registrados (todas as contas) com App ID, Depot IDs por plataforma e branch padrão, apps da conta selecionada e botão **Publicar**, que abre Publicar → 🎮 Steam (PC) com o app escolhido |
 | **Barra do topo** | Seletores da **conta Steam** (🎮) e da **conta Google Play** (▶): a escolha vira a conta principal salva, usada como padrão nas telas de Publicar e Apps da conta quando o projeto ainda não tem conta própria. Três indicadores iguais, clicáveis (abrem a aba correspondente de Dispositivos): **iPhone** (conectado, desconectado ou "abra o iTunes" quando o serviço Apple do Windows está desligado; a dica lista os aparelhos e se estão por cabo ou Wi-Fi), **Android** (conectado ou desconectado, pelo `adb devices`) e **PC** (conectado ou desconectado, pelo `host.docker.internal`; a dica mostra também se o serviço Apple está ativo), atualizados a cada 5 segundos. O aparelho iPhone padrão agora é escolhido em Dispositivos (★). Em telas com menos de 860 px, o topo esconde esses seletores e indicadores |
-| **Projetos** | Cria apps SwiftUI, com repositório do GitHub criado na hora (veja [GitHub](#github)), e reconhece projetos Android e Capacitor; compila em debug ou release; gera `.ipa` e `.apk`; roda no iPhone e no celular Android; gera projeto Xcode; bancos de dados por projeto, com Produção e Desenvolvimento, que definem o build e liberam o envio à loja (veja [Banco de dados por projeto](#banco-de-dados-por-projeto)); etiquetas em **Projetos**: 🍎 iOS, 🤖 Android, 🖥️ PC (projetos com `package.json`, com ⚙ Configurar, 🔨 Build, 📤 Enviar para a loja e Arquivos) e 🎮 Steam (quando o projeto está vinculado a um app Steam); o **Tipo de código** (automático ou escolhido) do build de PC é salvo por projeto; (veja [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)); no card, as linhas do app do Google Play e da Steam, com vincular ou trocar, conta e estado |
+| **Projetos** | Cria apps SwiftUI, com repositório do GitHub criado na hora (veja [GitHub](#github)), e reconhece projetos Android e Capacitor; compila em debug ou release; gera `.ipa` e `.apk`; roda no iPhone e no celular Android; gera projeto Xcode; bancos de dados por projeto, com Produção e Desenvolvimento, que definem o build e liberam o envio à loja (veja [Banco de dados por projeto](#banco-de-dados-por-projeto)); etiquetas em **Projetos**: 🍎 iOS, 🤖 Android, 🖥️ PC (projetos com `package.json`, com ⚙ Configurar, 🔨 Build, 📤 Enviar para a loja, 🏪 Gerenciar lojas publicadas e Arquivos) e 🎮 Steam (quando o projeto está vinculado a um app Steam); o **Tipo de código** (automático ou escolhido) do build de PC é salvo por projeto; (veja [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)); no card, as linhas do app do Google Play e da Steam, com vincular ou trocar, conta e estado; a ficha das lojas (textos, imagens e IA) fica em **🏪 Gerenciar lojas publicadas** (veja [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas)) |
 | **Publicar** | Aba **App Store**: compila em release, gera o ícone (`Assets.car`), assina para distribuição, envia ao App Store Connect, preenche "O que há de novo" e submete para revisão. Aba **Google Play**: gera APK/AAB assinado com a chave de upload, escreve as notas da versão e envia para a faixa escolhida. Aba **🎮 Steam (PC)**: compila o site para Windows, Linux e macOS com Electron, escreve a descrição do build e envia para a Steam pelo steamcmd. O **Tipo de código** do card 2 preenche o comando e a pasta do site |
 | **GitHub** | Várias contas; lista os repositórios (inclusive de organizações); importa como projeto; novo projeto cria o repositório na conta escolhida; vincula ou cria repositório; pull automático pelo card do projeto (só fast-forward, com barra de progresso do download); push pelo Terminal ou pelo seu cliente git |
 | **IA** | OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Ollama e LM Studio (locais) ou qualquer API compatível com OpenAI |
@@ -197,7 +198,7 @@ Cada projeto tem um card na aba **Projetos** com até três botões: **⚙ Confi
 
    A versão de um build pronto não muda: para outra versão, gere um novo em **🔨 Build**. Antes de enviar, o painel confere que o número do build do iOS ainda não existe no App Store Connect e que o `Info.plist` do `.ipa` bate com a versão, o build e o bundle ID. No Android, o `versionCode` precisa ser maior que o último na Google Play.
 
-Para publicar em cada loja, veja também [Publicar na App Store](#publicar-na-app-store), [Publicar no Google Play](#publicar-no-google-play) e [Publicar na Steam](#publicar-na-steam).
+Para publicar em cada loja, veja também [Publicar na App Store](#publicar-na-app-store), [Publicar no Google Play](#publicar-no-google-play) e [Publicar na Steam](#publicar-na-steam). Para editar a ficha do app em cada loja (textos, imagens e idiomas), use **🏪 Gerenciar lojas publicadas**, em [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas).
 
 ## Banco de dados por projeto
 
@@ -232,6 +233,98 @@ No diálogo **🔨 Build**, o seletor **Banco de dados** escolhe o banco do buil
 O servidor também recusa o envio, não só a tela.
 
 Detalhes técnicos: os bancos ficam em `~/.config/xtool-panel/projects.json`, nas chaves `databases` e `buildDb`. As rotas são `GET` e `POST /api/project/databases`. A detecção fica em `panel/dbdetect.py`, as receitas (comando, arquivos e variáveis) em `panel/dbenv.py`, e o popup em `panel/static/database.js`.
+
+## Gerenciar lojas publicadas
+
+No card do projeto, o botão **🏪 Gerenciar lojas publicadas** (sempre visível, logo depois de **📤 Enviar para a loja**) abre a ficha do app em cada loja, em três abas: **App Store** (iOS), **Google Play** (Android) e **Steam** (PC). Antes de abrir, aparece um popup de carregamento.
+
+O popup lê o que já está na loja e grava só os textos e imagens que você alterar. Ele não envia builds: para isso existe **📤 Enviar para a loja**.
+
+### Estados das abas
+
+Cada aba mostra ✓ quando a loja está pronta e ⚠ quando falta algo. A aba inicial é a primeira pronta; se nenhuma estiver, é a App Store.
+
+| Estado | O que aparece |
+|---|---|
+| Pronta | Versão na loja, versão mais recente disponível e a ficha editável |
+| Sem conta | Falta a conta da loja ou o vínculo do app; o aviso leva a **Contas** e a **⚙ Configurar** |
+| Sem app | O app não existe na loja; o aviso leva a **⚙ Configurar** |
+| Não publicada | Não há versão publicada na App Store nem release (em nenhuma faixa, exceto rascunhos) no Google Play; o aviso leva a **🔨 Build** e **📤 Enviar para a loja** |
+| Erro | A loja não respondeu como esperado; a mensagem aparece no popup |
+
+No Google Play vale a release de produção; se não houver, vale a mais nova das outras faixas (teste fechado, aberto ou interno), e o popup mostra qual faixa é. Na Steam, "Não publicada" quer dizer que nenhum build foi enviado ainda.
+
+### Versão na loja × mais recente
+
+Nas abas App Store e Google Play, o topo do popup mostra:
+
+- **Na loja:** a versão, o estado (App Store) ou a faixa (Google Play) e a data.
+- **Mais recente disponível:** a maior versão entre os builds release locais que podem ser enviados (com o banco usado; veja [Banco de dados por projeto](#banco-de-dados-por-projeto)) e, na App Store, os builds já enviados e processados no App Store Connect (TestFlight), marcados "· no App Store Connect".
+- Selo **✔ Já está publicada** quando a mais recente é a que está na loja, ou **Nova versão disponível para publicar** quando a local é maior.
+
+O seletor **Versão** lista um build por versão (o mais novo de cada uma), da maior para a menor. A versão da loja aparece com "· na loja". Builds que não podem ser enviados ficam desabilitados, com o motivo (por exemplo, um build sem o banco de produção). Ao escolher uma versão, o popup carrega os textos dela.
+
+### Campos por loja
+
+| Loja | Campos e limites |
+|---|---|
+| App Store | **O que há de novo** (4000), **Texto promocional** (170), **Descrição** (4000) e **Palavras-chave** (100), da versão; **Subtítulo** (30), das informações do app |
+| Google Play | **Descrição curta** (80), **Descrição completa** (4000), que valem para a ficha inteira; **O que há de novo** (500), as notas da release do build escolhido |
+| Steam | Nenhum campo |
+
+Os idiomas aparecem como chips. Cada um mostra o texto que já está na loja e pode ser editado. O contador de cada campo fica vermelho quando passa do limite. O painel só avisa e não corta o texto, então encurte antes de atualizar.
+
+Se a versão não pode ser editada (por exemplo, já publicada ou em revisão), uma faixa amarela explica o motivo, os campos ficam só para leitura e o botão de atualizar fica desabilitado.
+
+### Atualizar na loja
+
+O botão **💾 Atualizar na loja** fica desabilitado enquanto não há alterações. Antes de gravar, mostra um resumo com a loja, a versão e a quantidade de campos e idiomas. Depois grava só os campos alterados e não vazios.
+
+- **App Store:** se a versão ainda não existe na loja, ela é criada ao atualizar. Se a versão já está publicada ou em revisão, os textos não mudam: crie uma versão nova do app.
+- **Google Play:** os textos da ficha valem para o app inteiro e são aplicados ao atualizar. As notas "O que há de novo" valem só para a release do build escolhido. Se o build não estiver em nenhuma release da faixa, as notas não são gravadas e o aviso aparece no popup.
+- **O botão não envia build e não submete para revisão.** Para enviar um build, use **📤 Enviar para a loja**. A submissão para revisão da App Store continua sendo feita pelo **Publicar** ou no App Store Connect.
+
+### Gerar com IA
+
+O botão **✨ Gerar com IA** abre um popup em que você escolhe os campos e os idiomas (todos vêm marcados) e, se quiser, escreve observações para a IA. A IA usa o provedor padrão (★, em **IA**).
+
+- **Base do texto:** os commits desde o último lançamento na loja, as observações e os textos que já estão na loja, para manter a identidade do app.
+- **Limites:** cada texto é cortado no limite do campo. Palavras-chave são cortadas na última vírgula antes do limite.
+- **Erro por idioma:** se a IA falhar num idioma, os outros continuam e o erro aparece por idioma. Só há falha total se todos os idiomas falharem.
+- **Revise antes:** o texto gerado preenche os campos na tela. Nada é gravado na loja até **Atualizar na loja**.
+- **Sem mudanças no git:** para gerar "O que há de novo" sem commits novos, escreva um resumo nas observações.
+
+### Imagens
+
+Cada idioma tem as imagens da ficha, em grade por tipo. Clique numa miniatura para ampliá-la. **＋ Adicionar** envia uma ou mais imagens (PNG ou JPG, até 10 MB) e **✕** apaga uma imagem. Cada envio e cada exclusão pedem confirmação e valem na loja na hora, sem esperar **Atualizar na loja**. O navegador envia o arquivo para `<projeto>/xtool/lojas-img/`, e o arquivo temporário é apagado depois.
+
+- **App Store, por tipo de tela:** iPhone 6,7" (1290×2796), iPhone 6,5" (1242×2688 ou 1284×2778), iPhone 5,5" (1242×2208), iPad Pro 12,9" e iPad Pro 12,9" (2ª geração), ambos 2048×2732. Enviar exige a versão editável.
+- **Google Play, por tipo:** ícone (512×512), gráfico de recursos (1024×500), capturas de celular (16:9 ou 9:16, de 320 a 3840 px) e capturas de tablet de 7" e de 10".
+
+### Steam
+
+A aba Steam mostra a versão enviada (**Na Steam**), a branch, a data e os builds disponíveis, com os botões **Enviar para a Steam** e **Configurar**. Não há campos: a Steam não tem API para a página da loja. Textos e imagens da página são editados no painel do Steamworks, e o painel só envia builds.
+
+### Idiomas do app
+
+Em **⚙ Configurar → 🌐 Idiomas do app**, marque os idiomas em que o app está disponível. Ao abrir, pt-BR vem marcado se o projeto ainda não tem idiomas salvos, e é preciso marcar ao menos um. Esses idiomas aparecem no popup e entram na geração com IA. Os idiomas que já existem na loja também aparecem.
+
+Os códigos seguem o padrão da App Store (por exemplo, `pt-BR`, `en-US` e `zh-Hans`). Para o Google Play, o painel converte sozinho (por exemplo, `es-MX` vira `es-419` e `zh-Hans` vira `zh-CN`).
+
+### Rotas
+
+| Rota | Função |
+|---|---|
+| `GET /api/lojas/overview?project=` | Estado das três lojas, idiomas e versões do projeto |
+| `GET /api/lojas/fields?project=&store=&version=&build=` | Textos, imagens e limites da versão escolhida |
+| `POST /api/lojas/save` | Grava os textos alterados (`project`, `store`, `version`, `build`, `track` opcional e `data`) |
+| `POST /api/lojas/generate` | Gera textos com IA para os campos e idiomas escolhidos |
+| `POST /api/lojas/image/upload` | Envia para a loja uma imagem já carregada em `<projeto>/xtool/lojas-img/` |
+| `POST /api/lojas/image/delete` | Apaga uma imagem da loja |
+
+Os idiomas do app são gravados pela rota de configurações do projeto (`/api/project/settings`, plataforma `locales`).
+
+Detalhes técnicos: a visão geral e os vínculos com as lojas ficam em `panel/lojas.py`; a leitura e a gravação de textos e imagens, em `panel/lojas_io.py`; o popup, em `panel/static/lojas.js`; e a IA e as imagens, em `panel/static/lojas2.js`.
 
 ## Conectar o iPhone
 
@@ -493,16 +586,16 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `Dockerfile` | Imagem com xtool, accord (compilado a partir do código), rcodesign, gh, Python, JDK, Node, SDK do Android, steamcmd e ImageMagick (Wine opcional) |
 | `base/` | xtool 1.24.0 zipado (versão base, instalada no build sem baixar do GitHub do xtool) |
 | `docker-compose.yml` | Porta, volumes e acesso ao serviço da Apple |
-| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais e barra do topo (`/api/topbar`, `/api/defaults/set`), status do PC (`/api/pc/status`), perfil do tipo de projeto do build de PC (`/api/pc/profile`), conexão das contas Steam (`/api/steam/check`), visão geral e configuração dos projetos (`/api/project/overview`, `/api/project/settings`), bancos de dados por projeto (`/api/project/databases`), as ações `init.android` e `multi` e rotas |
+| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais e barra do topo (`/api/topbar`, `/api/defaults/set`), status do PC (`/api/pc/status`), perfil do tipo de projeto do build de PC (`/api/pc/profile`), conexão das contas Steam (`/api/steam/check`), visão geral e configuração dos projetos (`/api/project/overview`, `/api/project/settings`), bancos de dados por projeto (`/api/project/databases`), as ações `init.android` e `multi`, a ficha das lojas (`/api/lojas/*`, veja [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas)) e rotas |
 | `panel/release.py` | Pipeline de publicação na App Store, executado como tarefa; com `ipaFile` envia um `.ipa` de release pronto, sem compilar |
 | `panel/android.py` | Build Android (Gradle), chaves de upload, instalação por adb e envio ao Google Play; com `existing` envia um `.aab` ou `.apk` de release pronto, sem compilar |
-| `panel/play.py` | Cliente da Google Play Developer API |
+| `panel/play.py` | Cliente da Google Play Developer API; fichas por idioma, imagens da ficha e notas de release (usados em Gerenciar lojas publicadas) |
 | `panel/pc.py` | Build Electron para PC (Windows, Linux e macOS): copia o site, gera o app e zipa |
 | `panel/steam.py` | Arquivos `.vdf` do SteamPipe e chamadas ao steamcmd (login e envio); com `fromZips` envia zips de PC já prontos, sem recompilar |
 | `panel/versions.py` | Lê a versão do app de cada origem do projeto |
-| `panel/asc.py` | Cliente da API do App Store Connect |
+| `panel/asc.py` | Cliente da API do App Store Connect; versões, localizações, informações do app e capturas de tela (usados em Gerenciar lojas publicadas) |
 | `panel/github.py` | Contas e repositórios do GitHub |
-| `panel/ai.py` | Provedores de IA e geração do "O que há de novo" |
+| `panel/ai.py` | Provedores de IA, geração do "O que há de novo" e dos textos da ficha das lojas (`generate_listing`) |
 | `panel/store.py` | Configurações e segredos salvos, inclusive as contas principais (`defaults.json`, sem segredos) |
 | `panel/static/` | Interface (`index.html`) e logo |
 | `panel/static/devices.js` | Telas de Dispositivos: iPhone, Android (adb) e PC (status do Windows, serviço Apple, steamcmd, Node, cache do Electron e builds de PC) |
@@ -512,6 +605,10 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/static/database.js` | Projetos: popup **🗄 Banco de dados** (detecção, cadastro, Produção e Desenvolvimento, receitas) |
 | `panel/dbdetect.py` | Detecta bancos no código do projeto (Firebase, Supabase, MongoDB, PostgreSQL, MySQL, SQLite e `.env`) |
 | `panel/dbenv.py` | Aplica a receita do banco no build: comando antes do build, arquivos copiados e variáveis de ambiente |
+| `panel/lojas.py` | Gerenciar lojas publicadas: estado de cada loja (App Store, Google Play e Steam), vínculos com conta e app, versão na loja × mais recente e idiomas do projeto |
+| `panel/lojas_io.py` | Gerenciar lojas publicadas: lê e grava textos e imagens da ficha na App Store e no Google Play |
+| `panel/static/lojas.js` | Popup **🏪 Gerenciar lojas publicadas**: abas, versões, campos e **Atualizar na loja** |
+| `panel/static/lojas2.js` | Popup **✨ Gerar com IA** e seção de imagens da ficha das lojas |
 
 ## Dados e volumes
 
@@ -576,6 +673,14 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | "Conta Steam: Ocupado…" | Há uma tarefa do steamcmd rodando; espere terminar |
 | "Android desconectado no topo" | Pareie ou conecte o celular por Wi-Fi (adb, veja [Rodar no celular Android](#rodar-no-celular-android)) e clique em **Atualizar** |
 | "PC desconectado no topo" | O Docker Desktop precisa estar rodando no Windows. O nome `host.docker.internal` não existe em Linux sem configuração extra |
+| "a conta Apple não tem a chave da API do App Store Connect" | Cadastre a chave no cartão da conta em **Contas** → Apple (veja [Publicar na App Store](#publicar-na-app-store)) |
+| "A versão X já está READY_FOR_SALE" (ou outro estado de publicada ou em revisão) | Os textos de uma versão publicada ou em revisão ficam só para leitura. Gere um build com versão nova em **🔨 Build** e envie em **📤 Enviar para a loja** |
+| "o idioma X ainda não existe nas informações do app" | Adicione o idioma em App Store Connect → Informações do app e atualize de novo |
+| "o idioma X ainda não existe na ficha do Google Play" | Adicione o idioma na ficha da loja no Play Console e atualize de novo |
+| "esse build ainda não está em nenhuma release da faixa X" | As notas de versão não foram gravadas (o aviso aparece no popup). Confira a faixa escolhida e atualize de novo quando o build estiver numa release |
+| "não há mudanças registradas no git" | Escreva um resumo em **Observações para a IA** antes de gerar "O que há de novo" |
+| "A Steam não tem página editável pelo painel" | Edite a página no Steamworks. O painel da Steam só envia builds |
+| Build novo não aparece na loja depois de **Atualizar na loja** | Comportamento esperado: o botão só grava textos e imagens. Para enviar um build, use **📤 Enviar para a loja** |
 
 ## Atualização
 
@@ -593,6 +698,16 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.4.0
+
+- **Gerenciar lojas publicadas:** botão 🏪 no card do projeto abre a ficha do app na App Store, no Google Play e na Steam, com o estado de cada loja e o que falta configurar
+- Textos da ficha por idioma (App Store e Google Play), lidos da loja, com limites de caracteres e gravação só dos campos alterados
+- **✨ Gerar com IA** para a ficha: escolha os campos e os idiomas e revise antes de atualizar
+- Imagens da ficha: enviar e apagar (capturas da App Store por tipo de tela; ícone, gráfico de recursos, capturas e tablets do Google Play)
+- Versão na loja × versão mais recente disponível, com selo de publicada ou de nova versão
+- **⚙ Configurar → 🌐 Idiomas do app** define os idiomas do projeto
+- Steam: aba com a versão enviada e os builds; a página da loja segue no Steamworks
 
 ### 1.3.0
 
@@ -671,6 +786,6 @@ A Action [Guarda das branches](.github/workflows/guarda-branches.yml) confere ca
 
 ---
 
-**xtool Painel 1.3.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.4.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

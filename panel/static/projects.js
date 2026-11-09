@@ -104,6 +104,10 @@ async function projSaveConfig(project){
   const OS=[['win32','pcfWin32'],['linux','pcfLinux'],['darwin','pcfDarwin']];
   const pcPl=OS.filter(([,id])=>chk(id)).map(([p])=>p);
   const pkg=val('pcfPkg'), br=val('pcfBranch');
+  /* idiomas do app: só existe no diálogo quando o servidor manda ov.locales */
+  const hasLoc=!!document.getElementById('pcLocSec');
+  const locOn=[...document.querySelectorAll('input[id^="pcLoc_"]')].filter(e=>e.checked).map(e=>e.id.slice(6));
+  if(hasLoc&&!locOn.length)return toast('Marque ao menos um idioma');
   if(pcOn&&!pcPl.length)return toast('Marque ao menos um sistema operacional do PC');
   if(andOn&&pkg&&!/^[A-Za-z][\w]*(\.[A-Za-z][\w]*)+$/.test(pkg))return toast('Package name inválido (ex: com.empresa.app)');
   if(pcOn&&br.toLowerCase()==='default')return toast('A branch default não pode ser liberada pelo painel');
@@ -114,6 +118,7 @@ async function projSaveConfig(project){
     if(pcOn){
       await pmSaveSettings(project,'pc',{platforms:pcPl,projectType:val('pcfType'),appName:val('pcfAppName'),preBuild:val('pcfPcPre'),webDir:val('pcfWebDir'),electronVersion:val('pcfElectron'),zip:chk('pcfZip')});
       await pmSaveSettings(project,'steam',{branch:br})}
+    if(hasLoc)await pmSaveSettings(project,'locales',{locales:locOn});
     toast('Configuração salva');
     await projConfigure(project);
     loadProjects().catch(()=>{});
@@ -135,6 +140,18 @@ async function projConfigureBody(project){
   const src=(ov.version||{}).source||'auto';
   const vs=((ov.version||{}).sources||[]).find(s=>s.id===src);
   const vlabel=vs?vs.label:(src==='manual'?'Manual':'Automática (próxima depois da última)');
+  /* 🌐 Idiomas do app (meta locales): só aparece quando o servidor manda ov.locales; vazio -> pt-BR marcado */
+  const LOC=ov.locales;
+  const locSel=new Set((LOC&&LOC.selected)||[]);
+  if(LOC&&!locSel.size)locSel.add('pt-BR');
+  const locSec=LOC?`
+  <div class="pm-sec" id="pcLocSec">
+    <h4 style="margin:0 0 8px">🌐 Idiomas do app</h4>
+    <div class="pm-grid">
+      ${(LOC.catalog||[]).map(c=>`<label class="check" style="margin:0"><input type="checkbox" id="pcLoc_${esc(c.code)}" ${locSel.has(c.code)?'checked':''}>${esc(c.label)} <span class="hint">(${esc(c.code)})</span></label>`).join('')}
+    </div>
+    <p class="hint" style="margin:8px 0 0">Usados em Gerenciar lojas publicadas: a IA gera e a loja recebe os textos nesses idiomas. Os idiomas que já existem na loja também aparecem lá.</p>
+  </div>`:'';
   const h=`
   <div class="pm-sec">
     <h4 style="margin:0 0 8px">Plataformas deste projeto</h4>
@@ -171,7 +188,7 @@ async function projConfigureBody(project){
     <div class="pm-row"><span class="hint">App da Steam: <b>${esc(steamTxt)}</b></span><button class="btn sm" id="pcfPickSteam">Vincular / trocar app da Steam</button></div>
     <div class="field"><label>Branch</label><input type="text" id="pcfBranch" value="${esc(sp.branch||'')}" placeholder="vazio = só envia" style="font-family:var(--mono)"></div>
   </div>
-  <div class="pm-sec"><div class="hint">Versão do projeto: <b>${esc(vlabel)}</b></div><button class="btn sm" id="cfgVer" style="margin-top:6px">Configurar versão…</button></div>`;
+  ${locSec}<div class="pm-sec"><div class="hint">Versão do projeto: <b>${esc(vlabel)}</b></div><button class="btn sm" id="cfgVer" style="margin-top:6px">Configurar versão…</button></div>`;
   pmModal('⚙ Configurar '+project,h,[{label:'Fechar',cls:'',onClick:()=>pmClose()},{label:'Salvar',cls:'pri',id:'pcfSaveAll',onClick:()=>projSaveConfig(project)}]);
   /* painéis de cada plataforma aparecem só quando ativada */
   /* painéis e reason seguem o interruptor, sem salvar nada */
