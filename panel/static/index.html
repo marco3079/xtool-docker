@@ -873,7 +873,8 @@ async function loadProjects(){
     const ap=g&&g.autoPull,apT=ap?esc(ap.message||''):'',apB='font-size:11px;padding:1px 8px;margin-left:6px';
     const apPill=!ap||ap.state==='noremote'?'':ap.state==='fetching'?`<span class="pill" style="${apB}" title="${apT}">⬇ baixando atualizações…</span>`:ap.state==='pulled'?`<span class="pill" style="${apB};color:var(--ok)" title="${apT}">⬇ atualizado automaticamente (+${ap.pulled})</span>`:ap.state==='uptodate'?`<span class="pill" style="${apB}" title="${apT}">✔ em dia</span>`:ap.state==='dirty'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ pull automático em espera: há alterações locais</span>`:ap.state==='diverged'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ divergente: faça o pull à mão</span>`:ap.state==='error'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ pull automático falhou</span>`:'';
     const apBar=ap&&ap.state==='fetching'?`<span class="pdl" data-pull="${n}">${pdlInner(ap.progress)}</span>`:'';
-    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.commit?` · <code class="mono" title="${esc(g.commit.subject)} — ${new Date(g.commit.at*1000).toLocaleString()}">${esc(g.commit.hash)}</code> · <span title="commit nº ${g.commit.count} desta branch">#${g.commit.count}</span>`:''}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''}${apPill}${apBar}`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}${typeof androidRow==='function'?androidRow(p,P):''}${typeof steamRow==='function'?steamRow(p,P):''}`;
+    const verBtn=g&&!(ap&&ap.state==='fetching')?`<button class="btn sm" style="font-size:11px;padding:1px 8px;margin-left:6px" title="Verificar atualizações agora" onclick="pullNow(${P})">↻ verificar</button>`:'';
+    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.commit?` · <code class="mono" title="${esc(g.commit.subject)} — ${new Date(g.commit.at*1000).toLocaleString()}">${esc(g.commit.hash)}</code> · <span title="commit nº ${g.commit.count} desta branch">#${g.commit.count}</span>`:''}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''}${apPill}${apBar}${verBtn}`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}${typeof androidRow==='function'?androidRow(p,P):''}${typeof steamRow==='function'?steamRow(p,P):''}`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
     <div class="grow"><div class="name">${n}${pills}${cfgMiss?'<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px;color:var(--warn)"><i></i>⚙ falta configurar</span>':''}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
@@ -915,6 +916,15 @@ async function pullTick(){
     if(ap&&ap.state==='fetching')pdlUpdate(el,ap.progress);else finished=true;
   }
   if(finished){clearInterval(pullPoll);pullPoll=null;loadProjects().catch(()=>{})}
+}
+async function pullNow(project){
+  const done=uiLoading('Verificando…');let r;
+  try{r=await api('/api/projects/pull',{project})}catch(e){done();toast(e.message);return}
+  done();
+  if(r&&r.error)return toast(r.error);
+  if(!r||!r.started)return toast(r?.reason||'Não foi possível verificar agora');
+  toast('Verificando atualizações…');
+  await loadProjects().catch(()=>{});
 }
 function projAutoRefresh(){
   if(!projVisible()||document.querySelector('.pm-back'))return;

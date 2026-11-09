@@ -511,47 +511,98 @@ PULL_STATE = {}  # projeto -> último resultado do pull automático {"state","pu
 PULL_LOCK = threading.Lock()
 
 
+FETCH_MAX_AGE = 1200  # s: um "fetching" mais antigo que isso é tratado como travado
+
+
+def _project_dir(name):
+    """Pasta do projeto dentro de WORK ('' se o nome sai da pasta de trabalho)."""
+    base = os.path.realpath(WORK)
+    d = os.path.realpath(os.path.join(WORK, name)) if name else ""
+    return d if d and d.startswith(base + os.sep) else ""
+
+
+def _pull_prepare(name):
+    """Confere se o pull do projeto pode começar. Se pode, marca o estado 'fetching' (sob o lock).
+    Devolve (motivo ou None, pasta, usuário do GitHub)."""
+    d = _project_dir(name)
+    if not d:
+        return "projeto não encontrado", d, None
+    if not os.path.isdir(os.path.join(d, ".git")):
+        return "o projeto não tem repositório git", d, None
+    user = store.project_meta(name).get("ghUser")
+    if not user:
+        return "o projeto não tem conta do GitHub vinculada", d, None
+    with LOCK:
+        busy = any(j.ended is None and j.cwd and os.path.realpath(j.cwd) == os.path.realpath(d)
+                   for j in JOBS.values())
+    if busy:  # uma tarefa mexe nesta pasta agora
+        return "há uma tarefa rodando neste projeto", d, user
+    with PULL_LOCK:  # um fetch por projeto
+        cur = PULL_STATE.get(name) or {}
+        if cur.get("state") == "fetching" and time.time() - cur.get("at", 0) < FETCH_MAX_AGE:
+            return "já está baixando atualizações", d, user
+        PULL_STATE[name] = {"state": "fetching", "pulled": 0, "progress": None,
+                            "message": "baixando atualizações…", "at": time.time()}
+    return None, d, user
+
+
+def _pull_fetch(name, d, user):
+    """Roda o fetch/fast-forward e grava o resultado final (substitui o 'fetching')."""
+    try:
+        try:
+            tok = github.token(user)
+        except ValueError as e:
+            res = {"state": "error", "pulled": 0, "message": str(e)}
+        else:
+            def on_progress(prog):
+                with PULL_LOCK:
+                    cur = PULL_STATE.get(name)
+                    if cur and cur.get("state") == "fetching":
+                        PULL_STATE[name] = {**cur, "progress": prog}
+            res = github.auto_pull(d, tok, on_progress=on_progress)
+        with PULL_LOCK:  # o resultado final zera o progresso
+            PULL_STATE[name] = {**res, "progress": None, "at": time.time()}
+    except Exception as e:  # noqa
+        with PULL_LOCK:
+            PULL_STATE[name] = {"state": "error", "pulled": 0, "progress": None,
+                                "message": str(e), "at": time.time()}
+
+
+def auto_pull_one(name, force=False):
+    """Pull automático de um projeto (síncrono). 'force' é reservado: hoje não muda as regras."""
+    reason, d, user = _pull_prepare(name)
+    if reason:
+        return {"started": False, "reason": reason}
+    _pull_fetch(name, d, user)
+    return {"started": True, "reason": ""}
+
+
 def auto_pull_all():
     """Atualiza do GitHub, só por fast-forward, os projetos com .git e conta GitHub. Um erro não derruba os outros."""
     if not os.path.isdir(WORK):
         return
     for name in sorted(os.listdir(WORK), key=str.lower):
-        d = os.path.join(WORK, name)
-        if not os.path.isdir(os.path.join(d, ".git")):
-            continue
         try:
-            user = store.project_meta(name).get("ghUser")
-            if not user:
-                continue
-            with LOCK:
-                busy = any(j.ended is None and j.cwd and os.path.realpath(j.cwd) == os.path.realpath(d)
-                           for j in JOBS.values())
-            if busy:  # uma tarefa mexe nesta pasta agora: tenta de novo na próxima volta
-                continue
-            try:
-                tok = github.token(user)
-            except ValueError as e:
-                tok = None
-                res = {"state": "error", "pulled": 0, "message": str(e)}
-            if tok is not None:
-                with PULL_LOCK:  # um fetch por projeto: não começa outro enquanto o anterior roda
-                    cur = PULL_STATE.get(name) or {}
-                    if cur.get("state") == "fetching" and time.time() - cur.get("at", 0) < 1200:
-                        continue
-                    PULL_STATE[name] = {"state": "fetching", "pulled": 0, "progress": None,
-                                        "message": "baixando atualizações…", "at": time.time()}
-
-                def on_progress(prog, name=name):
-                    with PULL_LOCK:
-                        cur = PULL_STATE.get(name)
-                        if cur and cur.get("state") == "fetching":
-                            PULL_STATE[name] = {**cur, "progress": prog}
-                res = github.auto_pull(d, tok, on_progress=on_progress)
-            with PULL_LOCK:  # o resultado final substitui o "fetching" e zera o progresso
-                PULL_STATE[name] = {**res, "progress": None, "at": time.time()}
+            auto_pull_one(name)
         except Exception as e:  # noqa
             with PULL_LOCK:
-                PULL_STATE[name] = {"state": "error", "pulled": 0, "message": str(e), "at": time.time()}
+                PULL_STATE[name] = {"state": "error", "pulled": 0, "progress": None,
+                                    "message": str(e), "at": time.time()}
+
+
+def project_pull(b):
+    """Botão 'verificar agora': dispara o pull do projeto numa thread e responde na hora."""
+    name = str(b.get("project", "") or "")
+    d = _project_dir(name)
+    if not d or not os.path.isdir(d):
+        raise ValueError("projeto não encontrado")
+    if not os.path.isdir(os.path.join(d, ".git")) or not store.project_meta(name).get("ghUser"):
+        raise ValueError("o projeto não tem repositório do GitHub vinculado")
+    reason, d, user = _pull_prepare(name)
+    if reason:
+        return {"started": False, "reason": reason}
+    threading.Thread(target=_pull_fetch, args=(name, d, user), daemon=True).start()
+    return {"started": True, "reason": ""}
 
 
 def _auto_pull_loop():
@@ -1764,6 +1815,7 @@ class H(BaseHTTPRequestHandler):
                                                      store.steam_apps_list())[1],
                 "/api/defaults/set": lambda b: (store.defaults_set(b), topbar())[1],
                 "/api/project/settings": project_settings,
+                "/api/projects/pull": project_pull,
             }
             if u.path in acc_routes:
                 return self._json(acc_routes[u.path](self._body()))
