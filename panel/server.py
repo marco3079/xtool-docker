@@ -23,7 +23,10 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 import ai
 import android
+import builds
 import github
+import pc
+import steam
 import store
 import versions
 from asc import ASC, AscError
@@ -31,7 +34,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -504,6 +507,63 @@ def list_dir(root_key, rel):
     return out
 
 
+PULL_STATE = {}  # projeto -> último resultado do pull automático {"state","pulled","message","at"}
+PULL_LOCK = threading.Lock()
+
+
+def auto_pull_all():
+    """Atualiza do GitHub, só por fast-forward, os projetos com .git e conta GitHub. Um erro não derruba os outros."""
+    if not os.path.isdir(WORK):
+        return
+    for name in sorted(os.listdir(WORK), key=str.lower):
+        d = os.path.join(WORK, name)
+        if not os.path.isdir(os.path.join(d, ".git")):
+            continue
+        try:
+            user = store.project_meta(name).get("ghUser")
+            if not user:
+                continue
+            with LOCK:
+                busy = any(j.ended is None and j.cwd and os.path.realpath(j.cwd) == os.path.realpath(d)
+                           for j in JOBS.values())
+            if busy:  # uma tarefa mexe nesta pasta agora: tenta de novo na próxima volta
+                continue
+            try:
+                tok = github.token(user)
+            except ValueError as e:
+                tok = None
+                res = {"state": "error", "pulled": 0, "message": str(e)}
+            if tok is not None:
+                with PULL_LOCK:  # um fetch por projeto: não começa outro enquanto o anterior roda
+                    cur = PULL_STATE.get(name) or {}
+                    if cur.get("state") == "fetching" and time.time() - cur.get("at", 0) < 1200:
+                        continue
+                    PULL_STATE[name] = {"state": "fetching", "pulled": 0, "progress": None,
+                                        "message": "baixando atualizações…", "at": time.time()}
+
+                def on_progress(prog, name=name):
+                    with PULL_LOCK:
+                        cur = PULL_STATE.get(name)
+                        if cur and cur.get("state") == "fetching":
+                            PULL_STATE[name] = {**cur, "progress": prog}
+                res = github.auto_pull(d, tok, on_progress=on_progress)
+            with PULL_LOCK:  # o resultado final substitui o "fetching" e zera o progresso
+                PULL_STATE[name] = {**res, "progress": None, "at": time.time()}
+        except Exception as e:  # noqa
+            with PULL_LOCK:
+                PULL_STATE[name] = {"state": "error", "pulled": 0, "message": str(e), "at": time.time()}
+
+
+def _auto_pull_loop():
+    time.sleep(20)
+    while True:
+        try:
+            auto_pull_all()
+        except Exception:  # noqa
+            pass
+        time.sleep(120)
+
+
 def projects():
     res = []
     if not os.path.isdir(WORK):
@@ -515,8 +575,19 @@ def projects():
             andr = android.detect(d)
         except Exception:  # noqa
             andr = None
-        if not ios and not andr:
+        try:
+            pcd = pc.detect(d)
+        except Exception:  # noqa
+            pcd = None
+        targets = store.project_meta(name).get("targets")
+        targets = targets if isinstance(targets, dict) else {}
+        if not ios and not andr and not pcd and not any(v is True for v in targets.values()):
             continue
+        detected = [p for p, ok in (("ios", ios), ("android", andr), ("pc", pcd)) if ok]
+        try:
+            eff_platforms = builds.effective_platforms(d, store.project_meta(name))
+        except Exception:  # noqa
+            eff_platforms = detected
         arts = []
         xd = os.path.join(d, "xtool")
         if os.path.isdir(xd):
@@ -528,6 +599,11 @@ def projects():
             for a in os.listdir(ad):
                 if a.endswith((".apk", ".aab")):
                     arts.append(f"{name}/xtool/android/{a}")
+        pd = os.path.join(xd, "pc")
+        if os.path.isdir(pd):
+            for a in os.listdir(pd):
+                if a.endswith(".zip"):
+                    arts.append(f"{name}/xtool/pc/{a}")
         yml = {}
         try:
             for line in open(os.path.join(d, "xtool.yml")):
@@ -540,7 +616,18 @@ def projects():
             gs = github.git_status(d)
         except Exception:  # noqa
             gs = None
+        if gs is not None:
+            gs = {**gs, "autoPull": PULL_STATE.get(name)}
+        try:
+            conf = builds.configured_flags(d, store.project_meta(name))
+        except Exception:  # noqa
+            conf = {"ios": False, "android": False, "pc": False}
+        try:
+            rel_count = builds.release_count(name, d)
+        except Exception:  # noqa
+            rel_count = 0
         res.append({
+            "configured": conf, "releaseCount": rel_count,
             "name": name,
             "hasToml": bool(yml),
             "bundleId": yml.get("bundleID", ""),
@@ -548,8 +635,9 @@ def projects():
             "mtime": os.stat(d).st_mtime,
             "meta": store.project_meta(name),
             "git": gs,
-            "platforms": [p for p, ok in (("ios", ios), ("android", andr)) if ok],
+            "platforms": eff_platforms, "detected": detected,
             "android": andr,
+            "pc": pcd,
         })
     return res
 
@@ -919,6 +1007,286 @@ def android_info(project, with_play=True):
             "versionSource": store.project_meta(project).get("versionSource") or "auto"}
 
 
+def pc_info(project):
+    d = safe_path("work", project)
+    meta = store.project_meta(project)
+    since = ((meta.get("steam", {}).get("lastRelease")) or {}).get("commit")
+    try:
+        changes = github.changes_since(d, since)
+    except Exception:  # noqa
+        changes = ""
+    return {"project": project, "detect": pc.detect(d), "meta": meta.get("pc", {}),
+            "steam": meta.get("steam", {}), "steamAccounts": store.steam_accounts(),
+            "steamApps": store.steam_apps_list(), "steamcmd": bool(shutil.which("steamcmd")),
+            "changes": changes, "versionSources": versions.sources(d),
+            "versionSource": meta.get("versionSource") or "auto",
+            "types": [{"id": t, "label": pc.TYPE_LABELS[t]} for t in pc.PROJECT_TYPES]}
+
+
+def pc_profile(project, ptype):
+    """Passos de build do tipo de código escolhido (ou detectado, com "auto")."""
+    d = safe_path("work", project)
+    info = pc.detect(d)
+    if info is None:
+        raise ValueError("o projeto não tem package.json")
+    ptype = ptype or "auto"
+    if ptype != "auto" and ptype not in pc.PROJECT_TYPES:
+        raise ValueError(f"tipo de projeto desconhecido: {ptype}")
+    return pc.profile(d, info, ptype)
+
+
+def _last_commit(meta):
+    """Commit do lançamento mais recente entre iOS, Android e PC (None se nenhum)."""
+    cands = []
+    for rel in (meta.get("lastRelease") or {}, (meta.get("android") or {}).get("lastRelease") or {},
+                (meta.get("steam") or {}).get("lastRelease") or {}):
+        if rel.get("commit"):
+            cands.append(rel)
+    if not cands:
+        return None
+    return max(cands, key=lambda r: r.get("at") or 0)["commit"]
+
+
+def project_overview(project):
+    """Tudo que a tela de configuração/build de um projeto precisa, numa chamada só."""
+    d = safe_path("work", project)
+    meta = store.project_meta(project)
+    plats = builds.detect_platforms(d, meta, project)
+    st = accounts_state()
+    and_meta = meta.get("android") or {}
+    pc_meta = meta.get("pc") or {}
+    steam_meta = meta.get("steam") or {}
+    ios_p = plats.get("ios") or {}
+    and_p = plats.get("android") or {}
+    try:
+        changes = github.changes_since(d, _last_commit(meta))
+    except Exception:  # noqa
+        changes = ""
+    return {
+        "project": project, "platforms": plats, "builds": builds.list_builds(project, d),
+        "version": {
+            "source": meta.get("versionSource") or "auto", "sources": versions.sources(d),
+            "last": {
+                "ios": (meta.get("lastRelease") or {}).get("version")
+                       or (meta.get("lastUpload") or {}).get("version") or "",
+                "android": and_meta.get("lastVersionName") or "",
+                "pc": pc_meta.get("lastVersionName") or "",
+            },
+        },
+        "settings": {
+            "targets": meta.get("targets", {}),
+            "ios": {"accountId": meta.get("accountId") or st.get("active") or "",
+                    "bundleId": meta.get("bundleId") or ios_p.get("bundleId") or "",
+                    "submit": bool(meta.get("iosSubmit"))},
+            "android": {"playAccountId": and_meta.get("playAccountId") or "",
+                        "track": and_meta.get("track") or "internal",
+                        "status": and_meta.get("status") or "completed",
+                        "packageName": and_meta.get("packageName") or and_p.get("packageName") or "",
+                        "preBuild": and_meta.get("preBuild") or ""},
+            "pc": {"steamAccountId": steam_meta.get("accountId") or "",
+                   "steamAppId": steam_meta.get("appId") or "",
+                   "branch": steam_meta.get("branch") or "",
+                   "preBuild": pc_meta.get("preBuild") or "",
+                   "webDir": pc_meta.get("webDir") or "",
+                   "electronVersion": pc_meta.get("electronVersion") or "",
+                   "projectType": pc_meta.get("projectType") or "",
+                   "appName": pc_meta.get("appName") or "",
+                   "platforms": pc_meta.get("platforms") or ["win32"],
+                   "zip": bool(pc_meta.get("zip", True))},
+        },
+        "accounts": {
+            "apple": [{"id": a["id"], "label": a.get("label", ""), "appleId": a.get("appleId", ""),
+                       "hasApi": store.asc_key_public(a["id"])["configured"]} for a in st["accounts"]],
+            "play": [{"id": a.get("id"), "label": a.get("label", "")} for a in store.play_accounts()],
+            "steam": [{"id": a.get("id"), "label": a.get("label", ""), "username": a.get("username", "")}
+                      for a in store.steam_accounts()],
+        },
+        "steamApps": store.steam_apps_list(),
+        "changes": changes,
+    }
+
+
+def project_settings(b):
+    """Grava uma configuração de plataforma. Sempre mescla: sub-chaves nunca são sobrescritas."""
+    project = str(b.get("project", "") or "")
+    plat = b.get("platform")
+    patch = b.get("patch")
+    if not project or not isinstance(patch, dict):
+        raise ValueError("configuração inválida")
+    if not os.path.isdir(safe_path("work", project)):
+        raise ValueError("projeto não encontrado")
+    if plat == "ios":
+        if set(patch) - {"accountId", "bundleId", "iosSubmit"}:
+            raise ValueError("configuração inválida")
+        store.project_meta_update(project, dict(patch))
+    elif plat == "version":
+        if set(patch) != {"versionSource"}:
+            raise ValueError("configuração inválida")
+        store.project_meta_update(project, {"versionSource": patch["versionSource"]})
+    elif plat == "targets":
+        if not set(patch) <= {"ios", "android", "pc"} or not all(isinstance(v, bool) for v in patch.values()):
+            raise ValueError("configuração inválida")
+        cur = dict(store.project_meta(project).get("targets") or {})
+        cur.update(patch)
+        store.project_meta_update(project, {"targets": cur})
+    elif plat in ("android", "pc", "steam"):
+        cur = dict(store.project_meta(project).get(plat) or {})
+        cur.update(patch)
+        store.project_meta_update(project, {plat: cur})
+    else:
+        raise ValueError("configuração inválida")
+    return {"ok": True}
+
+
+def steam_status():
+    p = shutil.which("steamcmd")
+    return {"steamcmd": bool(p), "path": p or ""}
+
+
+STEAM_CHECK = {}  # id da conta -> último resultado de steam_check (só em memória)
+STEAM_LOCK = threading.Lock()  # um login de checagem do steamcmd por vez
+
+
+def _steam_parse(out):
+    """Lê a saída de `steamcmd +login <conta> +quit` -> (state, message, steamId). Função pura."""
+    txt = ANSI.sub("", out or "")
+    m = re.search(r"Logging in user '[^']*' \[(U:\d+:\d+)\] to Steam Public\.*\s*OK", txt)
+    if m and "FAILED" not in txt:
+        return "ok", f"Conectada ({m.group(1)})", m.group(1)
+    if "rate limit" in txt.lower():
+        return "error", "A Steam limitou as tentativas: aguarde alguns minutos", ""
+    if any(k in txt for k in ("FAILED", "Login Failure", "No cached credentials",
+                              "Cached credentials not found", "Invalid Password", "Two-factor")):
+        return "nologin", "Sem login salvo: clique em Login", ""
+    lines = [x.strip() for x in txt.splitlines() if x.strip()]
+    return "error", lines[-1] if lines else "resposta inesperada do steamcmd", ""
+
+
+def steam_busy():
+    """Há alguma tarefa do steamcmd (login, release da Steam) rodando agora?"""
+    with LOCK:
+        return any(j.ended is None and any(("steamcmd" in x or "steam.py" in x) for x in j.argv)
+                   for j in JOBS.values())
+
+
+def steam_check(acc_id, force=False):
+    acc = store.steam_account(acc_id)  # conta inexistente: ValueError sobe
+    hit = STEAM_CHECK.get(acc_id)
+    if not force and hit and time.time() - hit["checked"] < 30 and hit["state"] in ("ok", "nologin"):
+        return hit
+
+    def res(state, message, steam_id=""):
+        return {"id": acc_id, "state": state, "connected": state == "ok", "message": message,
+                "steamId": steam_id, "checked": time.time()}
+
+    if steam_busy():
+        return res("busy", "Ocupado: há uma tarefa do steamcmd em andamento")  # não vai para o cache
+    with STEAM_LOCK:
+        try:
+            r = subprocess.run(["steamcmd", "+@ShutdownOnFailedCommand", "1", "+@NoPromptForPassword", "1",
+                                "+login", acc["username"], "+quit"],
+                               capture_output=True, text=True, timeout=90, errors="replace")
+            out = res(*_steam_parse((r.stdout or "") + (r.stderr or "")))
+        except subprocess.TimeoutExpired:
+            out = res("error", "O steamcmd demorou demais (90 s)")
+        except FileNotFoundError:
+            out = res("error", "steamcmd não instalado")
+        except Exception as e:  # noqa
+            out = res("error", str(e))
+    STEAM_CHECK[acc_id] = out
+    return out
+
+
+def _steam_flags(accs):
+    """id da conta -> True (conectada), False (sem login), None (desconhecido), só pelo cache."""
+    now = time.time()
+    flags = {}
+    for a in accs:
+        hit = STEAM_CHECK.get(a.get("id"))
+        st = hit["state"] if hit and now - hit["checked"] < 600 else None
+        flags[a.get("id")] = True if st == "ok" else False if st == "nologin" else None
+    return flags
+
+
+def topbar():
+    """Barra do topo: contas principais (Steam e Google Play), Android e PC conectados."""
+    def safe(fn, default):
+        try:
+            return fn()
+        except Exception:  # noqa
+            return default
+
+    def resolve(saved, accs):
+        ids = [a.get("id") for a in accs]
+        if saved in ids:
+            return saved
+        return ids[0] if ids else ""
+
+    steam_accs = safe(store.steam_accounts, [])
+    play_accs = safe(store.play_accounts, [])
+    d = safe(store.defaults_get, {})
+    try:
+        import socket
+        socket.gethostbyname("host.docker.internal")
+        pc_connected = True
+    except OSError:
+        pc_connected = False
+    return {
+        "defaults": {
+            "steamAccountId": resolve(d.get("steamAccountId", ""), steam_accs),
+            "playAccountId": resolve(d.get("playAccountId", ""), play_accs),
+        },
+        "steamAccounts": steam_accs,
+        "steamStatus": safe(lambda: _steam_flags(steam_accs), {}),
+        "playAccounts": play_accs,
+        "android": safe(adb_devices, []),
+        "pc": {"connected": bool(pc_connected), "host": "host.docker.internal",
+               "appleService": bool(ONLINE["service"])},
+    }
+
+
+def pc_status():
+    """Estado do PC (host Windows) e das ferramentas de build; nunca levanta exceção."""
+    import socket
+
+    def electron_bytes():
+        total = 0
+        try:
+            for root, _, files in os.walk(os.path.expanduser("~/.cache/electron")):
+                for f in files:
+                    try:
+                        total += os.path.getsize(os.path.join(root, f))
+                    except OSError:
+                        pass
+        except Exception:  # noqa
+            return 0
+        return total
+
+    try:
+        host_ip = socket.gethostbyname("host.docker.internal")
+        connected = True
+    except Exception:  # noqa
+        host_ip, connected = "", False
+    try:
+        node = quick(["node", "--version"], timeout=5).strip()
+        if node.startswith("erro"):  # quick() devolve "erro: ..." em vez de levantar exceção
+            node = ""
+    except Exception:  # noqa
+        node = ""
+    try:
+        steamcmd_path = shutil.which("steamcmd") or ""
+    except Exception:  # noqa
+        steamcmd_path = ""
+    return {
+        "connected": bool(connected), "host": "host.docker.internal", "hostIp": host_ip,
+        "appleService": bool(ONLINE["service"]),
+        "usbmuxdVia": os.environ.get("USBMUXD_SOCKET_ADDRESS") or "/var/run/usbmuxd",
+        "steamcmd": bool(steamcmd_path), "steamcmdPath": steamcmd_path,
+        "node": node, "npx": bool(shutil.which("npx")),
+        "electronCacheBytes": electron_bytes(),
+    }
+
+
 def adb_devices():
     if not shutil.which("adb"):
         return []
@@ -952,6 +1320,76 @@ def android_key_import(b):
                               b.get("keyPassword", ""), ext=b.get("ext", "p12"))
 
 
+NEW_SCRIPT = r'''set -e
+cd /work
+if [ -e "$NAME" ]; then printf '\033[1;31m✖ já existe uma pasta %s\033[0m\n' "$NAME"; exit 1; fi
+if gh repo view "$REPO" >/dev/null 2>&1; then printf '\033[1;31m✖ o repositório %s já existe no GitHub\033[0m\n' "$REPO"; exit 1; fi
+printf '\033[1;36m▶ Criando o projeto %s\033[0m\n' "$NAME"
+xtool new "$NAME" $SKIP
+cd "/work/$NAME"
+git config --global --add safe.directory "$PWD" >/dev/null 2>&1 || true
+[ -f .gitignore ] || printf '.build/\nxtool/\n.swiftpm/\n' > .gitignore
+[ -d .git ] || git init -q
+git config user.name "$GN"; git config user.email "$GE"
+git add -A; git diff --cached --quiet || git commit -qm "Primeiro commit"
+git branch -M main
+printf '\033[1;36m▶ Criando o repositório %s\033[0m\n' "$REPO"
+gh repo create "$REPO" $PRIVATE --source . --remote origin --push
+python3 -c "import os,sys; sys.path.insert(0,'/opt/panel'); import store; store.project_meta_update(os.environ['NAME'], {'repo': os.environ['REPO'], 'ghUser': os.environ['GHUSER']})"
+printf '\033[1;32m✔ projeto criado e vinculado a https://github.com/%s\033[0m\n' "$REPO"'''
+
+
+def new_project_env(a):
+    """Valida o novo projeto (antes de executar nada) e devolve o ambiente do NEW_SCRIPT."""
+    name = str(a.get("name", "") or "").strip()
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name):
+        raise ValueError("nome inválido: comece com letra e use só letras, números, _ ou -")
+    if os.path.exists(os.path.join(WORK, name)):
+        raise ValueError("já existe um projeto com esse nome")
+    user = str(a.get("ghUser", "") or "").strip()
+    if not user:
+        raise ValueError("todo projeto novo precisa de um repositório do GitHub: escolha uma conta cadastrada")
+    if user not in {x.get("user") for x in github.accounts()}:
+        raise ValueError("essa conta do GitHub não está cadastrada")
+    repo_name = str(a.get("repoName") or name).strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,100}", repo_name):
+        raise ValueError("nome do repositório inválido")
+    gn, ge = github.identity(user)
+    return {"GH_TOKEN": github.token(user), "GN": gn, "GE": ge, "REPO": f"{user}/{repo_name}",
+            "PRIVATE": "--private" if a.get("private", True) else "--public", "NAME": name,
+            "SKIP": "--skip-setup" if a.get("skipSetup", True) else "", "GHUSER": user}
+
+
+MULTI_OK = ("dev.build", "dev.run", "release", "android.release", "pc.build", "steam.release")
+
+
+def multi_script(a):
+    """Script bash que roda, em sequência, até 8 ações da whitelist MULTI_OK; para na primeira que falhar."""
+    steps = a.get("steps")
+    if not isinstance(steps, list) or not steps:
+        raise ValueError("nenhuma etapa")
+    if len(steps) > 8:
+        raise ValueError("no máximo 8 etapas")
+    project = str(a.get("project", ""))
+    n = len(steps)
+    lines = ["set -u"]
+    for i, st in enumerate(steps, 1):
+        if not isinstance(st, dict):
+            raise ValueError("etapa inválida")
+        act = st.get("action", "")
+        if act not in MULTI_OK:
+            raise ValueError(f"ação não permitida em sequência: {act}")
+        argv, env = build_cmd(act, {**(st.get("args") or {}), "project": project})
+        title = re.sub(r"['\"`$\\\n\r]", "", str(st.get("title") or act)).strip() or act
+        t = shlex.quote(title)
+        pre = (["env"] + [f"{k}={v}" for k, v in env.items()]) if env else []
+        cmd = shlex.join(pre + argv)
+        lines.append("printf '\\n\\033[1;36m━━ %s/%s %s ━━\\033[0m\\n' " + f"{i} {n} {t}")
+        lines.append(f"{cmd} || {{ printf '\\033[1;31m✖ etapa falhou: %s\\033[0m\\n' {t}; exit 1; }}")
+    lines.append("printf '\\033[1;32m✔ Todas as etapas terminaram\\033[0m\\n'")
+    return "\n".join(lines)
+
+
 # Commands the page may ask for. Each maps a name to a function returning argv.
 def build_cmd(action, a):
     q = lambda k, d="": str(a.get(k, d)).strip()  # noqa
@@ -973,7 +1411,7 @@ def build_cmd(action, a):
         "sdk.remove": lambda: ["xtool", "sdk", "remove"],
         "sdk.status": lambda: ["xtool", "sdk", "status"],
         "sdk.build": lambda: ["xtool", "sdk", "build", q("path"), q("out", "/work/sdk-out")],
-        "new": lambda: ["xtool", "new", q("name")] + (["--skip-setup"] if a.get("skipSetup", True) else []),
+        "new": lambda: ["bash", "-c", NEW_SCRIPT],
         "dev.build": lambda: ["xtool", "dev", "build", "-c", q("config", "debug")]
                              + (["--sign"] if a.get("sign") else []) + (["--ipa"] if a.get("ipa") else []),
         "dev.run": lambda: ["xtool", "dev", "run", "-c", q("config", "debug")] + dev_sel,
@@ -1003,6 +1441,9 @@ def build_cmd(action, a):
                              'git push -u origin HEAD; git log --oneline -3'],
         "release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "release.py"), write_args(a)],
         "android.release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "android.py"), write_args(a)],
+        "pc.build": lambda: ["python3", "-u", os.path.join(PANEL_PY, "pc.py"), write_args(a)],
+        "steam.release": lambda: ["python3", "-u", os.path.join(PANEL_PY, "steam.py"), write_args(a)],
+        "steam.login": lambda: ["steamcmd", "+login", q("username"), "+quit"],
         "adb.pair": lambda: ["adb", "pair", q("addr"), q("code")],
         "adb.connect": lambda: ["adb", "connect", q("addr")],
         "adb.disconnect": lambda: ["adb", "disconnect"],
@@ -1011,6 +1452,8 @@ def build_cmd(action, a):
         "adb.launch": lambda: ["adb"] + s + ["shell", "monkey", "-p", q("package"),
                                              "-c", "android.intent.category.LAUNCHER", "1"],
         "xtool.update": lambda: ["bash", "-c", XTOOL_UPDATE],
+        "init.android": lambda: ["bash", "-lc", builds.init_script(safe_path("work", q("project")))],
+        "multi": lambda: ["bash", "-lc", multi_script(a)],
     }
     if action not in cmds:
         raise ValueError(f"ação desconhecida: {action}")
@@ -1018,6 +1461,8 @@ def build_cmd(action, a):
     if any(x == "" for x in argv):
         raise ValueError("preencha os campos obrigatórios")
     env = {}
+    if action == "new":
+        env.update(new_project_env(a))
     if action == "gh.login":
         env["BROWSER"] = "echo"
     if action == "xtool.update":
@@ -1136,6 +1581,8 @@ class H(BaseHTTPRequestHandler):
                      "svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, "application/octet-stream")
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(os.path.getsize(path)))
+        if not download and (ctype.startswith("text/") or ctype == "image/svg+xml"):
+            self.send_header("Cache-Control", "no-cache")
         if download:
             self.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(path)}"')
         self.end_headers()
@@ -1223,6 +1670,27 @@ class H(BaseHTTPRequestHandler):
                 return self._file(k["file"], download=True)
             if u.path == "/api/adb/devices":
                 return self._json(adb_devices())
+            if u.path == "/api/steam/accounts":
+                return self._json(store.steam_accounts())
+            if u.path == "/api/steam/apps":
+                return self._json(store.steam_apps_list())
+            if u.path == "/api/steam/status":
+                return self._json(steam_status())
+            if u.path == "/api/pc/info":
+                return self._json(pc_info(qs.get("project", "")))
+            if u.path == "/api/topbar":
+                return self._json(topbar())
+            if u.path == "/api/pc/status":
+                return self._json(pc_status())
+            if u.path == "/api/steam/check":
+                return self._json(steam_check(qs.get("id", ""), qs.get("force") == "1"))
+            if u.path == "/api/pc/profile":
+                return self._json(pc_profile(qs.get("project", ""), qs.get("type", "")))
+            if u.path == "/api/project/overview":
+                return self._json(project_overview(qs.get("project", "")))
+            if u.path == "/api/pull/state":  # leve: só lê o dicionário, não roda git
+                with PULL_LOCK:
+                    return self._json({k: dict(v) for k, v in PULL_STATE.items()})
             return self._json({"error": "rota não existe"}, 404)
         except Exception as e:  # noqa
             return self._json({"error": str(e)}, 400)
@@ -1280,6 +1748,22 @@ class H(BaseHTTPRequestHandler):
                 "/api/android/key/generate": lambda b: android.keygen(b["package"], b.get("cn", ""), b.get("org", "")),
                 "/api/android/key/import": android_key_import,
                 "/api/android/key/remove": lambda b: (store.android_key_remove(b["package"]), {"ok": True})[1],
+                "/api/steam/accounts/add": lambda b: (store.steam_account_add(str(b.get("label", "")).strip(),
+                                                                              str(b.get("username", "")).strip()),
+                                                      store.steam_accounts())[1],
+                "/api/steam/accounts/rename": lambda b: (store.steam_account_rename(b["id"],
+                                                                                    str(b.get("label", "")).strip()),
+                                                         store.steam_accounts())[1],
+                "/api/steam/accounts/remove": lambda b: (STEAM_CHECK.pop(b.get("id"), None),
+                                                         store.steam_account_remove(b["id"]), store.steam_accounts())[2],
+                "/api/steam/apps/set": lambda b: (store.steam_app_set(b["accountId"], b["appId"], str(b.get("name", "")),
+                                                                      b.get("depots") or {},
+                                                                      str(b.get("branch", ""))),
+                                                  store.steam_apps_list())[1],
+                "/api/steam/apps/forget": lambda b: (store.steam_apps_forget(b["accountId"], b["appId"]),
+                                                     store.steam_apps_list())[1],
+                "/api/defaults/set": lambda b: (store.defaults_set(b), topbar())[1],
+                "/api/project/settings": project_settings,
             }
             if u.path in acc_routes:
                 return self._json(acc_routes[u.path](self._body()))
@@ -1317,5 +1801,6 @@ if __name__ == "__main__":
     xtool_activate_saved()
     accounts_state()  # adopt an existing login on first run
     threading.Thread(target=_watch_devices, daemon=True).start()
+    threading.Thread(target=_auto_pull_loop, daemon=True).start()
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()

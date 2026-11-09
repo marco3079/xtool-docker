@@ -44,6 +44,10 @@
 .segtabs button{border:0;background:none;color:var(--muted);padding:7px 16px;border-radius:9px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px}
 .segtabs button:hover{color:var(--text)}
 .segtabs button.on{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.25),inset 0 0 0 1px var(--line)}
+.bi{width:1.15em;height:1.15em;vertical-align:-.2em;flex:none}
+.bi.fill{fill:currentColor}
+.bi.android{color:#3DDC84}
+.bi.googleplay{color:#34a853}
 .themebtn{width:34px;justify-content:center;padding:6px 0}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -65,7 +69,7 @@ aside{background:var(--panel);border-right:1px solid var(--line);display:flex;fl
 .nav .badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:99px;font-size:11px;padding:0 7px}
 .navsep{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);padding:14px 12px 4px}
 main{display:flex;flex-direction:column;min-width:0;min-height:0}
-header{display:flex;align-items:center;gap:12px;padding:18px 28px;border-bottom:1px solid var(--line)}
+header{display:flex;align-items:center;gap:12px;padding:18px 28px;border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:8px}
 header h1{font-size:20px;margin:0}
 header p{margin:0;color:var(--muted)}
 header .sp{flex:1}
@@ -82,6 +86,17 @@ header .sp{flex:1}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line)}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .pill.ok i{background:var(--ok)}.pill.bad i{background:var(--bad)}.pill.warn i{background:var(--warn)}
+.uiload{position:fixed;inset:0;z-index:3000;background:rgba(3,5,10,.55);display:flex;align-items:center;justify-content:center}
+.uiload[hidden]{display:none}
+.uiload-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;display:flex;align-items:center;gap:14px;color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.uiload-spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:uiloadspin .8s linear infinite}
+@keyframes uiloadspin{to{transform:rotate(360deg)}}
+.pdl{display:inline-flex;align-items:center;gap:8px;margin-left:6px;font-size:11px;color:var(--muted);vertical-align:middle}
+.pdl-bar{position:relative;display:inline-block;width:140px;height:6px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.pdl-bar i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:var(--accent);transition:width .4s linear}
+.pdl-bar.ind i{width:35%;animation:pdlind 1.2s ease-in-out infinite}
+@keyframes pdlind{0%{left:-35%}100%{left:100%}}
+.pdl-txt{white-space:nowrap}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--hover)}
 .btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff}
@@ -124,8 +139,9 @@ h2:first-child{margin-top:0}
 .toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line);padding:12px 16px;border-radius:12px;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .menu-btn{display:none}
 .switcher{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 4px 0 10px}
-.switcher select{border:0;background:transparent;padding:8px 6px;max-width:190px;cursor:pointer}
+.switcher select{border:0;background:transparent;padding:8px 6px;max-width:150px;cursor:pointer}
 .switcher select option{background:var(--panel)}
+.topchip{font-size:12px;white-space:nowrap;cursor:pointer}
 .acc{position:relative}
 .acc.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .acc .avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:18px;color:#fff;margin-bottom:12px}
@@ -144,7 +160,7 @@ h2:first-child{margin-top:0}
 .sdot.warn{background:var(--warn)}
 .pill.off i{background:var(--dim)}
 .pill.ok{color:var(--ok);border-color:rgba(46,204,143,.35)}
-@media (max-width:860px){.switcher{display:none}}
+@media (max-width:860px){.switcher,.topchip{display:none}}
 /* app icons + App Store preview */
 .appicon{width:46px;height:46px;border-radius:11px;flex:none;object-fit:cover;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;overflow:hidden}
 .clickable{cursor:pointer;transition:border-color .15s,transform .15s}.clickable:hover{border-color:var(--hover);transform:translateY(-1px)}
@@ -257,12 +273,11 @@ h2:first-child{margin-top:0}
 <body>
 <div class="app">
 <aside id="side">
-  <div class="brand"><img class="logo" src="/static/logo.svg" alt=""><div><b>xtool Painel <span class="vtag">v1.1.0</span></b><small id="ver">painel</small></div></div>
+  <div class="brand"><img class="logo" src="/static/logo.svg" alt=""><div><b>xtool Painel <span class="vtag" id="vtag">v1.2.0</span></b><small id="ver">painel</small></div></div>
   <div class="navsep">Geral</div>
   <button class="nav on" data-s="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg>Painel</button>
   <button class="nav" data-s="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Configuração</button>
-  <button class="nav" data-s="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5.5"/></svg>Contas Apple</button>
-  <button class="nav" data-s="play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>Contas Google Play</button>
+  <button class="nav" data-s="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5.5"/></svg>Contas</button>
   <div class="navsep">Desenvolvimento</div>
   <button class="nav" data-s="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Projetos</button>
   <button class="nav" data-s="apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Apps da conta</button>
@@ -275,7 +290,7 @@ h2:first-child{margin-top:0}
   <button class="nav" data-s="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Arquivos</button>
   <button class="nav" data-s="shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg>Terminal</button>
   <button class="nav" data-s="jobs" style="order:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Tarefas<span class="badge" id="runBadge" hidden>0</span></button>
-  <div class="by">xtool Painel 1.1.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
+  <div class="by" id="byVer">xtool Painel 1.2.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
 </aside>
 
 <main>
@@ -283,8 +298,10 @@ h2:first-child{margin-top:0}
   <button class="btn sm menu-btn" onclick="side.classList.toggle('open')">☰</button>
   <div><h1 id="htitle">Painel</h1><p id="hsub">Visão geral do ambiente xtool</p></div>
   <div class="sp"></div>
-  <div class="switcher" title="Conta Apple em uso"><span>👤</span><select id="accSwitch" onchange="switchAcc(this.value)"></select></div>
-  <div class="switcher" title="Dispositivo padrão"><span>📱</span><select id="devSwitch" onchange="setDefaultDev(this.value)"></select></div>
+  <div class="switcher" title="Conta Apple em uso"><span>🍎</span><select id="accSwitch" onchange="switchAcc(this.value)"></select></div>
+  <div class="switcher" title="Conta Steam em uso"><span>🎮</span><select id="steamSwitch" onchange="topSet('steamAccountId',this.value)"></select></div>
+  <div class="switcher" title="Conta Google Play em uso"><span style="color:#34a853">▶</span><select id="playSwitch" onchange="topSet('playAccountId',this.value)"></select></div>
+  <span class="pill topchip off" id="iphoneChip" onclick="go('devices')"><i></i>iPhone</span><span class="pill topchip off" id="adbChip" onclick="go('androiddev')"><i></i>Android</span><span class="pill topchip off" id="pcChip" onclick="go('pcdev')"><i></i>PC</span>
   <button class="btn sm themebtn" id="themeBtn" onclick="toggleTheme()" title="Alternar tema claro/escuro"></button>
   <button class="btn sm" onclick="refreshAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>Atualizar</button>
 </header>
@@ -297,9 +314,10 @@ h2:first-child{margin-top:0}
   <h2>Ações rápidas</h2>
   <div class="grid">
     <div class="card"><div class="ico" style="color:var(--accent)">⚡</div><h3>Configuração inicial</h3><p>Login na Apple + instalação do SDK do iOS a partir do Xcode.xip.</p><button class="btn pri" onclick="run('setup',{},'Configuração inicial')">Rodar xtool setup</button></div>
-    <div class="card"><div class="ico" style="color:var(--ok)">＋</div><h3>Novo app</h3><p>Cria um projeto SwiftPM pronto para iOS.</p><button class="btn" onclick="go('projects')">Criar projeto</button></div>
+    <div class="card"><div class="ico" style="color:var(--ok)">＋</div><h3>Novo app</h3><p>Cria um projeto SwiftPM pronto para iOS, já com repositório no GitHub.</p><button class="btn" onclick="go('projects')">Criar projeto</button></div>
     <div class="card"><div class="ico" style="color:var(--warn)">📱</div><h3>Dispositivos</h3><p>Lista iPhones/iPads conectados por USB ou rede.</p><button class="btn" onclick="go('devices');run('devices',{conn:'all'},'Listar dispositivos')">Procurar</button></div>
     <div class="card"><div class="ico" style="color:var(--accent2)">⬆</div><h3>Instalar .ipa</h3><p>Envie um .ipa e instale direto no aparelho.</p><button class="btn" onclick="go('devices')">Abrir</button></div>
+    <div class="card"><div class="ico" style="color:var(--ok)">🤖</div><h3>Instalar .apk</h3><p>Envie um .apk e instale direto no celular Android.</p><button class="btn" onclick="adOpenInstall()">Abrir</button></div>
   </div>
 </section>
 
@@ -308,7 +326,7 @@ h2:first-child{margin-top:0}
   <h2>Tudo de uma vez</h2>
   <div class="card" style="max-width:680px"><h3>xtool setup</h3><p>Faz o login (se precisar) e instala o SDK. As perguntas aparecem no console abaixo — clique nele e digite as respostas.</p><button class="btn pri" onclick="run('setup',{},'xtool setup')">Iniciar setup</button></div>
 
-  <p class="hint">As contas Apple ficam em <a href="#" onclick="go('accounts');return false">Contas Apple</a>.</p>
+  <p class="hint">As contas Apple ficam em <a href="#" onclick="go('accounts');return false">Contas → Apple</a>.</p>
 
   <h2>SDK do iOS (Darwin)</h2>
   <div class="grid">
@@ -327,6 +345,7 @@ h2:first-child{margin-top:0}
 
 <!-- ACCOUNTS -->
 <section class="section" id="s-accounts">
+  <div class="segtabs"><button data-t="accounts" onclick="go('accounts')">🍎 Apple</button><button data-t="play" onclick="go('play')"><span style="color:#34a853">▶</span> Google Play</button><button data-t="steam" onclick="go('steam')">🎮 Steam</button></div>
   <p class="hint" style="margin-top:0">Cada conta guarda o próprio login. A conta em uso (destacada) é a que o xtool usa para assinar e instalar apps. O SDK do iOS é o mesmo para todas.</p>
   <div class="grid" id="accGrid"></div>
   <h2>Adicionar conta</h2>
@@ -341,7 +360,7 @@ h2:first-child{margin-top:0}
 
 <!-- APPS OF THE ACCOUNT -->
 <section class="section" id="s-apps">
-  <div class="segtabs"><button data-t="apps" onclick="go('apps')">🍎 Apple</button><button data-t="playapps" onclick="go('playapps')"><span style="color:#34a853">▶</span> Google Play</button></div>
+  <div class="segtabs"><button data-t="apps" onclick="go('apps')">🍎 Apple</button><button data-t="playapps" onclick="go('playapps')"><span style="color:#34a853">▶</span> Google Play</button><button data-t="steamapps" onclick="go('steamapps')">🎮 Steam</button></div>
   <div class="row" style="margin-bottom:14px">
     <select id="appsAcc" style="max-width:320px" onchange="loadApps()"></select>
     <button class="btn pri" onclick="loadApps()">Buscar apps</button>
@@ -358,7 +377,7 @@ h2:first-child{margin-top:0}
 
 <!-- PUBLISH -->
 <section class="section" id="s-publish">
-  <div class="segtabs"><button data-t="publish" onclick="go('publish')">🍎 App Store (iOS)</button><button data-t="android" onclick="go('android')"><span style="color:#34a853">▶</span> Google Play (Android)</button></div>
+  <div class="segtabs"><button data-t="publish" onclick="go('publish')">🍎 App Store (iOS)</button><button data-t="android" onclick="go('android')"><span style="color:#34a853">▶</span> Google Play (Android)</button><button data-t="pc" onclick="go('pc')">🎮 Steam (PC)</button></div>
   <div class="row" style="margin-bottom:14px">
     <select id="pubProject" style="max-width:280px" onchange="loadRelease()"></select>
     <select id="pubAcc" style="max-width:280px" onchange="saveProjMeta(val('pubProject'),{accountId:this.value});loadRelease()"></select>
@@ -392,6 +411,7 @@ h2:first-child{margin-top:0}
 
 <!-- GOOGLE PLAY ACCOUNTS -->
 <section class="section" id="s-play">
+  <div class="segtabs"><button data-t="accounts" onclick="go('accounts')">🍎 Apple</button><button data-t="play" onclick="go('play')"><span style="color:#34a853">▶</span> Google Play</button><button data-t="steam" onclick="go('steam')">🎮 Steam</button></div>
   <p class="hint" style="margin-top:0">Cada conta é uma chave JSON de conta de serviço do Google Cloud. Crie em <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank">IAM → Contas de serviço → Chaves → JSON</a>, ative a "Google Play Android Developer API" no projeto e convide o e-mail da conta de serviço em <a href="https://play.google.com/console/users-and-permissions" target="_blank">Play Console → Usuários e permissões</a> com permissão de lançar versões.</p>
   <div class="grid" id="playAccGrid"></div>
   <h2>Adicionar conta</h2>
@@ -405,7 +425,7 @@ h2:first-child{margin-top:0}
 
 <!-- ANDROID -->
 <section class="section" id="s-playapps">
-  <div class="segtabs"><button data-t="apps" onclick="go('apps')">🍎 Apple</button><button data-t="playapps" onclick="go('playapps')"><span style="color:#34a853">▶</span> Google Play</button></div>
+  <div class="segtabs"><button data-t="apps" onclick="go('apps')">🍎 Apple</button><button data-t="playapps" onclick="go('playapps')"><span style="color:#34a853">▶</span> Google Play</button><button data-t="steamapps" onclick="go('steamapps')">🎮 Steam</button></div>
   <div class="row" style="margin-bottom:8px">
     <select id="playAppAcc" style="max-width:320px" onchange="renderPlayAccApps()"></select>
     <input type="text" id="playAppPkg" placeholder="com.exemplo.app" style="max-width:280px;font-family:var(--mono)" onkeydown="if(event.key==='Enter')addPlayApp()">
@@ -419,8 +439,9 @@ h2:first-child{margin-top:0}
   <h2>Apps na conta <span class="hint" id="playAccName" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
   <div class="grid" id="playAccApps"></div>
 </section>
+<section class="section" id="s-steamapps"></section>
 <section class="section" id="s-android">
-  <div class="segtabs"><button data-t="publish" onclick="go('publish')">🍎 App Store (iOS)</button><button data-t="android" onclick="go('android')"><span style="color:#34a853">▶</span> Google Play (Android)</button></div>
+  <div class="segtabs"><button data-t="publish" onclick="go('publish')">🍎 App Store (iOS)</button><button data-t="android" onclick="go('android')"><span style="color:#34a853">▶</span> Google Play (Android)</button><button data-t="pc" onclick="go('pc')">🎮 Steam (PC)</button></div>
   <div class="row" style="margin-bottom:14px">
     <select id="andProject" style="max-width:260px" onchange="loadAndroid()"></select>
     <select id="andAcc" style="max-width:260px" onchange="andAccChanged()"></select>
@@ -466,6 +487,10 @@ h2:first-child{margin-top:0}
   <div id="andTexts" class="grid" style="margin-top:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
 </section>
 
+<!-- PC / STEAM -->
+<section class="section" id="s-pc"></section>
+<section class="section" id="s-steam"></section>
+
 <!-- GITHUB -->
 <section class="section" id="s-github">
   <h2>Contas do GitHub</h2>
@@ -494,10 +519,14 @@ h2:first-child{margin-top:0}
 
 <!-- PROJECTS -->
 <section class="section" id="s-projects">
-  <div class="card" style="margin-bottom:18px"><h3>Novo projeto</h3><p>Cria uma pasta em /work com um app SwiftUI pronto.</p>
-    <div class="row"><input type="text" id="newName" placeholder="MeuApp" style="max-width:280px">
+  <div class="card" style="margin-bottom:18px"><h3>Novo projeto</h3><p>Cria uma pasta em /work com um app SwiftUI pronto. Todo projeto novo nasce com um repositório no GitHub.</p>
+    <div id="newNoGh" class="meta" style="display:none;margin-bottom:10px">Cadastre uma conta do GitHub primeiro. <a href="#" onclick="go('github');return false">Abrir GitHub</a></div>
+    <div class="row"><input type="text" id="newName" placeholder="MeuApp" style="max-width:280px" oninput="if(!newRepoTouched)$('newRepoName').value=this.value">
+      <select id="newGhUser" style="max-width:240px" title="Conta do GitHub"></select>
+      <input type="text" id="newRepoName" placeholder="nome do repositório (igual ao do projeto)" style="max-width:280px" oninput="newRepoTouched=true">
+      <label class="check" style="margin:0"><input type="checkbox" id="newRepoPrivate" checked>Repositório privado</label>
       <label class="check" style="margin:0"><input type="checkbox" id="skipSetup" checked>Pular setup</label>
-      <button class="btn pri" onclick="newProject()">Criar</button></div></div>
+      <button class="btn pri" id="newBtn" onclick="newProject()">Criar</button></div></div>
   <div class="row" style="align-items:flex-end;margin-bottom:10px">
     <div class="field" style="flex:1;min-width:240px;max-width:420px;margin:0"><label>Rodar no iPhone</label><select id="runUdid" class="devSel"></select></div>
     <div class="field" style="flex:1;min-width:240px;max-width:420px;margin:0"><label>Rodar no Android (adb)</label><select id="runAdb"></select></div>
@@ -508,6 +537,7 @@ h2:first-child{margin-top:0}
 
 <!-- DEVICES -->
 <section class="section" id="s-devices">
+  <div class="segtabs"><button data-t="devices" onclick="go('devices')">📱 iPhone (iOS)</button><button data-t="androiddev" onclick="go('androiddev')">🤖 Android</button><button data-t="pcdev" onclick="go('pcdev')">🖥️ PC</button></div>
   <h2>Meus dispositivos</h2>
   <div class="grid" id="devGrid"></div>
 
@@ -547,6 +577,9 @@ h2:first-child{margin-top:0}
       <button class="btn danger" onclick="confirmRun('Desinstalar '+val('unBundle')+'?','uninstall',{...devArgs(),bundle:val('unBundle')},'Desinstalar app')">Desinstalar</button></div>
   </div>
 </section>
+
+<section class="section" id="s-androiddev"></section>
+<section class="section" id="s-pcdev"></section>
 
 <!-- DEVELOPER SERVICES -->
 <section class="section" id="s-ds">
@@ -613,16 +646,125 @@ h2:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id), val=id=>$(id).value.trim(), chk=id=>$(id).checked;
 const consoleEl=$('console'), side=$('side');
-const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas Apple','Cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados'],android:['Publicar','Compilar APK/AAB, assinar e publicar no Google Play'],play:['Contas Google Play','Contas de serviço do Google Play'],playapps:['Apps da conta','Apps de cada conta Google Play e suas faixas']};
+const titles={home:['Painel','Visão geral do ambiente xtool'],setup:['Configuração','Setup e SDK do iOS'],accounts:['Contas','Apple · cadastre e troque entre várias contas'],projects:['Projetos','Crie, compile e rode apps'],devices:['Dispositivos','Cadastre aparelhos e instale, abra ou remova apps'],apps:['Apps da conta','Apps e bundle IDs de cada conta Apple'],publish:['Publicar','Compilar, enviar e publicar na App Store'],github:['GitHub','Contas, repositórios e vínculos com projetos'],ai:['IA','Provedores para escrever as notas de versão'],ds:['Developer Services','Times, certificados, IDs e perfis'],files:['Arquivos','Navegue, envie e baixe arquivos'],shell:['Terminal','Comandos livres no container'],jobs:['Tarefas','Histórico de comandos executados'],android:['Publicar','Compilar APK/AAB, assinar e publicar no Google Play'],play:['Contas','Google Play · contas de serviço do Google Play'],playapps:['Apps da conta','Apps de cada conta Google Play e suas faixas'],pc:['Publicar','Compilar para PC (Electron) e enviar para a Steam'],steam:['Contas','Steam · contas e login do steamcmd'],steamapps:['Apps da conta','Apps de cada conta Steam, depots e branches'],androiddev:['Dispositivos','Celulares Android conectados (adb)'],pcdev:['Dispositivos','Este PC e as ferramentas de build']};
 const fmtB=b=>b>1e9?(b/1e9).toFixed(1)+' GB':b>1e6?(b/1e6).toFixed(1)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':b+' B';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
 async function api(u,body){const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const j=await r.json();if(j.error)throw new Error(j.error);return j}
 
-const NAV_OF={playapps:'apps',android:'publish'};
-function go(s){const parent=NAV_OF[s]||s;if(parent!==s||s in{apps:1,publish:1}){try{localStorage.setItem('xtool-tab-'+parent,s)}catch(e){}}
+/* ---------- popup de carregamento global (contador de referências; aparece após ~120 ms) ---------- */
+let uiLoadN=0,uiLoadTimer=null;
+function uiLoading(message='Carregando…'){
+  let ov=document.getElementById('uiLoadOv');
+  if(!ov){ov=document.createElement('div');ov.id='uiLoadOv';ov.className='uiload';ov.hidden=true;ov.innerHTML='<div class="uiload-box"><div class="uiload-spin"></div><div class="uiload-txt"></div></div>';document.body.appendChild(ov)}
+  ov.querySelector('.uiload-txt').textContent=message;
+  uiLoadN++;
+  if(uiLoadN===1){clearTimeout(uiLoadTimer);uiLoadTimer=setTimeout(()=>{if(uiLoadN>0)ov.hidden=false},120)}
+  let closed=false;
+  return ()=>{if(closed)return;closed=true;uiLoadN=Math.max(0,uiLoadN-1);if(uiLoadN===0){clearTimeout(uiLoadTimer);uiLoadTimer=null;ov.hidden=true}};
+}
+/* ---------- ícones reais das plataformas (substituem os emojis de marca no texto) ---------- */
+const BI={
+  apple:{fill:true,body:'<path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>'},
+  googleplay:{fill:true,body:'<path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/>'},
+  steam:{fill:true,body:'<path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>'},
+  android:{fill:true,body:'<path d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6504.4008-.6021 1.1087-.8106 1.584-.4941z"/>'},
+  pc:{fill:false,body:'<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'}
+};
+function bi(name){
+  const b=BI[name];if(!b)return '';
+  return `<svg class="bi ${name}${b.fill?' fill':''}" viewBox="0 0 24 24" aria-hidden="true"${b.fill?'':' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'}>${b.body}</svg>`;
+}
+const BI_MAP={'🍎':'apple','📱':'apple','🤖':'android','🎮':'steam'};
+const BI_SPLIT=/(🍎|📱|🤖|🎮|🖥️?)/u, BI_TEST=/🍎|📱|🤖|🎮|🖥/u;
+const BI_SKIP='script,style,textarea,input,select,option,#term,.xterm,.uiload,title';
+const BI_OPTS={childList:true,subtree:true,characterData:true};
+function biIcon(name){const s=document.createElement('span');s.className='bii';s.innerHTML=bi(name);return s}
+function biFixText(node){
+  const par=node.parentNode;
+  if(!par||par.nodeType!==1||par.closest(BI_SKIP))return;
+  const raw=node.nodeValue;
+  if(raw.trim()==='▶'){
+    const c=par.style.color;
+    if(c==='#34a853'||c==='rgb(52, 168, 83)')par.replaceChild(biIcon('googleplay'),node);
+    return;
+  }
+  if(!BI_TEST.test(raw))return;
+  const frag=document.createDocumentFragment();
+  for(const p of raw.split(BI_SPLIT)){
+    if(!p)continue;
+    const k=p.startsWith('🖥')?'pc':BI_MAP[p];
+    frag.appendChild(k?biIcon(k):document.createTextNode(p));
+  }
+  par.replaceChild(frag,node);
+}
+function iconify(root){
+  if(!root)return;
+  if(root.nodeType===3){biFixText(root);return}
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),list=[];let n;
+  while((n=w.nextNode()))list.push(n);
+  list.forEach(biFixText);
+}
+const biInTerm=n=>{const el=n.nodeType===1?n:n.parentElement;return !!el&&!!el.closest&&!!el.closest('#term,.xterm')};
+const biPending=new Set();let biRaf=0;
+const biObs=new MutationObserver(recs=>{
+  for(const r of recs){
+    if(biInTerm(r.target))continue;
+    if(r.type==='childList')r.addedNodes.forEach(n=>{if(!biInTerm(n))biPending.add(n)});
+    else biPending.add(r.target);
+  }
+  if(biPending.size&&!biRaf)biRaf=requestAnimationFrame(biFlush);
+});
+function biFlush(){
+  biRaf=0;
+  const nodes=[...biPending];biPending.clear();
+  biObs.disconnect();
+  try{
+    for(const n of nodes){
+      if(!n.isConnected||biInTerm(n))continue;
+      if(n.nodeType===3)biFixText(n);else if(n.nodeType===1)iconify(n);
+    }
+  }finally{biObs.observe(document.body,BI_OPTS)}
+}
+
+/* ---------- barra do topo: contas principais e status (Android / PC) ---------- */
+let topState={defaults:{steamAccountId:'',playAccountId:''},steamAccounts:[],playAccounts:[],android:[],pc:{connected:false},steamStatus:{}};
+let topLoading=null;
+function paintTopbar(){
+  const d=topState.defaults||{};
+  const st=topState.steamAccounts||[], pa=topState.playAccounts||[];
+  const ss=topState.steamStatus||{};
+  const ssPre=id=>ss[id]===true?'🟢 ':ss[id]===false?'⚪ ':'';
+  $('steamSwitch').innerHTML=st.length?st.map(a=>`<option value="${esc(a.id)}" ${a.id===d.steamAccountId?'selected':''}>${ssPre(a.id)}${esc(a.label)}</option>`).join(''):'<option value="">nenhuma conta Steam</option>';
+  const ssNow=ss[d.steamAccountId];
+  $('steamSwitch').parentElement.title='Conta Steam em uso'+(ssNow===true?' · conectada':ssNow===false?' · sem login':'');
+  $('playSwitch').innerHTML=pa.length?pa.map(a=>`<option value="${esc(a.id)}" ${a.id===d.playAccountId?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">nenhuma conta Google Play</option>';
+  const ad=$('adbChip'),on=(topState.android||[]).filter(x=>x.state==='device');
+  if(on.length){
+    ad.className='pill topchip ok';
+    ad.innerHTML='<i></i>Android conectado';
+    ad.title=on.map(x=>x.serial+(x.model?' · '+x.model:'')).join('\n');
+  }else{
+    ad.className='pill topchip off';ad.innerHTML='<i></i>Android desconectado';ad.title='Nenhum celular Android conectado';
+  }
+  const pc=topState.pc||{},pcEl=$('pcChip');
+  const pcTitle='O container alcança o Windows (host.docker.internal)'+(pc.appleService?' · serviço Apple ativo':' · serviço Apple desligado');
+  if(pc.connected){pcEl.className='pill topchip ok';pcEl.innerHTML='<i></i>PC conectado'}
+  else{pcEl.className='pill topchip off';pcEl.innerHTML='<i></i>PC desconectado'}
+  pcEl.title=pc.connected?pcTitle:'Sem conexão com o Windows (host.docker.internal)';
+}
+async function loadTopbar(){
+  if(topLoading)return topLoading;
+  topLoading=(async()=>{try{const r=await api('/api/topbar');topState=r;topState.steamStatus=r.steamStatus||{};paintTopbar()}catch(e){}finally{topLoading=null}})();
+  return topLoading;
+}
+function topSet(key,value){
+  return api('/api/defaults/set',{[key]:value}).then(j=>{topState=j;paintTopbar();return j}).catch(e=>{toast(e.message);paintTopbar()})
+}
+const NAV_OF={play:'accounts',steam:'accounts',playapps:'apps',android:'publish',pc:'publish',steamapps:'apps',androiddev:'devices',pcdev:'devices'};
+function go(s){const parent=NAV_OF[s]||s;if(parent!==s||s in{accounts:1,apps:1,publish:1,devices:1}){try{localStorage.setItem('xtool-tab-'+parent,s)}catch(e){}}
   document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===parent));document.querySelectorAll('.segtabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay,playapps:initPlayApps})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay,playapps:initPlayApps,pc:()=>initPc(),steam:()=>loadSteam(),steamapps:()=>initSteamApps(),androiddev:()=>initAndroidDev(),pcdev:()=>initPcDev()})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{let t=n.dataset.s;try{t=localStorage.getItem('xtool-tab-'+t)||t}catch(e){}go(t)});
 
 /* terminal */
@@ -683,7 +825,7 @@ async function refreshStatus(){
            <div class="row" style="margin-top:4px"><button class="btn sm pri" onclick="confirmRun('Atualizar o xtool para ${esc(s.xtoolLatest)}?','xtool.update',{version:'${esc(s.xtoolLatest)}'},'Atualizar xtool')">⬆ Atualizar</button><a class="btn sm" target="_blank" href="https://github.com/xtool-org/xtool/releases/tag/${esc(s.xtoolLatest)}">Novidades</a></div></div>`
         :c('xtool',xv,['ok',s.xtoolLatest?'atualizado':'instalado'],'🛠'))+
       c('Swift',esc(s.swift.replace(/\(.*\)/,'')),['ok','pronto'],'🐦')+
-      c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'👤')+
+      c('Conta Apple',esc(((accState.accounts.find(a=>a.id===accState.active)||{}).label||'')+' '+(s.auth.match(/Apple ID:\s*(\S+)/)||['','sem login'])[1]),authOk?['ok','logado']:['warn','sem login'],'🍎')+
       c('SDK iOS',esc(s.sdk.split('\n')[0]||'—'),sdkOk?['ok','instalado']:['warn','falta instalar'],'📦')+
       c('Disco livre',fmtB(s.disk.free)+' de '+fmtB(s.disk.total),null,'💾')+
       c('Conexão iPhone',s.usbmuxd?'serviço Apple ativo':'abra o iTunes no Windows',s.usbmuxd?['ok','pronto']:['warn','desligado'],'🔌')+
@@ -701,6 +843,7 @@ function appRow(p,P){
     ${r.accountId?(r.hasApi?' · <span class="pill ok"><i></i>API Apple</span>':` · <a href="#" onclick="openKey('${r.accountId}');return false">⚠️ sem API</a>`):''}
     · <a href="#" onclick="pickApp(${P});return false">trocar</a></div>`}
 async function pickApp(project){
+  const done=uiLoading('Abrindo…');try{
   if(!accState.accounts.length)await loadAccounts();
   try{regItems=await api('/api/apps/registry')}catch(e){}
   const p=projCache.find(x=>x.name===project)||{meta:{}};
@@ -716,41 +859,82 @@ async function pickApp(project){
        <div class="meta"><span style="font-family:var(--mono)">${esc(r.bundleId)}</span> · ${esc(r.accountLabel)}${r.appleId?' ('+esc(r.appleId)+')':''}</div></div>
        ${r.hasApi?'<span class="pill ok"><i></i>API Apple</span>':'<span class="pill warn"><i></i>sem API</span>'}</div>`}).join(''):'<div class="empty">Nenhum app registrado ainda. Vá em Apps da conta e clique em "Buscar apps".</div>'}</div>
    <div class="row">${p.meta.bundleId?`<button class="btn danger" onclick='linkApp(${JSON.stringify(project).replace(/'/g,"&#39;")},{accountId:"",bundleId:"",appName:""})'>Desvincular</button>`:''}<button class="btn" onclick="keyModal.hidden=true;go('apps')">Buscar mais apps</button><button class="btn" onclick="keyModal.hidden=true">Fechar</button></div>`;
-  keyModal.hidden=false;hydrateIcons()}
+  keyModal.hidden=false;hydrateIcons()}finally{done()}}
 async function linkApp(project,link){
   try{await api('/api/projects/meta',{project,patch:link});keyModal.hidden=true;toast(link.bundleId?`${project} vinculado a ${link.appName||link.bundleId}`:`${project} desvinculado`);loadProjects()}catch(e){toast(e.message)}}
 async function loadProjects(){
   const ps=await api('/api/projects');projCache=ps;
   try{regItems=await api('/api/apps/registry')}catch(e){}
-  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;const pl=p.platforms||['ios'],hasIos=pl.includes('ios'),hasAnd=pl.includes('android');
-    const pills=pl.map(x=>`<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px">${x==='ios'?'🍎 iOS':'🤖 Android'}</span>`).join('');
-    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''} · <a href="#" onclick="run('git.pull',{},'Atualizar ${n}',${P});return false">⬇ pull</a> · <a href="#" onclick="gitPush(${P});return false">⬆ push</a>`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}`;
+  try{await plLoadLinks()}catch(e){}
+  try{if(!ghAccsCache.length)ghAccsCache=await api('/api/gh/accounts')}catch(e){}
+  paintNewProject();
+  $('projList').innerHTML=ps.length?ps.map(p=>{const n=esc(p.name);const P=JSON.stringify(p.name).replace(/"/g,'&quot;');const g=p.git,repo=p.meta.repo;const pl=p.platforms||['ios'];const cfgMiss=!!p.configured&&pl.some(x=>p.configured[x]===false),anyCfg=Object.values(p.configured||{}).some(Boolean);
+    const pills=pl.map(x=>`<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px">${x==='ios'?'🍎 iOS':x==='pc'?'🖥️ PC':x==='android'?'🤖 Android':esc(x)}</span>`).join('')+(p.meta.steam&&p.meta.steam.appId?`<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px">🎮 Steam</span>`:'');
+    const ap=g&&g.autoPull,apT=ap?esc(ap.message||''):'',apB='font-size:11px;padding:1px 8px;margin-left:6px';
+    const apPill=!ap||ap.state==='noremote'?'':ap.state==='fetching'?`<span class="pill" style="${apB}" title="${apT}">⬇ baixando atualizações…</span>`:ap.state==='pulled'?`<span class="pill" style="${apB};color:var(--ok)" title="${apT}">⬇ atualizado automaticamente (+${ap.pulled})</span>`:ap.state==='uptodate'?`<span class="pill" style="${apB}" title="${apT}">✔ em dia</span>`:ap.state==='dirty'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ pull automático em espera: há alterações locais</span>`:ap.state==='diverged'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ divergente: faça o pull à mão</span>`:ap.state==='error'?`<span class="pill" style="${apB};color:var(--warn)" title="${apT}">⚠ pull automático falhou</span>`:'';
+    const apBar=ap&&ap.state==='fetching'?`<span class="pdl" data-pull="${n}">${pdlInner(ap.progress)}</span>`:'';
+    const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.commit?` · <code class="mono" title="${esc(g.commit.subject)} — ${new Date(g.commit.at*1000).toLocaleString()}">${esc(g.commit.hash)}</code> · <span title="commit nº ${g.commit.count} desta branch">#${g.commit.count}</span>`:''}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''}${apPill}${apBar}`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}${typeof androidRow==='function'?androidRow(p,P):''}${typeof steamRow==='function'?steamRow(p,P):''}`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
-    <div class="grow"><div class="name">${n}${pills}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
+    <div class="grow"><div class="name">${n}${pills}${cfgMiss?'<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px;color:var(--warn)"><i></i>⚙ falta configurar</span>':''}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
     <div class="row" style="flex-basis:100%;padding:10px 0 0 50px;border-top:1px solid var(--line);margin-top:4px">
-      ${hasIos?`<select id="cfg-${n}" class="btn sm" style="width:auto"><option>debug</option><option>release</option></select>
-      <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value},'Build ${n}',${P})">Build</button>
-      <button class="btn sm" onclick="run('dev.build',{config:$('cfg-${n}').value,sign:true,ipa:true},'Gerar .ipa ${n}',${P})">Gerar .ipa</button>
-      <button class="btn sm pri" onclick="run('dev.run',{config:$('cfg-${n}').value,udid:val('runUdid'),conn:'all'},'Rodar ${n}',${P})">▶ Rodar no iPhone</button>
-      <button class="btn sm" onclick="run('dev.xcode',{},'Projeto Xcode ${n}',${P})">Xcode</button>
-      <button class="btn sm" onclick="pubProject.innerHTML='<option>${n}</option>';go('publish')">🚀 Publicar</button>`:''}
-      ${hasAnd?`<button class="btn sm" onclick="quickAndroid(${P},false)" title="Só gera o APK (assinado se o app tiver chave; senão, debug). Não envia para a Play.">Gerar .apk</button>
-      <button class="btn sm pri" onclick="quickAndroid(${P},true)">▶ Rodar no Android</button>
-      <button class="btn sm" onclick="andProject.innerHTML='<option>${n}</option>';go('android')">🤖 Android</button>`:''}
+      <button class="btn sm" onclick="projConfigure(${P})">⚙ Configurar</button>
+      ${anyCfg?`<button class="btn sm pri" onclick="projBuild(${P})">🔨 Build</button>
+      <button class="btn sm" ${(p.releaseCount||0)>0?'':'disabled'} onclick="projDeliver(${P})" title="${(p.releaseCount||0)>0?'Enviar um build release para a loja':'Nenhum build release ainda: gere um em Build (modo Release)'}">📤 Enviar para a loja</button>`:''}
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
-    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb()}
+    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
 async function loadRunAdb(){
   const el=$('runAdb');if(!el)return;const keep=el.value;let ds=[];
   try{ds=(await api('/api/adb/devices')).filter(d=>d.state==='device')}catch(e){}
   el.innerHTML=`<option value="">${ds.length?'Automático (único conectado)':'nenhum celular Android conectado'}</option>`+ds.map(d=>`<option value="${esc(d.serial)}">🟢 ${esc(d.model||d.serial)} · ${esc(d.serial)}</option>`).join('');
   if(ds.some(d=>d.serial===keep))el.value=keep}
-function quickAndroid(project,install){
-  const p=projCache.find(x=>x.name===project)||{meta:{}};const m=p.meta.android||{};
-  run('android.release',{project,packageName:m.packageName||'',kind:'apk',debug:install?true:'auto',versionName:'',versionCode:'auto',
-    preBuild:m.preBuild??'',upload:false,install,serial:install?val('runAdb'):''},(install?'Rodar no Android ':'Gerar .apk ')+project,project)}
-function newProject(){const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');run('new',{name:n,skipSetup:chk('skipSetup')},'Novo projeto '+n)}
+/* ---------- barra de download do pull automático (card do projeto) + polling ---------- */
+const pdlPct=pr=>pr&&typeof pr.percent==='number'?Math.max(0,Math.min(100,Math.round(pr.percent))):null;
+const pdlText=pr=>{const pct=pdlPct(pr);const parts=[(pr?.phase||'Preparando')+(pct===null?'':' '+pct+'%')];if(pr?.received)parts.push(pr.received);if(pr?.speed)parts.push(pr.speed);return parts.join(' · ')};
+function pdlInner(pr){const pct=pdlPct(pr);return `<span class="pdl-bar${pct===null?' ind':''}"><i${pct===null?'':` style="width:${pct}%"`}></i></span><span class="pdl-txt">${esc(pdlText(pr))}</span>`}
+function pdlUpdate(el,pr){
+  const bar=el.querySelector('.pdl-bar'),i=el.querySelector('.pdl-bar i'),t=el.querySelector('.pdl-txt');
+  if(!bar||!i||!t){el.innerHTML=pdlInner(pr);return}
+  const pct=pdlPct(pr);bar.classList.toggle('ind',pct===null);i.style.width=pct===null?'':pct+'%';t.textContent=pdlText(pr);
+}
+let pullPoll=null;
+const projVisible=()=>$('s-projects').classList.contains('on');
+function pullWatch(){
+  if(pullPoll||!document.querySelector('.pdl[data-pull]'))return;
+  pullPoll=setInterval(pullTick,2000);
+}
+async function pullTick(){
+  if(!projVisible()){clearInterval(pullPoll);pullPoll=null;return}
+  let st;try{st=await api('/api/pull/state')}catch(e){return}
+  const els=[...document.querySelectorAll('.pdl[data-pull]')];
+  let finished=!els.length;
+  for(const el of els){
+    const key=Object.keys(st||{}).find(k=>k===el.dataset.pull);
+    const ap=key!==undefined?st[key]:null;
+    if(ap&&ap.state==='fetching')pdlUpdate(el,ap.progress);else finished=true;
+  }
+  if(finished){clearInterval(pullPoll);pullPoll=null;loadProjects().catch(()=>{})}
+}
+function projAutoRefresh(){
+  if(!projVisible()||document.querySelector('.pm-back'))return;
+  loadProjects().catch(()=>{});
+}
+let newRepoTouched=false;
+function paintNewProject(){
+  const accs=ghAccsCache||[],prev=$('newGhUser').value;
+  $('newGhUser').innerHTML=accs.map(a=>`<option value="${esc(a.user)}" ${prev?(a.user===prev?'selected':''):(a.active?'selected':'')}>${esc(a.user)}</option>`).join('');
+  const none=!accs.length;
+  $('newNoGh').style.display=none?'':'none';
+  $('newBtn').disabled=none;
+}
+function newProject(){
+  const n=val('newName');if(!/^[A-Za-z][A-Za-z0-9_-]*$/.test(n))return toast('Nome inválido (use letras, números, _ ou -)');
+  const ghUser=val('newGhUser');if(!ghUser)return toast('Escolha a conta do GitHub');
+  const repo=val('newRepoName')||n;if(!/^[A-Za-z0-9._-]{1,100}$/.test(repo))return toast('Nome do repositório inválido (use letras, números, ., _ ou -; até 100 caracteres)');
+  const priv=chk('newRepoPrivate');
+  if(!confirm(`Criar o projeto ${n} e o repositório ${ghUser}/${repo} (${priv?'privado':'público'}) no GitHub?`))return;
+  run('new',{name:n,skipSetup:chk('skipSetup'),ghUser,repoName:repo,private:priv},'Novo projeto '+n)}
 
 /* files */
 let fPath='';
@@ -815,6 +999,14 @@ async function removeAcc(id){const a=accState.accounts.find(x=>x.id===id);if(!co
 
 /* devices */
 let devs=[], devService=true, devSig='';
+/* chip do iPhone no topo (igual ao do Android e do PC): conectado / desconectado / serviço Apple desligado */
+function paintIphoneChip(){
+  const el=$('iphoneChip');if(!el)return;
+  const on=devs.filter(d=>d.conn);
+  if(!devService){el.className='pill topchip warn';el.innerHTML='<i></i>iPhone: abra o iTunes';el.title='O serviço Apple do Windows está desligado: abra o iTunes ou Dispositivos Apple';return}
+  if(on.length){el.className='pill topchip ok';el.innerHTML='<i></i>iPhone conectado';el.title=on.map(d=>d.name+' · '+(d.conn==='usb'?'cabo':'Wi-Fi')).join('\n')}
+  else{el.className='pill topchip off';el.innerHTML='<i></i>iPhone desconectado';el.title=devs.length?'Nenhum aparelho cadastrado está conectado':'Nenhum aparelho cadastrado: vá em Dispositivos'}
+}
 const connInfo=d=>!devService?['warn','Serviço Apple desligado (abra o iTunes)','⚠️']:d.conn==='usb'?['ok','Conectado · cabo','🔌']:d.conn==='network'?['ok','Conectado · Wi-Fi','📶']:['off','Desconectado',''];
 async function loadDevs(force=true){
   let r;try{r=await api('/api/devices/status')}catch(e){return}
@@ -824,7 +1016,7 @@ async function loadDevs(force=true){
   const def=devs.find(d=>d.default);
   const opts=`<option value="">Automático (primeiro conectado)</option>`+devs.map(d=>`<option value="${esc(d.udid)}">${d.conn?'🟢':'⚪'} ${esc(d.name)}</option>`).join('');
   document.querySelectorAll('.devSel').forEach(s=>{const keep=s.value;s.innerHTML=opts;s.value=keep&&devs.some(d=>d.udid===keep)?keep:(def?def.udid:'')});
-  $('devSwitch').innerHTML=devs.length?devs.map(d=>`<option value="${d.id}" ${d.default?'selected':''}>${d.conn?'🟢':'⚪'} ${esc(d.name)}</option>`).join(''):'<option value="">nenhum aparelho</option>';
+  paintIphoneChip();
   $('devGrid').innerHTML=devs.length?devs.map(d=>{const [cls,txt,ico]=connInfo(d);return `<div class="card acc ${d.default?'on':''}">
       <span class="tag"><button class="star ${d.default?'on':''}" title="Dispositivo padrão" onclick="setDefaultDev('${d.id}')">★</button></span>
       <div class="devhead"><div class="avatar" style="background:${colorOf(d.id)}">📱<span class="sdot ${cls}"></span></div>
@@ -856,9 +1048,10 @@ async function renderAscCard(){
   const id=val('appsAcc');if(!id){ascCard.innerHTML='<div class="grow hint">Cadastre uma conta Apple primeiro.</div>';return}
   const k=await api('/api/asc/key?account='+id);
   ascCard.innerHTML=`<span style="font-size:20px">🔑</span><div class="grow"><div class="name">API da Apple (App Store Connect) ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>não cadastrada</span>'}</div>
-    <div class="meta">${k.configured?'Key ID '+esc(k.keyId)+' · usada para listar apps, enviar builds e publicar':'Sem ela só aparecem os bundle IDs. Cadastre no cartão da conta em Contas Apple.'}</div></div>
+    <div class="meta">${k.configured?'Key ID '+esc(k.keyId)+' · usada para listar apps, enviar builds e publicar':'Sem ela só aparecem os bundle IDs. Cadastre no cartão da conta em Contas → Apple.'}</div></div>
     <span class="hint" id="kMsg"></span>${k.configured?`<button class="btn sm" onclick="testAscKey('${id}')">Testar</button>`:''}<button class="btn sm ${k.configured?'':'pri'}" onclick="openKey('${id}')">${k.configured?'Gerenciar':'Cadastrar'}</button>`}
 async function openKey(id){
+  const done=uiLoading('Abrindo…');try{
   const a=accState.accounts.find(x=>x.id===id)||{};const k=await api('/api/asc/key?account='+id);
   keyBox.innerHTML=`<h3>🔑 API da Apple · ${esc(a.label||'')} ${k.configured?'<span class="pill ok"><i></i>configurada</span>':'<span class="pill warn"><i></i>não cadastrada</span>'}</h3>
    <p>${esc(a.appleId||'')}${a.teamId?' · Team '+esc(a.teamId):''}</p>
@@ -868,7 +1061,7 @@ async function openKey(id){
    <div class="field"><label>Arquivo .p8 ${k.configured?'(deixe vazio para manter o atual)':''}</label><input type="file" id="kFile" accept=".p8"></div>
    <div class="row"><button class="btn pri" onclick="saveAscKey('${id}')">Salvar chave</button>${k.configured?`<button class="btn" onclick="testAscKey('${id}','kMsg2')">Testar</button><button class="btn danger" onclick="removeAscKey('${id}')">Remover</button>`:''}<button class="btn" onclick="keyModal.hidden=true">Fechar</button></div>
    <p class="hint" id="kMsg2" style="margin:10px 0 0"></p>`;
-  keyModal.hidden=false}
+  keyModal.hidden=false}finally{done()}}
 async function keyChanged(){await loadAccounts();if(val('appsAcc')){renderAscCard();loadRegistry()}}
 async function saveAscKey(id){const f=kFile.files[0];const p8=f?await f.text():'';try{await api('/api/asc/key',{accountId:id,issuerId:val('kIss'),keyId:val('kId'),p8});toast('Chave salva');await openKey(id);keyChanged();testAscKey(id,'kMsg2')}catch(e){toast(e.message)}}
 async function removeAscKey(id){if(!confirm('Apagar a chave da API desta conta?'))return;await api('/api/asc/key/remove',{accountId:id});toast('Chave removida');openKey(id);keyChanged()}
@@ -921,11 +1114,12 @@ const iconSlot=(bundle,ph)=>`<span class="appicon" data-icon="${esc(bundle)}">${
 function hydrateIcons(){document.querySelectorAll('[data-icon]:not([data-done])').forEach(async el=>{el.dataset.done=1;try{const d=await storeData(el.dataset.icon);if(d.icon)el.innerHTML=`<img src="${esc(d.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`}catch(e){}})}
 let storeView='live',storeShots='iphone',storeCur=null;
 async function openStore(bundle,acc){
+  const done=uiLoading('Abrindo…');try{
   storeModal.hidden=false;storeScreen.innerHTML='<div style="padding:120px 20px;text-align:center;color:#8e8e93">Carregando…</div>';storeSide.innerHTML='';
   try{storeCur=await retry(()=>storeData(bundle,true,acc))}catch(e){
     const msg=/fetch|network/i.test(e.message)?'O painel não respondeu. O container pode estar reiniciando — tente de novo em alguns segundos.':e.message;
     storeScreen.innerHTML=`<div style="padding:120px 24px;text-align:center;color:#8e8e93"><div style="font-size:34px;margin-bottom:10px">⚠️</div>${esc(msg)}<div style="margin-top:16px"><span class="as-get" style="cursor:pointer" onclick="openStore('${esc(bundle)}','${acc||''}')">Tentar de novo</span></div></div>`;return}
-  storeView=storeCur.sources.includes('loja')?'live':'draft';storeShots='iphone';renderStore()}
+  storeView=storeCur.sources.includes('loja')?'live':'draft';storeShots='iphone';renderStore()}finally{done()}}
 function closeStore(){storeModal.hidden=true}
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!storeModal.hidden)closeStore()});
 function renderStore(){
@@ -1069,7 +1263,6 @@ async function linkRepo(project){
   let exists=true;try{const rs=await api(`/api/gh/repos?user=${encodeURIComponent(user)}&q=${encodeURIComponent(repo.split('/')[1])}`);exists=rs.some(r=>r.nameWithOwner.toLowerCase()===repo.toLowerCase())}catch(e){}
   await saveProjMeta(project,{repo,ghUser:user});
   run(exists?'gh.link':'gh.create',{user,repo,private:true},(exists?'Vincular ':'Criar repositório ')+repo,project)}
-function gitPush(project){const m=prompt('Mensagem do commit:','Atualização');if(m!==null)run('git.push',{message:m||'Atualização'},'Enviar '+project+' ao GitHub',project)}
 
 /* ---------- IA ---------- */
 let aiState=null;
@@ -1099,12 +1292,13 @@ async function loadPlayAccs(){
     <h3>${esc(a.label)}</h3>
     <div class="kv"><span>E-mail</span><span>${esc(a.email||'—')}</span><span>Projeto</span><span>${esc(a.projectId||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span></div>
     <div class="row">
+      ${a.id===topState.defaults.playAccountId?'<span class="pill ok"><i></i>principal</span>':`<button class="btn sm" onclick="topSet('playAccountId','${a.id}').then(loadPlay)">★ Principal</button>`}
       <button class="btn sm" onclick="testPlayAcc('${a.id}')">Testar</button>
       <button class="btn sm" onclick="renamePlayAcc('${a.id}')">Renomear</button>
       <button class="btn sm danger" onclick="removePlayAcc('${a.id}')">Remover</button>
       <span class="hint" id="pt-${a.id}"></span></div></div>`).join(''):'<div class="empty">Nenhuma conta Google Play. Adicione uma abaixo.</div>';
   refreshPlayAppAcc()}
-function refreshPlayAppAcc(){const sel=val('playAppAcc');playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta em Contas Google Play</option>'}
+function refreshPlayAppAcc(){const sel=val('playAppAcc')||topState.defaults.playAccountId;playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta em Contas → Google Play</option>'}
 async function testPlayAcc(id){const s=$('pt-'+id);if(s)s.textContent='testando…';try{const r=await api('/api/play/test',{id});if(s)s.textContent='✔ conectado'+(r.email?' · '+r.email:'')}catch(e){if(s)s.textContent='✖ '+e.message}}
 async function renamePlayAcc(id){const a=playAccs.find(x=>x.id===id);const n=prompt('Novo nome da conta:',a?a.label:'');if(!n||!n.trim())return;try{await api('/api/play/accounts/rename',{id,label:n.trim()});loadPlay()}catch(e){toast(e.message)}}
 async function removePlayAcc(id){const a=playAccs.find(x=>x.id===id);if(!confirm(`Remover a conta "${a?a.label:id}" do painel? Os apps dela também saem da lista (nada é apagado no Google Play).`))return;try{await api('/api/play/accounts/remove',{id});loadPlay()}catch(e){toast(e.message)}}
@@ -1136,7 +1330,7 @@ function renderPlayAccApps(){
   const acc=val('playAppAcc'),A=playAccs.find(x=>x.id===acc);
   playAccName.textContent=A?'· '+A.label:'';
   const L=playAppsCache.map((a,i)=>[a,i]).filter(([a])=>a.accountId===acc);
-  playAccApps.innerHTML=!acc?'<div class="empty">Cadastre uma conta em Contas Google Play.</div>':L.length?L.map(([a,i])=>{const rels=playRels(a);const pr=playProject(a.packageName);return `<div class="card">
+  playAccApps.innerHTML=!acc?'<div class="empty">Cadastre uma conta em Contas → Google Play.</div>':L.length?L.map(([a,i])=>{const rels=playRels(a);const pr=playProject(a.packageName);return `<div class="card">
     <div class="devhead clickable" title="Ver página da loja" onclick="openPlayStore(${i})">${playIconSlot(a)}<div style="min-width:0"><h3 style="margin:0">${esc(a.name||a.packageName)}</h3><div class="meta" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${esc(a.packageName)}</div></div></div>
     <div class="list" style="gap:6px;margin-bottom:12px">${rels.map(r=>`<div class="row" style="justify-content:space-between"><span>v${esc(r.name)} <span class="hint">${esc(PLAY_TR[r.track]||r.track)} · ${r.vc}</span></span>${playStPill(r)}</div>`).join('')||'<span class="hint">sem versões</span>'}</div>
     <div class="row"><a class="btn sm" target="_blank" href="https://play.google.com/console">Abrir no Play Console</a><button class="btn sm" onclick="refreshPlayApp(${i})">Atualizar</button>${pr?`<button class="btn sm pri" onclick="andProject.innerHTML='<option>${esc(pr.name)}</option>';go('android')">Publicar ${esc(pr.name)}</button>`:''}</div></div>`}).join('')
@@ -1161,12 +1355,13 @@ function hydratePlayIcons(){document.querySelectorAll('[data-picon]:not([data-do
   try{const d=await api(`/api/play/storepage?account=${encodeURIComponent(acc)}&package=${encodeURIComponent(pkg)}&light=1`);if(d.icon)el.innerHTML=`<img src="${esc(d.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`}catch(e){}})}
 let playCur=null,playShots='phone';
 async function openPlayStore(i){
+  const done=uiLoading('Abrindo…');try{
   const a=playAppsCache[i];if(!a)return;
   storeModal.hidden=false;storeSide.innerHTML='';storeScreen.innerHTML='<div class="gp" style="padding:120px 20px;text-align:center;color:#c4c7c5">Carregando do Google Play…</div>';
   try{playCur=await retry(()=>api(`/api/play/storepage?account=${encodeURIComponent(a.accountId)}&package=${encodeURIComponent(a.packageName)}`))}
   catch(e){storeScreen.innerHTML=`<div class="gp" style="padding:120px 24px;text-align:center;color:#c4c7c5"><div style="font-size:34px;margin-bottom:10px">⚠️</div>${esc(e.message)}<div class="gp-install" style="cursor:pointer" onclick="openPlayStore(${i})">Tentar de novo</div></div>`;return}
   playCur.idx=i;playShots='phone';renderPlayStore();
-  document.querySelectorAll(`[data-picon="${CSS.escape(a.accountId+'|'+a.packageName)}"]`).forEach(el=>{if(playCur.icon)el.innerHTML=`<img src="${esc(playCur.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`})}
+  document.querySelectorAll(`[data-picon="${CSS.escape(a.accountId+'|'+a.packageName)}"]`).forEach(el=>{if(playCur.icon)el.innerHTML=`<img src="${esc(playCur.icon)}" alt="" style="width:100%;height:100%;object-fit:cover">`})}finally{done()}}
 function renderPlayStore(){
   const P=playCur,a=playAppsCache[P.idx]||{},name=P.title||a.name||P.packageName;
   const sh=P.screenshots||{phone:[],tablet:[]},list=(sh[playShots]&&sh[playShots].length?sh[playShots]:(sh.phone&&sh.phone.length?sh.phone:sh.tablet))||[];
@@ -1246,7 +1441,7 @@ async function loadAndroid(){
   if(andVersion.dataset.p!==p){andVersion.value=andAuto;andCode.value='auto';andVersion.dataset.p=p;andNotes={}}
   andVersion.dataset.auto=andAuto;applyVerSrc('and',I)
   andPkg.value=I.packageName||'';
-  andAcc.value=M.playAccountId||'';
+  andAcc.value=M.playAccountId||topState.defaults.playAccountId||'';
   andPre.value=M.preBuild??D.defaultPreBuild??'';
   const locs=M.locales??['pt-BR'];
   andLocales.innerHTML=PLAY_LOCALES.map(([k,t])=>`<label class="check" style="margin:0 10px 0 0"><input type="checkbox" value="${k}" ${locs.includes(k)?'checked':''} onchange="andLocChanged()">${t}</label>`).join('');
@@ -1344,8 +1539,19 @@ function runAndroid(){
 async function listAdb(){try{const L=await api('/api/adb/devices');adbSerial.innerHTML='<option value="">Automático (primeiro conectado)</option>'+L.map(d=>`<option value="${esc(d.serial)}">${esc(d.serial)} — ${esc(d.model||d.device||d.state||'')}</option>`).join('');adbList.textContent=L.length?L.map(d=>`${d.serial} · ${d.state||''} · ${d.model||d.device||''}`).join('\n'):'Nenhum aparelho. Pareie ou conecte e tente de novo.'}catch(e){adbList.textContent=e.message}}
 
 function runShell(){const c=val('shCmd');if(c)run('shell',{cmd:c},c.length>30?c.slice(0,30)+'…':c)}
-function refreshAll(){refreshStatus();loadJobs();const s=(document.querySelector('.section.on')?.id||'s-home').slice(2);go(s)}
+function refreshAll(){refreshStatus();loadJobs();loadTopbar();const s=(document.querySelector('.section.on')?.id||'s-home').slice(2);go(s)}
 refreshStatus();loadJobs();loadAccounts();loadDevs();setInterval(loadJobs,4000);setInterval(()=>loadDevs(false),5000);
+loadTopbar();setInterval(loadTopbar,5000);
+setInterval(projAutoRefresh,120000);
+/* versão do painel: vem do servidor (sem quebrar se falhar) */
+(async()=>{try{const v=await api('/api/version');if(v.panel){vtag.textContent='v'+v.panel;byVer.firstChild.textContent='xtool Painel '+v.panel}}catch(e){}})();
+/* ícones: troca emojis de plataforma no texto e observa o que for criado depois */
+iconify(document.body);biObs.observe(document.body,BI_OPTS);
 </script>
+<script src="/static/pc.js"></script>
+<script src="/static/devices.js"></script>
+<script src="/static/projects.js"></script>
+<script src="/static/deliver.js"></script>
+<script src="/static/projlinks.js"></script>
 </body>
 </html>

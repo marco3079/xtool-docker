@@ -5,6 +5,7 @@ go to secrets.json with mode 600 and are never sent back to the browser in full.
 """
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -16,6 +17,10 @@ PROJECTS = os.path.join(PANEL_DIR, "projects.json")
 APPS = os.path.join(PANEL_DIR, "apps.json")
 PLAY_APPS = os.path.join(PANEL_DIR, "play_apps.json")
 ANDROID_KEYS_DIR = os.path.join(PANEL_DIR, "android-keys")
+STEAM_ACCOUNTS = os.path.join(PANEL_DIR, "steam_accounts.json")
+STEAM_APPS = os.path.join(PANEL_DIR, "steam_apps.json")
+STEAM_PLATFORMS = ("win32", "linux", "darwin")
+DEFAULTS = os.path.join(PANEL_DIR, "defaults.json")
 _lock = threading.RLock()
 
 
@@ -233,6 +238,7 @@ def play_account_remove(acc_id):
         s.setdefault("play", {}).pop(acc_id, None)
         save(SECRETS, s, private=True)
         play_apps_forget(acc_id)
+        _defaults_forget("playAccountId", acc_id)
 
 
 # ---- Google Play apps seen on each account (packageName -> name, tracks) ----
@@ -300,3 +306,176 @@ def android_key_remove(package):
             os.remove(k["file"])
         except OSError:
             pass
+
+
+# ---- Steam (contas e apps; a senha nunca é gravada) ----
+# A senha fica só no login do steamcmd (/root/Steam); aqui vão apenas usuário e apps.
+_STEAM_USER_RE = r"[A-Za-z0-9_.-]{2,64}"
+_STEAM_BRANCH_RE = r"[A-Za-z0-9_.-]{1,64}"
+_STEAM_ID_RE = r"[0-9]{1,10}"
+
+
+def _steam_public(a):
+    return {k: a.get(k) for k in ("id", "label", "username", "added")}
+
+
+def _steam_accounts():
+    return load(STEAM_ACCOUNTS, {})
+
+
+def steam_accounts():
+    accs = [_steam_public(a) for a in _steam_accounts().values()]
+    return sorted(accs, key=lambda x: (x.get("label") or "").lower())
+
+
+def steam_account(acc_id):
+    a = _steam_accounts().get(acc_id)
+    if not a:
+        raise ValueError("conta Steam não encontrada")
+    return _steam_public(a)
+
+
+def steam_account_add(label, username):
+    username = (username or "").strip()
+    if not re.fullmatch(_STEAM_USER_RE, username):
+        raise ValueError("usuário da Steam inválido (letras, números, _ . -)")
+    with _lock:
+        accs = _steam_accounts()
+        if any((a.get("username") or "").lower() == username.lower() for a in accs.values()):
+            raise ValueError("essa conta Steam já está cadastrada")
+        acc = {"id": uuid.uuid4().hex[:8], "label": (label or "").strip() or username,
+               "username": username, "added": int(time.time())}
+        accs[acc["id"]] = acc
+        save(STEAM_ACCOUNTS, accs)
+    return _steam_public(acc)
+
+
+def steam_account_rename(acc_id, label):
+    with _lock:
+        accs = _steam_accounts()
+        a = accs.get(acc_id)
+        if not a:
+            raise ValueError("conta Steam não encontrada")
+        a["label"] = (label or "").strip() or a.get("label", "")
+        save(STEAM_ACCOUNTS, accs)
+
+
+def steam_account_remove(acc_id):
+    with _lock:
+        accs = _steam_accounts()
+        accs.pop(acc_id, None)
+        save(STEAM_ACCOUNTS, accs)
+        steam_apps_forget(acc_id)
+        _defaults_forget("steamAccountId", acc_id)
+
+
+# registro de apps Steam: {accId: {appId: entrada}}
+def steam_apps_registry():
+    return load(STEAM_APPS, {})
+
+
+def steam_app_set(acc_id, app_id, name="", depots=None, branch=""):
+    steam_account(acc_id)  # propaga ValueError se a conta não existir
+    app_id = str(app_id).strip()
+    if not re.fullmatch(_STEAM_ID_RE, app_id):
+        raise ValueError("App ID da Steam inválido (só números)")
+    clean = {}
+    for k, v in (depots or {}).items():
+        if k not in STEAM_PLATFORMS:
+            raise ValueError(f"plataforma desconhecida: {k}")
+        v = ("" if v is None else str(v)).strip()
+        if not v:
+            continue
+        if not re.fullmatch(_STEAM_ID_RE, v):
+            raise ValueError(f"Depot ID inválido para {k} (só números)")
+        clean[k] = v
+    if not clean:
+        raise ValueError("informe o Depot ID de pelo menos uma plataforma")
+    branch = (branch or "").strip()
+    if branch == "default":
+        raise ValueError("a branch default não pode ser liberada automaticamente pelo steamcmd; use outra branch ou libere no site do Steamworks")
+    if branch and not re.fullmatch(_STEAM_BRANCH_RE, branch):
+        raise ValueError("nome de branch inválido")
+    with _lock:
+        reg = steam_apps_registry()
+        cur = reg.setdefault(acc_id, {})
+        old = cur.get(app_id, {})
+        now = int(time.time())
+        entry = {"appId": app_id, "name": (name or "").strip() or old.get("name") or f"App {app_id}",
+                 "depots": clean, "branch": branch,
+                 "added": old.get("added", now), "updated": now}
+        cur[app_id] = entry
+        save(STEAM_APPS, reg)
+    return entry
+
+
+def steam_app(acc_id, app_id):
+    e = steam_apps_registry().get(acc_id, {}).get(str(app_id).strip())
+    if not e:
+        raise ValueError("app Steam não cadastrado")
+    return e
+
+
+def steam_apps_list():
+    accs = _steam_accounts()
+    out = []
+    for acc_id, apps in steam_apps_registry().items():
+        acc = accs.get(acc_id)
+        if not acc:
+            continue  # conta removida: ignora os apps dela
+        for e in apps.values():
+            out.append({"accountId": acc_id, "accountLabel": acc.get("label", ""), **e})
+    return sorted(out, key=lambda x: (x.get("name") or x.get("appId") or "").lower())
+
+
+def steam_apps_forget(acc_id, app_id=None):
+    with _lock:
+        reg = steam_apps_registry()
+        if app_id is None:
+            reg.pop(acc_id, None)
+        else:
+            reg.get(acc_id, {}).pop(str(app_id).strip(), None)
+        save(STEAM_APPS, reg)
+
+
+# ---- defaults da barra do topo (conta Steam e conta Play principais; só ids) ----
+_DEFAULT_KEYS = ("steamAccountId", "playAccountId")
+
+
+def defaults_get():
+    d = load(DEFAULTS, {})
+    if not isinstance(d, dict):
+        d = {}
+    return {k: (d[k] if isinstance(d.get(k), str) else "") for k in _DEFAULT_KEYS}
+
+
+def defaults_set(patch):
+    patch = patch or {}
+    for k, v in patch.items():
+        if k not in _DEFAULT_KEYS:
+            raise ValueError(f"opção desconhecida: {k}")
+        if not isinstance(v, str):
+            raise ValueError(f"valor inválido para {k} (texto esperado)")
+    with _lock:
+        new = defaults_get()
+        for k, v in patch.items():
+            if v == "":
+                new[k] = ""
+            elif k == "steamAccountId":
+                if v not in {a["id"] for a in steam_accounts()}:
+                    raise ValueError("conta Steam não encontrada")
+                new[k] = v
+            else:
+                if v not in {a["id"] for a in play_accounts()}:
+                    raise ValueError("conta da Play Store não encontrada")
+                new[k] = v
+        save(DEFAULTS, new)
+    return defaults_get()
+
+
+def _defaults_forget(key, acc_id):
+    with _lock:
+        d = load(DEFAULTS, {})
+        if isinstance(d, dict) and d.get(key) == acc_id:
+            d.pop(key, None)
+            save(DEFAULTS, d)

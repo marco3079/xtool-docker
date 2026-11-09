@@ -5,7 +5,10 @@
 usage: android.py <args.json>
 args: project, packageName, kind ("aab"|"apk"|"both"), debug, versionName, versionCode ("auto"|"123"),
       preBuild ("" = padrão detectado, "-" = pular), upload, playAccountId, track, status,
-      userFraction, releaseNotes
+      userFraction, releaseNotes, existing
+existing (opcional): caminho absoluto de um .aab ou .apk release já pronto. Com ele o job NÃO roda
+      pré-build nem Gradle: só confere a versão na Play, valida e envia. Exige upload verdadeiro,
+      versionName e versionCode (só dígitos; "auto" não vale) informados.
 """
 import glob
 import json
@@ -244,11 +247,109 @@ def merge_meta(project, patch):
     store.project_meta_update(project, {"android": cur})
 
 
+def publish_to_play(play, pkg, a, vn, vc, aab_out, apk_out, pdir):
+    """Envia aab_out (ou apk_out) para a faixa da Play e grava lastRelease no projeto."""
+    project = os.path.basename(pdir.rstrip("/\\"))
+    track = a.get("track") or "internal"
+    status = a.get("status") or "completed"
+    notes = a.get("releaseNotes") or {}
+    for loc, txt in notes.items():
+        if len(txt) > 500:
+            log(f"\033[33m⚠ notas em {loc} têm {len(txt)} caracteres; a Play aceita 500 e o texto será cortado\033[0m")
+    name = f"{vn} ({vc})"
+    final = status
+    edit = play.edit_open(pkg)  # só agora: o edit não pode ficar aberto durante o build
+    try:
+        if aab_out:
+            play.upload_bundle(pkg, edit, aab_out, log)
+        else:
+            play.upload_apk(pkg, edit, apk_out, log)
+        play.set_track(pkg, edit, track, [vc], status, notes, name=name, user_fraction=a.get("userFraction"))
+        try:
+            commit(play, pkg, edit)
+        except PlayError as e:
+            if "draft" not in str(e).lower() or status == "draft":
+                raise
+            log("\033[33m⚠ o app ainda não foi publicado na Play; o lançamento vai como rascunho. "
+                "Publique pelo Play Console.\033[0m")
+            play.set_track(pkg, edit, track, [vc], "draft", notes, name=name)
+            final = "draft"
+            commit(play, pkg, edit)
+    except Exception:
+        drop_edit(play, pkg, edit)
+        raise
+
+    log(f"\n\033[1;32m✔ Enviado para a faixa {track} ({name}, status {final}).\033[0m")
+    log("Confira em https://play.google.com/console")
+    head = ""
+    try:
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=pdir, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        pass
+    merge_meta(project, {"lastRelease": {"versionName": vn, "versionCode": vc, "track": track,
+                                         "commit": head, "at": time.time()}})
+
+
 def main():
     with open(sys.argv[1], encoding="utf-8") as f:
         a = json.load(f)
     project = a["project"]
     pdir = os.path.join("/work", project)
+    existing = (a.get("existing") or "").strip()
+    if existing:  # build release já pronto: sem pré-build, sem Gradle, só confere e envia
+        upload = bool(a.get("upload"))
+        low = existing.lower()
+        if not os.path.isfile(existing) or not low.endswith((".aab", ".apk")):
+            raise SystemExit(f"o arquivo não existe ou não é .aab/.apk: {existing}")
+        android_dir = os.path.realpath(os.path.join("/work", project, "xtool", "android"))
+        if not os.path.realpath(existing).startswith(android_dir + os.sep):
+            raise SystemExit("o arquivo precisa estar na pasta xtool/android do projeto")
+        if re.search(r"-debug\.(aab|apk)$", os.path.basename(existing)):
+            raise SystemExit("este é um build de debug: a Play só aceita release assinado")
+        vn = (a.get("versionName") or "").strip()
+        vcode = "" if a.get("versionCode") is None else str(a.get("versionCode")).strip()
+        if not re.fullmatch(r"\d+(\.\d+){0,3}", vn) or not re.fullmatch(r"\d+", vcode):
+            raise SystemExit("informe a versão e o versionCode do arquivo")
+        vc = int(vcode)
+        if not upload:
+            raise SystemExit("nada a fazer: ligue o envio para a Play")
+        info = detect(pdir) or {}
+        pkg = (a.get("packageName") or info.get("packageName") or "").strip()
+        if not pkg:
+            raise SystemExit("não achei o packageName (applicationId) do app")
+
+        step("1/2 Conferindo na Google Play")
+        try:
+            conta = store.play_account(a.get("playAccountId") or "")
+        except ValueError as e:
+            raise SystemExit(str(e))
+        log(f"Conta: {conta.get('label')} ({conta.get('email')})")
+        play = Play(conta["json"])
+        max_play = play.app_info(pkg)["maxVersionCode"]  # abre e apaga o edit por dentro
+        if vc <= max_play:
+            raise SystemExit(f"o versionCode {vc} já existe na Play (último: {max_play}): compile um build novo")
+        log(f"App: {pkg}")
+        log(f"Versão {vn}, build {vc}")
+        log(f"Arquivo: {existing}")
+        if low.endswith(".apk") and shutil.which("aapt2"):
+            badging = subprocess.run(["aapt2", "dump", "badging", existing], capture_output=True, text=True).stdout
+            pl = next((ln for ln in badging.splitlines() if ln.startswith("package:")), "")
+            if pl:
+                log(pl)
+            m = re.search(r"versionCode='(\d+)'", pl)
+            if m and int(m.group(1)) != vc:
+                log(f"\033[33m⚠ o versionCode dentro do APK ({m.group(1)}) é diferente de {vc}\033[0m")
+            m = re.search(r"versionName='([^']*)'", pl)
+            if m and m.group(1) != vn:
+                log(f"\033[33m⚠ o versionName dentro do APK ({m.group(1)}) é diferente de {vn}\033[0m")
+
+        step("2/2 Enviando para o Google Play")
+        aab_out = existing if low.endswith(".aab") else None
+        apk_out = existing if low.endswith(".apk") else None
+        publish_to_play(play, pkg, a, vn, vc, aab_out, apk_out, pdir)
+        merge_meta(project, {"lastVersionCode": vc, "lastVersionName": vn})
+        return
+
     info = detect(pdir)
     if not info:
         raise SystemExit("o projeto não tem pasta android/ com Gradle")
@@ -385,44 +486,7 @@ def main():
         return
 
     step("5/5 Enviando para o Google Play")
-    track = a.get("track") or "internal"
-    status = a.get("status") or "completed"
-    notes = a.get("releaseNotes") or {}
-    for loc, txt in notes.items():
-        if len(txt) > 500:
-            log(f"\033[33m⚠ notas em {loc} têm {len(txt)} caracteres; a Play aceita 500 e o texto será cortado\033[0m")
-    name = f"{vn} ({vc})"
-    final = status
-    edit = play.edit_open(pkg)  # só agora: o edit não pode ficar aberto durante o build
-    try:
-        if aab_out:
-            play.upload_bundle(pkg, edit, aab_out, log)
-        else:
-            play.upload_apk(pkg, edit, apk_out, log)
-        play.set_track(pkg, edit, track, [vc], status, notes, name=name, user_fraction=a.get("userFraction"))
-        try:
-            commit(play, pkg, edit)
-        except PlayError as e:
-            if "draft" not in str(e).lower() or status == "draft":
-                raise
-            log("\033[33m⚠ o app ainda não foi publicado na Play; o lançamento vai como rascunho. "
-                "Publique pelo Play Console.\033[0m")
-            play.set_track(pkg, edit, track, [vc], "draft", notes, name=name)
-            final = "draft"
-            commit(play, pkg, edit)
-    except Exception:
-        drop_edit(play, pkg, edit)
-        raise
-
-    log(f"\n\033[1;32m✔ Enviado para a faixa {track} ({name}, status {final}).\033[0m")
-    log("Confira em https://play.google.com/console")
-    head = ""
-    try:
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=pdir, capture_output=True, text=True).stdout.strip()
-    except OSError:
-        pass
-    merge_meta(project, {"lastRelease": {"versionName": vn, "versionCode": vc, "track": track,
-                                         "commit": head, "at": time.time()}})
+    publish_to_play(play, pkg, a, vn, vc, aab_out, apk_out, pdir)
 
 
 if __name__ == "__main__":

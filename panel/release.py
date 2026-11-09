@@ -4,6 +4,10 @@
 usage: release.py <args.json>
 args: project, accountId, version, build ("auto" or number), steps: {upload, publish, submit},
       whatsNew: {locale: text}, noEncryption: bool
+      ipaFile (opcional): caminho absoluto de um .ipa assinado de release já pronto. Quando vem
+      preenchido, o job NÃO compila nem assina: só confere o app, valida o build e envia/publica.
+      Nesse modo usam-se version (obrigatória), build (obrigatório, só dígitos; "auto" não vale),
+      bundleId (opcional; senão xtool.yml) e steps (upload é sempre considerado verdadeiro).
 """
 import glob
 import json
@@ -15,6 +19,7 @@ import struct
 import subprocess
 import sys
 import time
+import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store  # noqa: E402
@@ -147,6 +152,25 @@ def entitlements_from_profile(profile_bytes, project_dir, conf):
     return ent, team
 
 
+def publish_and_submit(asc, app_id, version, build, a, steps, pdir):
+    """Espera o build processar, prepara a versão na App Store e (opcional) envia para revisão."""
+    project = a["project"]
+    build_id = asc.wait_build(app_id, version, build, log)
+    if a.get("noEncryption", True):
+        asc.set_no_encryption(build_id)
+    ver_id = asc.ensure_version(app_id, version, log)
+    asc.set_whats_new(ver_id, a.get("whatsNew") or {}, log)
+    asc.attach_build(ver_id, build_id, log)
+    if steps.get("submit"):
+        asc.submit_for_review(app_id, ver_id, log)
+        log("\n\033[1;32m✔ Versão enviada para revisão. A Apple avisa por e-mail.\033[0m")
+    else:
+        log("\n\033[1;32m✔ Versão pronta no App Store Connect (não enviada para revisão).\033[0m")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=pdir, capture_output=True, text=True).stdout.strip()
+    store.project_meta_update(project, {"lastRelease": {"version": version, "build": build,
+                                                        "commit": head, "at": time.time()}})
+
+
 def main():
     a = json.load(open(sys.argv[1]))
     project = a["project"]
@@ -156,6 +180,59 @@ def main():
     acc = store.account(a["accountId"])
     key = store.asc_key(a["accountId"])
     asc = ASC(key.get("issuerId"), key.get("keyId"), key.get("p8"))
+
+    if a.get("ipaFile"):  # modo: .ipa de release já pronto, sem compilar nem assinar
+        ipa = a["ipaFile"]
+        if not os.path.isfile(ipa):
+            raise SystemExit(f"o arquivo .ipa não existe: {ipa}")
+        xtool_dir = os.path.realpath(os.path.join("/work", project, "xtool")) + os.sep
+        if not os.path.realpath(ipa).startswith(xtool_dir):
+            raise SystemExit("o .ipa precisa estar na pasta xtool do projeto")
+        if not ipa.lower().endswith(".ipa"):
+            raise SystemExit(f"o arquivo precisa terminar em .ipa: {ipa}")
+        version = str(a.get("version") or "").strip()
+        build = str(a.get("build") or "").strip()
+        if not version or not build.isdigit():
+            raise SystemExit("informe a versão e o número do build do .ipa")
+
+        step("1/3 Conferindo o app no App Store Connect")
+        bundle = a.get("bundleId") or conf.get("bundleID") or ""
+        if not bundle:
+            raise SystemExit("defina bundleID no xtool.yml")
+        app = asc.app_by_bundle(bundle)
+        app_id = app["id"]
+        log(f"App: {app['attributes'].get('name')} ({bundle}) — conta {acc.get('label')}")
+        nums = [int(b["version"]) for b in asc.builds(app_id, 50) if str(b.get("version", "")).isdigit()]
+        if int(build) in nums:
+            raise SystemExit(f"o build {build} já existe no App Store Connect (último: {max(nums)}): compile um build novo")
+        log(f"Versão {version}, build {build}")
+        try:
+            with zipfile.ZipFile(ipa) as z:
+                plist_names = [n for n in z.namelist() if re.fullmatch(r"Payload/[^/]+\.app/Info\.plist", n)]
+                ipa_info = plistlib.loads(z.read(plist_names[0])) if plist_names else None
+        except (OSError, zipfile.BadZipFile, plistlib.InvalidFileException, ValueError):
+            ipa_info = None
+        if ipa_info is None:
+            log("\033[33m⚠ não consegui ler o Info.plist do .ipa; confira versão, build e bundle manualmente\033[0m")
+        else:
+            diffs = []
+            for k, want in (("CFBundleShortVersionString", version), ("CFBundleVersion", build),
+                            ("CFBundleIdentifier", bundle)):
+                if str(ipa_info.get(k)) != want:
+                    diffs.append(f"{k} é {ipa_info.get(k)!r}, esperado {want!r}")
+            if diffs:
+                raise SystemExit("o .ipa não bate com o informado: " + "; ".join(diffs))
+
+        step("2/3 Enviando para o App Store Connect")
+        asc.upload_ipa(app_id, ipa, version, build, log)
+        store.project_meta_update(project, {"lastUpload": {"version": version, "build": build, "at": time.time()}})
+
+        if not steps.get("publish"):
+            log("\nBuild enviado. Ele aparece no TestFlight quando a Apple terminar de processar.")
+            return
+        step("3/3 Publicando a versão na App Store")
+        publish_and_submit(asc, app_id, version, build, a, steps, pdir)
+        return
 
     step("1/6 Conferindo o app no App Store Connect")
     bundle = a.get("bundleId") or conf.get("bundleID") or ""
@@ -229,20 +306,7 @@ def main():
         log("\nBuild enviado. Ele aparece no TestFlight quando a Apple terminar de processar.")
         return
     step("6/6 Publicando a versão na App Store")
-    build_id = asc.wait_build(app_id, version, build, log)
-    if a.get("noEncryption", True):
-        asc.set_no_encryption(build_id)
-    ver_id = asc.ensure_version(app_id, version, log)
-    asc.set_whats_new(ver_id, a.get("whatsNew") or {}, log)
-    asc.attach_build(ver_id, build_id, log)
-    if steps.get("submit"):
-        asc.submit_for_review(app_id, ver_id, log)
-        log("\n\033[1;32m✔ Versão enviada para revisão. A Apple avisa por e-mail.\033[0m")
-    else:
-        log("\n\033[1;32m✔ Versão pronta no App Store Connect (não enviada para revisão).\033[0m")
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=pdir, capture_output=True, text=True).stdout.strip()
-    store.project_meta_update(project, {"lastRelease": {"version": version, "build": build,
-                                                        "commit": head, "at": time.time()}})
+    publish_and_submit(asc, app_id, version, build, a, steps, pdir)
 
 
 if __name__ == "__main__":

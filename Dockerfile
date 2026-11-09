@@ -1,4 +1,4 @@
-# xtool (cross-platform Xcode replacement) + web management panel
+# xtool (cross-platform Xcode replacement) + web management panel (iOS, Android e PC/Steam)
 
 # --- accord: actool replacement that compiles Assets.car on Linux (no prebuilt binaries)
 FROM rust:1.91-bookworm AS accord
@@ -64,6 +64,46 @@ RUN curl -fL "https://dl.google.com/android/repository/commandlinetools-linux-${
  && /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}"
 ENV PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/build-tools/36.0.0
 
+# steamcmd: envia builds para a Steam (SteamPipe). Precisa das bibliotecas de 32 bits.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends lib32gcc-s1 lib32stdc++6 \
+ && rm -rf /var/lib/apt/lists/*
+# O steamcmd.sh calcula a própria pasta a partir de $0, então um symlink quebraria o
+# programa: por isso um wrapper em /usr/local/bin em vez de link simbólico.
+# O `+quit` inicial já baixa as atualizações do steamcmd para dentro da imagem.
+# `|| true` porque essa atualização inicial pode sair com código != 0 sem ser fatal.
+ARG STEAMCMD_URL=https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
+RUN mkdir -p /opt/steamcmd \
+ && curl -fL "${STEAMCMD_URL}" | tar xz -C /opt/steamcmd \
+ && (/opt/steamcmd/steamcmd.sh +quit || true) \
+ && printf '#!/bin/sh\nexec /opt/steamcmd/steamcmd.sh "$@"\n' > /usr/local/bin/steamcmd \
+ && chmod +x /usr/local/bin/steamcmd
+
+# ImageMagick: converte PNG em .ico para o ícone do .exe. Sempre instalado (é pequeno).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends imagemagick \
+ && rm -rf /var/lib/apt/lists/*
+
+# Wine: só entra com `--build-arg INSTALL_WINE=1` (padrão 0). Serve para aplicar ícone e
+# metadados dentro do .exe do Windows, porque o @electron/packager usa o rcedit, que roda sob
+# Wine quando o build é em Linux. Custa cerca de +3,9 GB na imagem. Sem ele, o .exe sai sem
+# ícone nem metadados (o resto do painel funciona igual).
+ARG INSTALL_WINE=0
+# Estas variáveis ficam sempre definidas; sem o Wine instalado não fazem nada.
+ENV WINEPREFIX=/opt/wineprefix \
+    WINEARCH=win64 \
+    WINEDEBUG=-all
+# Com o Wine: instala wine64 (só 64 bits, sem i386) e o Xvfb, que dá um display virtual para o
+# Wine iniciar sem tela (headless). O prefixo é inicializado no build, para o primeiro uso não
+# demorar nem imprimir ruído. WINEDLLOVERRIDES desliga o instalador de wine-mono/gecko no init,
+# que travaria sem tela.
+RUN if [ "$INSTALL_WINE" = "1" ]; then \
+      apt-get update \
+      && apt-get install -y --no-install-recommends wine64 wine xvfb \
+      && rm -rf /var/lib/apt/lists/* \
+      && xvfb-run -a env WINEDLLOVERRIDES="mscoree,mshtml=" wineboot --init; \
+    fi
+
 # --- accord: actool replacement (copied after the toolchain layers so they stay cached)
 COPY --from=accord /out/bin/accord /usr/local/bin/accord
 
@@ -74,10 +114,10 @@ RUN git config --system credential.helper '!gh auth git-credential' \
 COPY panel /opt/panel
 
 LABEL org.opencontainers.image.title="xtool Painel" \
-      org.opencontainers.image.version="1.1.0" \
+      org.opencontainers.image.version="1.2.0" \
       org.opencontainers.image.authors="marco3079" \
       org.opencontainers.image.source="https://github.com/marco3079/xtool-docker" \
-      org.opencontainers.image.description="xtool + painel web para compilar, instalar e publicar apps iOS (App Store) e Android (Google Play) sem Mac"
+      org.opencontainers.image.description="xtool + painel web para compilar, instalar e publicar apps iOS (App Store), Android (Google Play) e PC (Steam) sem Mac"
 
 WORKDIR /work
 EXPOSE 8080

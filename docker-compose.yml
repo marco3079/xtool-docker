@@ -1,7 +1,12 @@
 name: xtool
 services:
   xtool:
-    build: .
+    build:
+      context: .
+      # INSTALL_WINE=1 docker compose up -d --build instala o Wine para aplicar o ícone no .exe;
+      # ou coloque INSTALL_WINE=1 num arquivo .env ao lado deste compose. Padrão: 0 (sem Wine).
+      args:
+        INSTALL_WINE: ${INSTALL_WINE:-0}
     image: xtool
     container_name: xtool
     restart: unless-stopped
