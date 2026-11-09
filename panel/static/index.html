@@ -1287,19 +1287,20 @@ async function loadPlay(){await loadPlayAccs()}
 async function loadPlayAccs(){
   playAccGrid.innerHTML='<div class="empty">Carregando…</div>';
   try{await fetchPlayAccs()}catch(e){playAccGrid.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
-  playAccGrid.innerHTML=playAccs.length?playAccs.map(a=>`<div class="card acc">
-    <div class="avatar" style="background:${colorOf(a.id)}">${esc((a.label||'?')[0].toUpperCase())}</div>
-    <h3>${esc(a.label)}</h3>
-    <div class="kv"><span>E-mail</span><span>${esc(a.email||'—')}</span><span>Projeto</span><span>${esc(a.projectId||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span></div>
-    <div class="row">
-      ${a.id===topState.defaults.playAccountId?'<span class="pill ok"><i></i>principal</span>':`<button class="btn sm" onclick="topSet('playAccountId','${a.id}').then(loadPlay)">★ Principal</button>`}
-      <button class="btn sm" onclick="testPlayAcc('${a.id}')">Testar</button>
-      <button class="btn sm" onclick="renamePlayAcc('${a.id}')">Renomear</button>
-      <button class="btn sm danger" onclick="removePlayAcc('${a.id}')">Remover</button>
-      <span class="hint" id="pt-${a.id}"></span></div></div>`).join(''):'<div class="empty">Nenhuma conta Google Play. Adicione uma abaixo.</div>';
+  playAccGrid.innerHTML=playAccs.length?playAccs.map(a=>{const on=a.id===topState.defaults.playAccountId;return `<div class="card acc ${on?'on':''}">
+      <span class="tag pill ${on?'ok':''}"><i></i>${on?'em uso':'salva'}</span>
+      <div class="avatar" style="background:${colorOf(a.id)}">${esc((a.label||'?')[0].toUpperCase())}</div>
+      <h3>${esc(a.label)}</h3>
+      <div class="kv"><span>E-mail</span><span>${esc(a.email||'—')}</span><span>Projeto</span><span>${esc(a.projectId||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span><span>API Google Play</span><span id="pt-${a.id}">⚠️ não testada</span></div>
+      <div class="row">
+        ${on?'':`<button class="btn sm pri" onclick="topSet('playAccountId','${a.id}').then(loadPlay)">Usar esta</button>`}
+        <button class="btn sm" onclick="testPlayAcc('${a.id}')">Testar</button>
+        <button class="btn sm" onclick="renamePlayAcc('${a.id}')">Renomear</button>
+        <button class="btn sm danger" onclick="removePlayAcc('${a.id}')">Remover</button>
+      </div></div>`}).join(''):'<div class="empty">Nenhuma conta Google Play. Adicione uma abaixo.</div>';
   refreshPlayAppAcc()}
 function refreshPlayAppAcc(){const sel=val('playAppAcc')||topState.defaults.playAccountId;playAppAcc.innerHTML=playAccs.length?playAccs.map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.label)}</option>`).join(''):'<option value="">cadastre uma conta em Contas → Google Play</option>'}
-async function testPlayAcc(id){const s=$('pt-'+id);if(s)s.textContent='testando…';try{const r=await api('/api/play/test',{id});if(s)s.textContent='✔ conectado'+(r.email?' · '+r.email:'')}catch(e){if(s)s.textContent='✖ '+e.message}}
+async function testPlayAcc(id){const s=$('pt-'+id);if(s)s.textContent='testando…';try{const r=await api('/api/play/test',{id});if(s)s.textContent='✅ conectada'+(r.email?' · '+r.email:'')}catch(e){if(s)s.textContent='❌ '+e.message}}
 async function renamePlayAcc(id){const a=playAccs.find(x=>x.id===id);const n=prompt('Novo nome da conta:',a?a.label:'');if(!n||!n.trim())return;try{await api('/api/play/accounts/rename',{id,label:n.trim()});loadPlay()}catch(e){toast(e.message)}}
 async function removePlayAcc(id){const a=playAccs.find(x=>x.id===id);if(!confirm(`Remover a conta "${a?a.label:id}" do painel? Os apps dela também saem da lista (nada é apagado no Google Play).`))return;try{await api('/api/play/accounts/remove',{id});loadPlay()}catch(e){toast(e.message)}}
 async function addPlayAcc(){const f=playJson.files[0];if(!f)return toast('Escolha o arquivo JSON da conta de serviço');try{const json=await f.text();await api('/api/play/accounts/add',{label:val('playLabel'),json});playLabel.value='';playJson.value='';toast('Conta Google Play adicionada');loadPlay()}catch(e){toast(e.message)}}

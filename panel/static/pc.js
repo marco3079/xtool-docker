@@ -239,16 +239,18 @@ function openPcPublish(project){pcWanted=project;go('pc')}
 function openPcPublishApp(accountId,appId){pcWantedApp={accountId,appId};go('pc')}
 
 /* ---------- contas Steam e apps ---------- */
-/* pill de conexão de uma conta Steam (estado de steamStat) */
+/* texto de estado de login de uma conta Steam, no mesmo estilo do "Login" da conta Apple (estado de steamStat) */
 function steamPill(st){
-  const s=st&&st.state, m=esc((st&&st.message)||'');
-  if(!s||s==='checking')return '<span class="pill off"><i></i>Verificando…</span>';
-  if(s==='ok')return `<span class="pill ok" title="${m}"><i></i>Conectada</span>`;
-  if(s==='nologin')return `<span class="pill warn" title="${m}"><i></i>Sem login</span>`;
-  if(s==='busy')return `<span class="pill off" title="${m}"><i></i>Ocupado…</span>`;
-  return `<span class="pill off" title="${m}"><i></i>Não verificado</span>`}
-/* span com id que envolve a pill (é trocado inteiro por steamRepaint) */
-function steamPillWrap(id){return `<span id="steamPill-${esc(id)}">${steamPill(steamStat[id])}</span>`}
+  const s=st&&st.state;
+  if(!s||s==='checking')return '⏳ verificando…';
+  if(s==='ok')return '✅ conectada';
+  if(s==='nologin')return '⚠️ sem login';
+  if(s==='busy')return '⏳ ocupado…';
+  return '⚠️ não verificado'}
+/* span com id que envolve o texto de login (é trocado inteiro por steamRepaint); message no title */
+function steamPillWrap(id){
+  const st=steamStat[id], m=esc((st&&st.message)||'');
+  return `<span id="steamPill-${esc(id)}" ${m?`title="${m}"`:''}>${steamPill(st)}</span>`}
 /* célula "Conexão" do kv do card: rótulo + mensagem curta do último check ('—' se não há) */
 function steamConnCells(id){
   const st=steamStat[id];
@@ -319,17 +321,18 @@ async function loadSteam(){
   steamAccs=accs;
   $('steamStatus').innerHTML=st.steamcmd?`<p class="hint" style="margin:0 0 12px">✔ steamcmd instalado em ${esc(st.path||'')}</p>`:'<p class="hint" style="margin:0 0 12px;color:var(--warn)">steamcmd não encontrado: reconstrua a imagem</p>';
   const dAcc=steamPrincipalId();
-  $('steamAccGrid').innerHTML=steamAccs.length?steamAccs.map(a=>`<div class="card acc">
+  /* mesmo layout do card da conta Apple: selo "em uso"/"salva", avatar, kv e botões */
+  $('steamAccGrid').innerHTML=steamAccs.length?steamAccs.map(a=>{const on=a.id===dAcc;return `<div class="card acc ${on?'on':''}">
+    <span class="tag pill ${on?'ok':''}"><i></i>${on?'em uso':'salva'}</span>
     <div class="avatar" style="background:${colorOf(String(a.id))}">${esc((a.label||'?')[0].toUpperCase())}</div>
     <h3>${esc(a.label)}</h3>
-    <div class="kv"><span>Usuário</span><span style="font-family:var(--mono)">${esc(a.username||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span>${steamConnCells(a.id)}</div>
+    <div class="kv"><span>Usuário</span><span style="font-family:var(--mono)">${esc(a.username||'—')}</span><span>Adicionada</span><span>${a.added?new Date(a.added*1000).toLocaleDateString('pt-BR'):'—'}</span><span>Login</span>${steamPillWrap(a.id)}${steamConnCells(a.id)}</div>
     <div class="row">
-      ${a.id===dAcc?'<span class="pill ok"><i></i>principal</span>':`<button class="btn sm" onclick="setSteamPrincipal('${esc(a.id)}')">★ Principal</button>`}
-      ${steamPillWrap(a.id)}
+      ${on?'':`<button class="btn sm pri" onclick="setSteamPrincipal('${esc(a.id)}')">Usar esta</button>`}
       <button id="steamLogin-${esc(a.id)}" class="${steamLoginCls(a.id)}" onclick="loginSteamAcc('${esc(a.id)}')">🔑 Login</button>
       <button class="btn sm" onclick="steamCheck('${esc(a.id)}',true)">↻ Verificar</button>
       <button class="btn sm" onclick="renameSteamAcc('${esc(a.id)}')">Renomear</button>
-      <button class="btn sm danger" onclick="removeSteamAcc('${esc(a.id)}')">Remover</button></div></div>`).join(''):'<div class="empty">Nenhuma conta Steam. Adicione uma abaixo.</div>';steamCheckAll()}
+      <button class="btn sm danger" onclick="removeSteamAcc('${esc(a.id)}')">Remover</button></div></div>`;}).join(''):'<div class="empty">Nenhuma conta Steam. Adicione uma abaixo.</div>';steamCheckAll()}
 
 async function addSteamAcc(){
   const username=val('steamUser');
