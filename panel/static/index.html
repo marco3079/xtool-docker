@@ -881,8 +881,9 @@ async function loadProjects(){
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
     <div class="row" style="flex-basis:100%;padding:10px 0 0 50px;border-top:1px solid var(--line);margin-top:4px">
       <button class="btn sm" onclick="projConfigure(${P})">⚙ Configurar</button>
+      <button class="btn sm" onclick="projDatabase(${P})">🗄 Banco de dados${(p.dbCount||0)>0?' <span class="pill">'+p.dbCount+'</span>':''}</button>
       ${anyCfg?`<button class="btn sm pri" onclick="projBuild(${P})">🔨 Build</button>
-      <button class="btn sm" ${(p.releaseCount||0)>0?'':'disabled'} onclick="projDeliver(${P})" title="${(p.releaseCount||0)>0?'Enviar um build release para a loja':'Nenhum build release ainda: gere um em Build (modo Release)'}">📤 Enviar para a loja</button>`:''}
+      <button class="btn sm" ${(p.releaseCount||0)>0?'':'disabled'} onclick="projDeliver(${P})" title="${(p.releaseCount||0)>0?'Enviar um build release para a loja':((p.dbCount||0)>0&&(p.releaseCount||0)===0?'Nenhum build release feito com o banco prod: gere um em Build escolhendo o banco Produção':'Nenhum build release ainda: gere um em Build (modo Release)')}">📤 Enviar para a loja</button>`:''}
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
     </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
 async function loadRunAdb(){
@@ -1562,6 +1563,7 @@ iconify(document.body);biObs.observe(document.body,BI_OPTS);
 <script src="/static/pc.js"></script>
 <script src="/static/devices.js"></script>
 <script src="/static/projects.js"></script>
+<script src="/static/database.js"></script>
 <script src="/static/deliver.js"></script>
 <script src="/static/projlinks.js"></script>
 </body>

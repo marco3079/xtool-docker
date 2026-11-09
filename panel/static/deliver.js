@@ -14,11 +14,22 @@ const pdSel=name=>{const el=document.querySelector(`input[name="${name}"]:checke
 const pdKind=b=>(b.platform==='pc'&&b.kind==='folder')?'pasta pronta':b.kind;
 const pdLabel=b=>`v${esc(b.version)} · build ${esc(b.build)} · ${esc(pdKind(b))} · ${esc(pmFmtDate(b.at))} · ${esc(pmSize(b.size))}`;
 
+/* builds não deliverable (banco Produção sem build prod) aparecem desabilitados com o motivo; o padrão é o primeiro deliverable */
 function pdRadios(name,builds){
-  return builds.map((b,i)=>`<label class="check" style="margin:4px 0"><input type="radio" name="${esc(name)}" value="${esc(b.id)}" ${i===0?'checked':''}>${pdLabel(b)}</label>`).join('');
+  const firstOk=builds.find(b=>b.deliverable!==false);
+  return builds.map(b=>{
+    const ok=b.deliverable!==false;
+    const tag=ok&&b.database?` <span class="hint" style="margin-left:6px">🗄 ${esc(b.database.name)}</span>`:'';
+    const why=ok?'':`<div class="hint" style="margin:0 0 6px 24px">${esc(b.deliverReason||'não pode ser enviado')}</div>`;
+    return `<label class="check" style="margin:4px 0;${ok?'':'opacity:.5'}"><input type="radio" name="${esc(name)}" value="${esc(b.id)}" ${ok?'':'disabled'} ${b===firstOk?'checked':''}>${pdLabel(b)}${tag}</label>${why}`;
+  }).join('');
 }
 function pdDisabled(p){
   return `<div class="card" style="margin-bottom:12px;opacity:.6"><label class="check"><input type="checkbox" disabled>${PD_PLATS[p]}</label><div class="hint">sem build release</div></div>`;
+}
+/* seção com builds release mas nenhum deliverable: aparece desabilitada, com os motivos */
+function pdOff(p,inner){
+  return `<div class="card" style="margin-bottom:12px;opacity:.6"><label class="check"><input type="checkbox" disabled>${PD_PLATS[p]}</label>${inner}</div>`;
 }
 function pdToggle(cb,sec){const el=$(sec);if(el)el.style.opacity=chk(cb)?'':'.55'}
 function pdStatusChanged(){const w=$('pdAndFracWrap');if(w)w.style.display=val('pdAndStatus')==='inProgress'?'':'none'}
@@ -84,9 +95,12 @@ async function pdOpenDeliver(project){
   const configured=p=>!!(P[p]&&P[p].configured&&P[p].enabled);
   const rel=(ov.builds||[]).filter(b=>b.release===true&&PD_IDS[b.platform]&&configured(b.platform)&&(b.platform!=='pc'||PD_TARGETS[b.target]));
   rel.sort((a,b)=>(b.at||0)-(a.at||0));
+  /* deliv: builds que podem ser enviados (sem restrição de banco); rel: todos os release, mostrados na lista */
+  const deliv=rel.filter(b=>b.deliverable!==false);
   const byId={};rel.forEach(b=>{byId[b.id]=b});
-  const pcTargets=Object.keys(PD_TARGETS).filter(t=>rel.some(b=>b.platform==='pc'&&b.target===t));
-  const sec={ios:rel.some(b=>b.platform==='ios'),android:rel.some(b=>b.platform==='android'),pc:pcTargets.length>0};
+  const pcTargetsAll=Object.keys(PD_TARGETS).filter(t=>rel.some(b=>b.platform==='pc'&&b.target===t));
+  const pcTargets=Object.keys(PD_TARGETS).filter(t=>deliv.some(b=>b.platform==='pc'&&b.target===t));
+  const sec={ios:deliv.some(b=>b.platform==='ios'),android:deliv.some(b=>b.platform==='android'),pc:pcTargets.length>0};
   pdCtx={project,ov,sec,byId,pcTargets};
 
   /* envio travado: nenhum build release nas plataformas configuradas */
@@ -94,15 +108,22 @@ async function pdOpenDeliver(project){
     pmModal('📤 Enviar '+project,'<p>Nenhum build release ainda: gere um em 🔨 Build (modo Release).</p>',[{label:'Fechar',cls:'',id:'pdClose',onClick:()=>pmClose()}]);
     return;
   }
+  /* envio travado: há builds release, mas nenhum pode ser enviado (todos sem banco prod) */
+  if(!deliv.length){
+    pmModal('📤 Enviar '+project,'<p>Nenhum build release feito com o banco Produção. Gere um em Build escolhendo o banco prod.</p>',[{label:'Fechar',cls:'',id:'pdClose',onClick:()=>pmClose()}]);
+    return;
+  }
 
   /* iOS */
   let secIos='';
   if(configured('ios')){
     const bundle=SI.bundleId||(P.ios&&P.ios.bundleId)||'';
-    if(!sec.ios)secIos=pdDisabled('ios');
+    const iosRel=rel.filter(b=>b.platform==='ios');
+    if(!iosRel.length)secIos=pdDisabled('ios');
+    else if(!sec.ios)secIos=pdOff('ios',`<div class="field"><label>Build release</label>${pdRadios('pdIosBuild',iosRel)}</div>`);
     else secIos=`<div class="card" id="pdSecIos" style="margin-bottom:12px">
       <label class="check"><input type="checkbox" id="pdIos" checked onchange="pdToggle('pdIos','pdSecIos')"><b>${PD_PLATS.ios}</b></label>
-      <div class="field"><label>Build release</label>${pdRadios('pdIosBuild',rel.filter(b=>b.platform==='ios'))}</div>
+      <div class="field"><label>Build release</label>${pdRadios('pdIosBuild',iosRel)}</div>
       <div class="field"><label>Conta Apple</label><select id="pdIosAcc">${(A.apple||[]).map(a=>`<option value="${esc(a.id)}" ${a.id===SI.accountId?'selected':''}>${esc(a.label)}${a.hasApi?'':' — sem API da Apple'}</option>`).join('')||'<option value="">nenhuma conta Apple</option>'}</select></div>
       <div class="field"><label>Bundle ID</label><input type="text" id="pdIosBundle" value="${esc(bundle)}" style="font-family:var(--mono)"></div>
       <label class="check"><input type="checkbox" id="pdIosSubmit" ${SI.submit?'checked':''}>enviar para revisão</label>
@@ -113,10 +134,12 @@ async function pdOpenDeliver(project){
   let secAnd='';
   if(configured('android')){
     const trackSel=SA.track||'internal', statusSel=SA.status||'completed';
-    if(!sec.android)secAnd=pdDisabled('android');
+    const andRel=rel.filter(b=>b.platform==='android');
+    if(!andRel.length)secAnd=pdDisabled('android');
+    else if(!sec.android)secAnd=pdOff('android',`<div class="field"><label>Build release</label>${pdRadios('pdAndBuild',andRel)}</div>`);
     else secAnd=`<div class="card" id="pdSecAnd" style="margin-bottom:12px">
       <label class="check"><input type="checkbox" id="pdAnd" checked onchange="pdToggle('pdAnd','pdSecAnd')"><b>${PD_PLATS.android}</b></label>
-      <div class="field"><label>Build release</label>${pdRadios('pdAndBuild',rel.filter(b=>b.platform==='android'))}</div>
+      <div class="field"><label>Build release</label>${pdRadios('pdAndBuild',andRel)}</div>
       <div class="field"><label>Conta Google Play</label><select id="pdAndAcc">${(A.play||[]).map(a=>`<option value="${esc(a.id)}" ${a.id===SA.playAccountId?'selected':''}>${esc(a.label)}</option>`).join('')||'<option value="">nenhuma conta Google Play</option>'}</select></div>
       <div class="field"><label>Faixa</label><select id="pdAndTrack">${PD_TRACKS.map(([v,l])=>`<option value="${esc(v)}" ${v===trackSel?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
       <div class="field"><label>Status</label><select id="pdAndStatus" onchange="pdStatusChanged()">${PD_STATUSES.map(([v,l])=>`<option value="${esc(v)}" ${v===statusSel?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
@@ -127,10 +150,12 @@ async function pdOpenDeliver(project){
   /* PC (Steam) */
   let secPc='';
   if(configured('pc')){
-    if(!sec.pc)secPc=pdDisabled('pc');
+    const pcRel=rel.filter(b=>b.platform==='pc');
+    if(!pcRel.length)secPc=pdDisabled('pc');
+    else if(!sec.pc)secPc=pdOff('pc',pcTargetsAll.map(t=>`<div class="field"><label>${esc(PD_TARGETS[t])}</label>${pdRadios('pdPcBuild-'+t,pcRel.filter(b=>b.target===t))}</div>`).join(''));
     else secPc=`<div class="card" id="pdSecPc" style="margin-bottom:12px">
       <label class="check"><input type="checkbox" id="pdPc" checked onchange="pdToggle('pdPc','pdSecPc')"><b>${PD_PLATS.pc}</b></label>
-      ${pcTargets.map(t=>`<div class="field"><label class="check"><input type="checkbox" id="pdPcT-${t}" checked>${esc(PD_TARGETS[t])}</label>${pdRadios('pdPcBuild-'+t,rel.filter(b=>b.platform==='pc'&&b.target===t))}</div>`).join('')}
+      ${pcTargetsAll.map(t=>`<div class="field"><label class="check"><input type="checkbox" id="pdPcT-${t}" ${pcTargets.includes(t)?'checked':'disabled'}>${esc(PD_TARGETS[t])}</label>${pdRadios('pdPcBuild-'+t,pcRel.filter(b=>b.target===t))}</div>`).join('')}
       <div class="field"><label>Conta Steam</label><select id="pdPcAcc" onchange="pdPcAccChanged()">${(A.steam||[]).map(a=>`<option value="${esc(a.id)}" ${a.id===SP.steamAccountId?'selected':''}>${esc(a.label)}</option>`).join('')||'<option value="">nenhuma conta Steam</option>'}</select></div>
       <div class="field"><label>App Steam</label><select id="pdPcApp" onchange="pdPcAppChanged()"></select></div>
       <div class="field"><label>Branch a liberar</label><input type="text" id="pdPcBranch" value="${esc(SP.branch||'')}" placeholder="vazio = só envia o build" style="font-family:var(--mono)"></div>
@@ -170,6 +195,9 @@ async function pdSubmit(){
   const project=c.project, ov=c.ov;
   const S=ov.settings||{}, A=ov.accounts||{}, P=ov.platforms||{};
   const pk=pdPicks();
+  /* defesa extra: nunca enviar build marcado como não deliverable (ex.: banco Produção sem build prod) */
+  const naoEnv=[pk.ios,pk.android,...pk.pc.map(x=>x.b)].find(b=>b&&b.deliverable===false);
+  if(naoEnv)return toast(naoEnv.deliverReason||'Este build não pode ser enviado');
   if(c.sec.pc&&chk('pdPc')&&!pk.pc.length)return toast('Marque ao menos um alvo de PC');
   if(!pk.ios&&!pk.android&&!pk.pc.length)return toast('Marque ao menos uma plataforma');
   const notas=val('pdNotes');

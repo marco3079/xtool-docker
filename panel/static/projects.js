@@ -238,13 +238,23 @@ async function projBuildBody(project){
     <div class="pm-row"><label class="check" style="margin:0"><input type="checkbox" id="pbPc" ${dis('pc')}>🖥️ PC</label>
       ${PCT.map(([p,id,l])=>`<label class="check" style="margin:0"><input type="checkbox" id="${id}" ${pcPre.includes(p)&&ok.pc?'checked':''} ${ok.pc?'':'disabled'}>${l}</label>`).join('')}
       <span class="hint">tipo de código: ${esc(typeLabel)}</span></div>${why('pc')}`:'';
+  /* bancos do projeto (ov.databases): seção só aparece quando há algum */
+  const dbs=ov.databases||[];
+  const DBR={prod:'Produção',dev:'Desenvolvimento',other:'Outro'};
+  const dbLbl=d=>DBR[d.role]||'Outro';
+  const dbProd=dbs.find(d=>d.role==='prod');
+  const dbInit=(dbs.find(d=>d.role==='dev')||dbs[0]||{}).id;
+  const dbSec=dbs.length?`<div class="pm-sec">
+    <div class="field"><label>🗄 Banco de dados</label><select id="pbDb">${dbs.map(d=>`<option value="${esc(d.id)}" ${d.id===dbInit?'selected':''}>${esc(d.name)} — ${dbLbl(d)}</option>`).join('')}</select></div>
+    <div class="hint" id="pbDbHint"></div>
+  </div>`:'';
 
   const h=`
   <div class="pm-sec">
     ${rowIos}
     ${rowAnd}
     ${rowPc}
-  </div>
+  </div>${dbSec}
   <div class="pm-sec">
     <div class="pm-grid">
       <div class="field"><label>Origem da versão</label><select id="pbVerSrc">${pmVersionOptions(ov)}</select></div>
@@ -299,7 +309,14 @@ async function projBuildBody(project){
     /* instalar/abrir no aparelho só existe no modo debug (ignorado em release) */
     const iosRunBox=$('pbIosRunBox'),andRunBox=$('pbAndRunBox');
     if(iosRunBox)iosRunBox.hidden=!(chk('pbIos')&&val('pbIosMode')==='debug');
-    if(andRunBox)andRunBox.hidden=!(chk('pbAnd')&&val('pbAndMode')==='debug')};
+    if(andRunBox)andRunBox.hidden=!(chk('pbAnd')&&val('pbAndMode')==='debug');
+    /* banco: com envio à loja marcado, só o prod serve; aviso em vermelho quando não é */
+    const dbEl=$('pbDb'),dbHint=$('pbDbHint');
+    if(dbEl&&dbHint){
+      const cur=dbs.find(d=>d.id===dbEl.value)||{};
+      const warn=up&&!dbProd?'Cadastre um banco prod em 🗄 Banco de dados para enviar às lojas.':up&&cur.role!=='prod'?'Só builds feitos com o banco Produção vão para a loja.':'';
+      dbHint.textContent=warn;
+      dbHint.style.color=warn?'var(--bad)':''}};
   /* apps da conta Steam escolhida */
   const pbFillApps=()=>{
     const acc=val('pbPcAcc');
@@ -312,6 +329,13 @@ async function projBuildBody(project){
     catch(e){toast(e.message)}};
   ['pbIos','pbAnd','pbPc','pbPcWin32','pbPcLinux','pbPcDarwin'].forEach(id=>{const el=$(id);if(el)el.onchange=()=>{pbRefresh();refreshVer(false)}});
   ['pbIosMode','pbAndMode','pbUpload'].forEach(id=>{const el=$(id);if(el)el.onchange=pbRefresh});
+  /* bancos: ao marcar envio à loja com banco não-prod, troca para o prod (se houver) */
+  if($('pbDb')){
+    $('pbDb').onchange=pbRefresh;
+    $('pbUpload').onchange=()=>{
+      const cur=dbs.find(d=>d.id===val('pbDb'))||{};
+      if(chk('pbUpload')&&dbProd&&cur.role!=='prod'){$('pbDb').value=dbProd.id;toast('Envio para a loja: banco Produção selecionado')}
+      pbRefresh()}}
   $('pbPcAcc').onchange=pbFillApps;
   $('pbGen').onclick=async()=>{
     if(!ov.changes)return toast('Sem mudanças no git: escreva as notas à mão');
@@ -343,12 +367,18 @@ async function projBuildBody(project){
     if(up&&pcOn){
       if(!val('pbPcAcc')||!val('pbPcApp'))return toast('Escolha a conta e o app da Steam');
       if(val('pbPcBranch').toLowerCase()==='default')return toast('A branch default não pode ser liberada pelo painel')}
+    /* banco: envio à loja exige banco prod (sem banco prod cadastrado, bloqueia qualquer envio) */
+    const db=val('pbDb'), selDb=dbs.find(d=>d.id===db)||{};
+    if(dbs.length){
+      if(up&&!dbProd)return toast('Cadastre um banco prod em 🗄 Banco de dados para enviar às lojas');
+      if(up&&(iosRel||andRel||pcOn)&&selDb.role!=='prod')return toast('Só dá para enviar para a loja com o banco prod')}
     /* confirmação resumida quando há envio para a loja */
     const lojas=[];
     if(up&&iosRel)lojas.push('App Store (iOS'+(chk('pbIosSubmit')?', enviar para revisão':'')+')');
     if(up&&andRel)lojas.push('Google Play (faixa '+val('pbAndTrack')+')');
     if(up&&pcOn)lojas.push('Steam (app '+val('pbPcApp')+(val('pbPcBranch')?' → branch '+val('pbPcBranch'):' sem liberar')+')');
-    if(lojas.length&&!confirm(`Build ${project} v${ver}\n\nEnviar para: ${lojas.join(', ')}\n\nConfirmar?`))return;
+    const dbLine=dbs.length?`\nBanco: ${selDb.name||''} (${dbLbl(selDb)})`:'';
+    if(lojas.length&&!confirm(`Build ${project} v${ver}${dbLine}\n\nEnviar para: ${lojas.join(', ')}\n\nConfirmar?`))return;
     /* grava os campos usados */
     try{
       if(iosRel)await pmSaveSettings(project,'ios',{accountId:val('pbIosAcc'),bundleId:val('pbIosBundle'),iosSubmit:chk('pbIosSubmit')});
@@ -374,6 +404,8 @@ async function projBuildBody(project){
       if(iosRel)steps.push({action:'release',args:{accountId:val('pbIosAcc'),bundleId:val('pbIosBundle'),version:ver,build:'auto',steps:up?{upload:true,publish:true,submit:chk('pbIosSubmit')}:{upload:false,publish:false,submit:false},whatsNew:up?{'pt-BR':notes}:{},noEncryption:true},title:'iOS release (.ipa assinado)'});
       else if(chk('pbIosRun'))steps.push({action:'dev.run',args:{config:'debug',udid:'',conn:'all'},title:'iOS debug no iPhone'});
       else steps.push({action:'dev.build',args:{config:'debug',sign:true,ipa:true},title:'iOS debug (.ipa)'})}
+    /* banco: cada etapa leva o id escolhido (só quando há bancos) */
+    if(dbs.length)steps.forEach(s=>{s.args.database=db});
     pmClose();
     run('multi',{project,steps},'Build '+project,project);
   }

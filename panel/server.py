@@ -24,6 +24,8 @@ from urllib.parse import urlparse, parse_qs, unquote
 import ai
 import android
 import builds
+import dbdetect
+import dbenv
 import github
 import pc
 import steam
@@ -34,7 +36,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -677,8 +679,12 @@ def projects():
             rel_count = builds.release_count(name, d)
         except Exception:  # noqa
             rel_count = 0
+        try:
+            db_count = len(dbenv.databases(name))
+        except Exception:  # noqa
+            db_count = 0
         res.append({
-            "configured": conf, "releaseCount": rel_count,
+            "configured": conf, "releaseCount": rel_count, "dbCount": db_count,
             "name": name,
             "hasToml": bool(yml),
             "bundleId": yml.get("bundleID", ""),
@@ -1154,6 +1160,7 @@ def project_overview(project):
         },
         "steamApps": store.steam_apps_list(),
         "changes": changes,
+        "databases": dbenv.databases(project),
     }
 
 
@@ -1187,6 +1194,40 @@ def project_settings(b):
     else:
         raise ValueError("configuração inválida")
     return {"ok": True}
+
+
+def project_databases_get(qs):
+    """Bancos cadastrados do projeto e os candidatos achados na pasta (dbdetect)."""
+    project = str(qs.get("project", "") or "")
+    if not project:
+        raise ValueError("projeto não encontrado")
+    d = safe_path("work", project)
+    if not os.path.isdir(d):
+        raise ValueError("projeto não encontrado")
+    return {"databases": dbenv.databases(project), "found": dbdetect.detect(d)}
+
+
+def project_databases_save(b):
+    """Grava (save) ou apaga (delete) um banco de dados do projeto."""
+    project = str(b.get("project", "") or "")
+    if not project:
+        raise ValueError("projeto não encontrado")
+    if not os.path.isdir(safe_path("work", project)):
+        raise ValueError("projeto não encontrado")
+    action = b.get("action")
+    if action == "save":
+        db = b.get("database")
+        if not isinstance(db, dict):
+            raise ValueError("banco inválido")
+        saved = dbenv.save_database(project, db)
+        return {"databases": dbenv.databases(project), "saved": saved}
+    if action == "delete":
+        dbid = b.get("id")
+        if not isinstance(dbid, str) or not dbid:
+            raise ValueError("banco inválido")
+        dbenv.delete_database(project, dbid)
+        return {"databases": dbenv.databases(project)}
+    raise ValueError("ação inválida")
 
 
 def steam_status():
@@ -1414,6 +1455,23 @@ def new_project_env(a):
 MULTI_OK = ("dev.build", "dev.run", "release", "android.release", "pc.build", "steam.release")
 
 
+def _store_file_rels(project, act, args):
+    """Arquivos (relativos ao projeto) que a etapa usa, para o gate do dbenv. None = não se aplica."""
+    if act == "android.release":
+        return [dbenv.abs_to_rel(args["existing"])] if args.get("existing") else None
+    if act == "release":
+        return [dbenv.abs_to_rel(args["ipaFile"])] if args.get("ipaFile") else None
+    if act == "steam.release":
+        from_zips = args.get("fromZips") or {}
+        if from_zips:
+            return [dbenv.abs_to_rel(v) for v in from_zips.values()]
+        if args.get("build") is False:
+            plats = args.get("platforms") or ["win32"]
+            return [b["file"] for b in builds.list_builds(project, safe_path("work", project))
+                    if b.get("platform") == "pc" and b.get("kind") == "folder" and b.get("target") in plats]
+    return None
+
+
 def multi_script(a):
     """Script bash que roda, em sequência, até 8 ações da whitelist MULTI_OK; para na primeira que falhar."""
     steps = a.get("steps")
@@ -1423,6 +1481,7 @@ def multi_script(a):
         raise ValueError("no máximo 8 etapas")
     project = str(a.get("project", ""))
     n = len(steps)
+    dbenv_py = os.path.join(PANEL_PY, "dbenv.py")
     lines = ["set -u"]
     for i, st in enumerate(steps, 1):
         if not isinstance(st, dict):
@@ -1430,13 +1489,39 @@ def multi_script(a):
         act = st.get("action", "")
         if act not in MULTI_OK:
             raise ValueError(f"ação não permitida em sequência: {act}")
-        argv, env = build_cmd(act, {**(st.get("args") or {}), "project": project})
+        args = dict(st.get("args") or {})
+        args["project"] = project
+        if isinstance(args.get("database"), dict):  # normaliza para o id (string) antes do dbenv
+            args["database"] = str(args["database"].get("id") or "")
+        dbenv.check_store_step(project, act, args, _store_file_rels(project, act, args))
+        args2, dbenv_env = dbenv.step_plan(project, act, args)
+        argv, env = build_cmd(act, args2)
+        env = {**(env or {}), **(dbenv_env or {})}
         title = re.sub(r"['\"`$\\\n\r]", "", str(st.get("title") or act)).strip() or act
         t = shlex.quote(title)
         pre = (["env"] + [f"{k}={v}" for k, v in env.items()]) if env else []
         cmd = shlex.join(pre + argv)
+        dbid = args.get("database")  # id do banco (string), como em dbenv.step_plan
+        if dbid:
+            if not isinstance(dbid, str):
+                raise ValueError("banco inválido")
+            db = dbenv.get(project, dbid)
+            if not db:
+                raise ValueError("banco não encontrado")
         lines.append("printf '\\n\\033[1;36m━━ %s/%s %s ━━\\033[0m\\n' " + f"{i} {n} {t}")
+        if dbid:
+            bname = str(db.get("name") or dbid)
+            brole = str(db.get("role") or "")
+            lines.append("printf '\\033[1;36mBanco: %s (%s)\\033[0m\\n' "
+                         + f"{shlex.quote(bname)} {shlex.quote(brole)}")
+            lines.append(f"T{i}=$(date +%s)")
+            apply_cmd = shlex.join(["python3", "-u", dbenv_py, "apply", project, dbid])
+            lines.append(f"{apply_cmd} || {{ printf '\\033[1;31m✖ falha ao preparar o banco: %s\\033[0m\\n' "
+                         f"{shlex.quote(bname)}; exit 1; }}")
         lines.append(f"{cmd} || {{ printf '\\033[1;31m✖ etapa falhou: %s\\033[0m\\n' {t}; exit 1; }}")
+        if dbid:
+            record_cmd = shlex.join(["python3", "-u", dbenv_py, "record", project, dbid])
+            lines.append(f'{record_cmd} "$T{i}" || true')
     lines.append("printf '\\033[1;32m✔ Todas as etapas terminaram\\033[0m\\n'")
     return "\n".join(lines)
 
@@ -1739,6 +1824,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json(pc_profile(qs.get("project", ""), qs.get("type", "")))
             if u.path == "/api/project/overview":
                 return self._json(project_overview(qs.get("project", "")))
+            if u.path == "/api/project/databases":
+                return self._json(project_databases_get(qs))
             if u.path == "/api/pull/state":  # leve: só lê o dicionário, não roda git
                 with PULL_LOCK:
                     return self._json({k: dict(v) for k, v in PULL_STATE.items()})
@@ -1815,6 +1902,7 @@ class H(BaseHTTPRequestHandler):
                                                      store.steam_apps_list())[1],
                 "/api/defaults/set": lambda b: (store.defaults_set(b), topbar())[1],
                 "/api/project/settings": project_settings,
+                "/api/project/databases": project_databases_save,
                 "/api/projects/pull": project_pull,
             }
             if u.path in acc_routes:

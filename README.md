@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.2.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.3.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -31,6 +31,7 @@ By **[marco3079](https://github.com/marco3079)**
 - [Instalação](#instalação)
 - [Primeiros passos](#primeiros-passos)
 - [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)
+- [Banco de dados por projeto](#banco-de-dados-por-projeto)
 - [Conectar o iPhone](#conectar-o-iphone)
 - [Publicar na App Store](#publicar-na-app-store)
 - [Android e Google Play](#android-e-google-play)
@@ -76,7 +77,7 @@ http://localhost:8080
 | **Contas** → Steam | Aba **Steam** do menu **Contas**: cadastra contas Steam (nome e usuário de build do Steamworks, sem senha) e faz o login pelo console do steamcmd. Cada conta mostra se está **Conectada**, **Sem login**, **Ocupado…** ou **Não verificado** (checagem com o login salvo, com o botão **↻ Verificar**). O botão **★ Principal** define a conta do topo |
 | **Apps da conta** | Aba **Apple**: registro de todos os apps de todas as contas, apps do App Store Connect com o estado de cada versão, bundle IDs com ícone e prévia da página da App Store num iPhone. Aba **Google Play**: apps de cada conta, versões por faixa (interno, fechado, aberto, produção) e prévia da página da Google Play com a ficha do Play Console. Aba **Steam**: apps registrados (todas as contas) com App ID, Depot IDs por plataforma e branch padrão, apps da conta selecionada e botão **Publicar**, que abre Publicar → 🎮 Steam (PC) com o app escolhido |
 | **Barra do topo** | Seletores da **conta Steam** (🎮) e da **conta Google Play** (▶): a escolha vira a conta principal salva, usada como padrão nas telas de Publicar e Apps da conta quando o projeto ainda não tem conta própria. Três indicadores iguais, clicáveis (abrem a aba correspondente de Dispositivos): **iPhone** (conectado, desconectado ou "abra o iTunes" quando o serviço Apple do Windows está desligado; a dica lista os aparelhos e se estão por cabo ou Wi-Fi), **Android** (conectado ou desconectado, pelo `adb devices`) e **PC** (conectado ou desconectado, pelo `host.docker.internal`; a dica mostra também se o serviço Apple está ativo), atualizados a cada 5 segundos. O aparelho iPhone padrão agora é escolhido em Dispositivos (★). Em telas com menos de 860 px, o topo esconde esses seletores e indicadores |
-| **Projetos** | Cria apps SwiftUI, com repositório do GitHub criado na hora (veja [GitHub](#github)), e reconhece projetos Android e Capacitor; compila em debug ou release; gera `.ipa` e `.apk`; roda no iPhone e no celular Android; gera projeto Xcode; etiquetas em **Projetos**: 🍎 iOS, 🤖 Android, 🖥️ PC (projetos com `package.json`, com ⚙ Configurar, 🔨 Build, 📤 Enviar para a loja e Arquivos) e 🎮 Steam (quando o projeto está vinculado a um app Steam); o **Tipo de código** (automático ou escolhido) do build de PC é salvo por projeto; (veja [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)); no card, as linhas do app do Google Play e da Steam, com vincular ou trocar, conta e estado |
+| **Projetos** | Cria apps SwiftUI, com repositório do GitHub criado na hora (veja [GitHub](#github)), e reconhece projetos Android e Capacitor; compila em debug ou release; gera `.ipa` e `.apk`; roda no iPhone e no celular Android; gera projeto Xcode; bancos de dados por projeto, com Produção e Desenvolvimento, que definem o build e liberam o envio à loja (veja [Banco de dados por projeto](#banco-de-dados-por-projeto)); etiquetas em **Projetos**: 🍎 iOS, 🤖 Android, 🖥️ PC (projetos com `package.json`, com ⚙ Configurar, 🔨 Build, 📤 Enviar para a loja e Arquivos) e 🎮 Steam (quando o projeto está vinculado a um app Steam); o **Tipo de código** (automático ou escolhido) do build de PC é salvo por projeto; (veja [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)); no card, as linhas do app do Google Play e da Steam, com vincular ou trocar, conta e estado |
 | **Publicar** | Aba **App Store**: compila em release, gera o ícone (`Assets.car`), assina para distribuição, envia ao App Store Connect, preenche "O que há de novo" e submete para revisão. Aba **Google Play**: gera APK/AAB assinado com a chave de upload, escreve as notas da versão e envia para a faixa escolhida. Aba **🎮 Steam (PC)**: compila o site para Windows, Linux e macOS com Electron, escreve a descrição do build e envia para a Steam pelo steamcmd. O **Tipo de código** do card 2 preenche o comando e a pasta do site |
 | **GitHub** | Várias contas; lista os repositórios (inclusive de organizações); importa como projeto; novo projeto cria o repositório na conta escolhida; vincula ou cria repositório; pull automático pelo card do projeto (só fast-forward, com barra de progresso do download); push pelo Terminal ou pelo seu cliente git |
 | **IA** | OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter, Together, Ollama e LM Studio (locais) ou qualquer API compatível com OpenAI |
@@ -186,15 +187,51 @@ Cada projeto tem um card na aba **Projetos** com até três botões: **⚙ Confi
    - **🤖 Android:** o **package name**, o **comando antes do Gradle** (vazio = padrão detectado, `-` = pular), a conta do Google Play e o vínculo do app (**Vincular / trocar app do Google Play**). Fica pronto quando há a pasta `android/` (Gradle). Se não há, mas existe `capacitor.config`, o botão **Adicionar Android** roda `npx cap add android`, que instala as dependências e o `@capacitor/android` se faltarem. Sem Capacitor, o painel só explica o que instalar.
    - **🖥️ Steam (PC):** os sistemas operacionais (Windows, Linux e macOS), o **tipo de código**, o **nome do app**, o **comando antes do build**, a **pasta do site**, a **versão do Electron**, gerar **.zip**, o vínculo do app da Steam (**Vincular / trocar app da Steam**) e a **branch**. Fica pronto quando há um tipo de código (o detectado ou o escolhido).
    - **Versão do projeto:** **Configurar versão…** escolhe a origem da versão (veja [Versão do app](#versão-do-app)).
-2. **🔨 Build** (aparece com ao menos uma plataforma ativada e pronta; só essas aparecem no popup): um popup escolhe as plataformas. iOS e Android podem ser Debug ou Release, e o PC pode ter Windows, Linux e macOS. O popup também escolhe a versão (automática, `package.json`, `xtool.yml`, Gradle, Xcode, tag do git ou manual; a origem fica salva por projeto) e se o build é enviado para a loja ao terminar: iOS para o App Store Connect, Android para o Google Play (com faixa e status) e PC para a Steam (com conta, app e branch). O debug não vai para a loja. O texto "O que há de novo" pode ser gerado com IA. Tudo roda em sequência numa única tarefa (ordem: Android, PC, iOS) e para na primeira falha.
+2. **🔨 Build** (aparece com ao menos uma plataforma ativada e pronta; só essas aparecem no popup): um popup escolhe as plataformas. iOS e Android podem ser Debug ou Release, e o PC pode ter Windows, Linux e macOS. Com bancos cadastrados, o popup também escolhe o **Banco de dados** do build (veja [Banco de dados por projeto](#banco-de-dados-por-projeto)). O popup também escolhe a versão (automática, `package.json`, `xtool.yml`, Gradle, Xcode, tag do git ou manual; a origem fica salva por projeto) e se o build é enviado para a loja ao terminar: iOS para o App Store Connect, Android para o Google Play (com faixa e status) e PC para a Steam (com conta, app e branch). O debug não vai para a loja. O texto "O que há de novo" pode ser gerado com IA. Tudo roda em sequência numa única tarefa (ordem: Android, PC, iOS) e para na primeira falha.
 3. **📤 Enviar para a loja:** considera só builds release e fica desabilitado enquanto não existir nenhum. Lista as versões prontas (versão, build, tipo, data e tamanho) para você escolher, e envia o arquivo que já existe, **sem recompilar**:
    - **iOS:** o `.ipa` assinado (`xtool/<projeto>-<versão>-<build>.ipa`).
    - **Android:** o `.aab` ou `.apk` de `xtool/android/`, sem `-debug` no nome.
    - **PC:** o zip ou a pasta pronta, enviados à Steam.
 
+   Se o projeto tem bancos cadastrados, só builds feitos com o banco de **Produção** podem ser enviados (veja [Banco de dados por projeto](#banco-de-dados-por-projeto)).
+
    A versão de um build pronto não muda: para outra versão, gere um novo em **🔨 Build**. Antes de enviar, o painel confere que o número do build do iOS ainda não existe no App Store Connect e que o `Info.plist` do `.ipa` bate com a versão, o build e o bundle ID. No Android, o `versionCode` precisa ser maior que o último na Google Play.
 
 Para publicar em cada loja, veja também [Publicar na App Store](#publicar-na-app-store), [Publicar no Google Play](#publicar-no-google-play) e [Publicar na Steam](#publicar-na-steam).
+
+## Banco de dados por projeto
+
+Um projeto pode usar um banco de dados de **Produção** e outro de **Desenvolvimento**. No card do projeto, o botão **🗄 Banco de dados** abre o popup de bancos. Assim, cada build sai com o banco certo, e as lojas só recebem builds feitos com o banco de produção.
+
+1. **Detecção:** ao abrir o popup, o painel procura os bancos no código e mostra quantos achou:
+   - **Firebase:** Realtime Database e Firestore, pelo `google-services.json` (Android), pelo `GoogleService-Info.plist` (iOS) ou pela configuração no código.
+   - **Supabase**, **MongoDB**, **PostgreSQL** e **MySQL:** pelas URLs de conexão. A senha aparece mascarada.
+   - **SQLite** e outros arquivos de banco locais.
+   - **`.env`:** variáveis de conexão do arquivo `.env`.
+2. **Cadastro manual:** adicione os bancos que a detecção não achou, inclusive o tipo **Personalizado**.
+3. **Papel:** marque qual banco é **Produção**, qual é **Desenvolvimento** e, se quiser, **Outro**. Cada projeto tem no máximo um banco de produção e um de desenvolvimento.
+4. **Receita:** cada banco tem uma receita, detectada pelo painel e editável:
+   - **Comando antes do build**, rodado antes da compilação;
+   - **Arquivos a copiar**, do caminho de origem para o de destino;
+   - **Variáveis de ambiente**, definidas para o build.
+
+   Exemplo (Carga Viva): a receita de produção tem o comando `npm run build:client:prod && npm run native:env -- prod`.
+
+> A receita do banco de desenvolvimento deve ter o próprio comando. Se ela ficar vazia e o projeto usar o pré-build padrão do painel, esse padrão prefere os scripts `:prod`, e o build de desenvolvimento sairia com o banco de produção.
+
+### Build com banco
+
+No diálogo **🔨 Build**, o seletor **Banco de dados** escolhe o banco do build. O painel aplica a receita antes de compilar: copia os arquivos, define as variáveis e roda o comando como pré-build. No iOS, valem só a cópia de arquivos e as variáveis. Cada build fica registrado com o banco que o gerou.
+
+### Regra de envio
+
+- **Projeto com bancos cadastrados:** só builds feitos com o banco de **Produção** podem ser enviados à App Store, ao Google Play ou à Steam.
+- **Build antigo, sem registro do banco:** fica bloqueado. Refaça o build escolhendo o banco de produção.
+- **Projeto sem bancos cadastrados:** continua sem restrição.
+
+O servidor também recusa o envio, não só a tela.
+
+Detalhes técnicos: os bancos ficam em `~/.config/xtool-panel/projects.json`, nas chaves `databases` e `buildDb`. As rotas são `GET` e `POST /api/project/databases`. A detecção fica em `panel/dbdetect.py`, as receitas (comando, arquivos e variáveis) em `panel/dbenv.py`, e o popup em `panel/static/database.js`.
 
 ## Conectar o iPhone
 
@@ -456,7 +493,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `Dockerfile` | Imagem com xtool, accord (compilado a partir do código), rcodesign, gh, Python, JDK, Node, SDK do Android, steamcmd e ImageMagick (Wine opcional) |
 | `base/` | xtool 1.24.0 zipado (versão base, instalada no build sem baixar do GitHub do xtool) |
 | `docker-compose.yml` | Porta, volumes e acesso ao serviço da Apple |
-| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais e barra do topo (`/api/topbar`, `/api/defaults/set`), status do PC (`/api/pc/status`), perfil do tipo de projeto do build de PC (`/api/pc/profile`), conexão das contas Steam (`/api/steam/check`), visão geral e configuração dos projetos (`/api/project/overview`, `/api/project/settings`), as ações `init.android` e `multi` e rotas |
+| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais e barra do topo (`/api/topbar`, `/api/defaults/set`), status do PC (`/api/pc/status`), perfil do tipo de projeto do build de PC (`/api/pc/profile`), conexão das contas Steam (`/api/steam/check`), visão geral e configuração dos projetos (`/api/project/overview`, `/api/project/settings`), bancos de dados por projeto (`/api/project/databases`), as ações `init.android` e `multi` e rotas |
 | `panel/release.py` | Pipeline de publicação na App Store, executado como tarefa; com `ipaFile` envia um `.ipa` de release pronto, sem compilar |
 | `panel/android.py` | Build Android (Gradle), chaves de upload, instalação por adb e envio ao Google Play; com `existing` envia um `.aab` ou `.apk` de release pronto, sem compilar |
 | `panel/play.py` | Cliente da Google Play Developer API |
@@ -472,12 +509,15 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/builds.py` | Plataformas de cada projeto (iOS, Android e PC), lista de builds e script de `init` do Android (`npx cap add android`) |
 | `panel/static/projects.js` | Projetos: diálogos **⚙ Configurar** e **🔨 Build** |
 | `panel/static/deliver.js` | Projetos: diálogo **📤 Enviar para a loja** (só builds release já prontos) |
+| `panel/static/database.js` | Projetos: popup **🗄 Banco de dados** (detecção, cadastro, Produção e Desenvolvimento, receitas) |
+| `panel/dbdetect.py` | Detecta bancos no código do projeto (Firebase, Supabase, MongoDB, PostgreSQL, MySQL, SQLite e `.env`) |
+| `panel/dbenv.py` | Aplica a receita do banco no build: comando antes do build, arquivos copiados e variáveis de ambiente |
 
 ## Dados e volumes
 
 | Volume | Caminho | Conteúdo |
 |---|---|---|
-| `xtool-home` | `/root` | Logins Apple, chaves das APIs e contas do Google Play (`.config/xtool-panel/secrets.json`), chaves de upload do Android (`.config/xtool-panel/android-keys/`), certificados de distribuição, contas do GitHub, SDK do iOS, versões do xtool baixadas pelo painel (`.xtool/`), contas e apps Steam (`.config/xtool-panel/steam_accounts.json` e `steam_apps.json`, sem senhas), contas principais Steam e Google Play (`.config/xtool-panel/defaults.json`, sem segredos), login do steamcmd (`/root/Steam`) e cache do Electron (`/root/.cache/electron`) |
+| `xtool-home` | `/root` | Logins Apple, chaves das APIs e contas do Google Play (`.config/xtool-panel/secrets.json`), bancos e receitas por projeto (`.config/xtool-panel/projects.json`), chaves de upload do Android (`.config/xtool-panel/android-keys/`), certificados de distribuição, contas do GitHub, SDK do iOS, versões do xtool baixadas pelo painel (`.xtool/`), contas e apps Steam (`.config/xtool-panel/steam_accounts.json` e `steam_apps.json`, sem senhas), contas principais Steam e Google Play (`.config/xtool-panel/defaults.json`, sem segredos), login do steamcmd (`/root/Steam`) e cache do Electron (`/root/.cache/electron`) |
 | `xtool-work` | `/work` | Projetos (os builds ficam em `<projeto>/xtool/`, os do Android em `<projeto>/xtool/android/`, os de PC em `<projeto>/xtool/pc/` e a pasta da Steam em `<projeto>/xtool/steam/`) |
 | Downloads do Windows | `/downloads` | `Xcode.xip`, `.ipa` e `.apk` |
 
@@ -524,6 +564,8 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | O `.exe` está com o ícone padrão do Electron | Coloque um PNG de 512x512 em `resources/icon.png` do projeto e gere o build de PC de novo. Se o `.exe` continuar sem o ícone, reconstrua a imagem com `INSTALL_WINE=1 docker compose up -d --build` (o Wine não vem por padrão) e confira no console se o Wine está instalado |
 | Erro do tipo de projeto antes do build | Leia o aviso ou o erro embaixo do seletor **Tipo de código** e ajuste o tipo, o comando ou a pasta do site |
 | "📤 Enviar para a loja" está travado | Falta um build release: gere um em **🔨 Build** com o modo **Release** |
+| "Só dá para enviar para a loja com o banco prod" | O projeto tem bancos cadastrados. Refaça o build em **🔨 Build** escolhendo o banco de **Produção** |
+| "build sem banco registrado: gere de novo escolhendo o banco prod" | Build antigo, feito antes do registro do banco. Gere um novo em **🔨 Build** escolhendo o banco de **Produção** |
 | "Android não configurado" | O projeto não tem Capacitor ou falta rodar **⚙ Configurar**. Sem Capacitor, instale-o (veja [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar)); com ele, clique em **Adicionar Android** no **⚙ Configurar** |
 | "Pull automático em espera" ou "divergente" no card | Há alterações locais ou commits locais: resolva no Terminal (`git status`) |
 | Pull parado em "baixando atualizações…" | Repositórios grandes podem levar até 15 minutos; a barra mostra a fase e a velocidade. Se cancelar, os restos do download são apagados sozinhos |
@@ -551,6 +593,13 @@ As versões ficam fixas no `Dockerfile` (`XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.3.0
+
+- **Banco de dados por projeto:** botão 🗄 Banco de dados no card detecta bancos no código (Firebase, Supabase, MongoDB, PostgreSQL, MySQL, SQLite e `.env`), com cadastro manual e tipo Personalizado
+- Banco de Produção e de Desenvolvimento por projeto, com receita editável (comando antes do build, arquivos a copiar e variáveis de ambiente)
+- **Build:** seletor de Banco de dados que aplica a receita e registra qual banco gerou cada build
+- **Envio para a loja:** com bancos cadastrados, só builds de Produção; a regra também vale no servidor
 
 ### 1.2.0
 
@@ -622,6 +671,6 @@ A Action [Guarda das branches](.github/workflows/guarda-branches.yml) confere ca
 
 ---
 
-**xtool Painel 1.2.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.3.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

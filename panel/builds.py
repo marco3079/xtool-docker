@@ -8,6 +8,7 @@ import re
 import shlex
 
 import android
+import dbenv
 import pc
 import store
 
@@ -253,14 +254,29 @@ def list_builds(project, project_dir):
             out.append(_build("pc", "folder", plat, folder, _rel(project, project_dir, p), p,
                               str(last.get("versionName") or ""), "", True, at, 0))
 
+    # Regra estrita de banco: cada build recebe o banco que usou (ou None), e se pode ser
+    # entregue (deliverable). Sem bancos no projeto, tudo é entregável.
+    for b in out:
+        db = dbenv.build_db(project, b["file"])
+        b["database"] = ({"id": db.get("id"), "name": db.get("name"), "role": db.get("role")}
+                         if db else None)
+        ok, reason = dbenv.deliverable(project, b["file"])
+        b["deliverable"] = bool(ok)
+        b["deliverReason"] = str(reason or "")
+
     out.sort(key=lambda b: b["at"], reverse=True)
     return out
 
 
 def release_count(project, project_dir):
-    """Builds release só das plataformas configuradas (o mesmo critério do diálogo Enviar)."""
+    """Builds release só das plataformas configuradas e entregáveis.
+
+    Regra estrita: um build só conta se b["deliverable"] for True (ver dbenv.deliverable).
+    Projeto sem bancos mantém o critério anterior do diálogo Enviar.
+    """
     flags = configured_flags(project_dir, store.project_meta(project))
-    return sum(1 for b in list_builds(project, project_dir) if b["release"] and flags.get(b["platform"]))
+    return sum(1 for b in list_builds(project, project_dir)
+               if b["release"] and b["deliverable"] and flags.get(b["platform"]))
 
 
 # ---- script de adição do Android ao Capacitor ----
