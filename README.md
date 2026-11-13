@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.7.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.8.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -33,7 +33,7 @@ By **[marco3079](https://github.com/marco3079)**
 
 **Começar:** [Visão geral](#visão-geral) · [Destaques](#destaques) · [Recursos](#recursos) · [Telas](#telas) · [Requisitos](#requisitos) · [Instalação](#instalação) · [Primeiros passos](#primeiros-passos)
 
-**Usar:** [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar) · [Banco de dados por projeto](#banco-de-dados-por-projeto) · [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas) · [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas) · [Conectar o iPhone](#conectar-o-iphone) · [Android e Google Play](#android-e-google-play) · [Rodar no celular Android](#rodar-no-celular-android) · [Versão do app](#versão-do-app) · [IA para notas de versão](#ia-para-notas-de-versão) · [GitHub](#github)
+**Usar:** [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar) · [Banco de dados por projeto](#banco-de-dados-por-projeto) · [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas) · [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas) · [Avaliações das lojas](#avaliações-das-lojas) · [Testes (TestFlight e Google Play)](#testes-testflight-e-google-play) · [Prints automáticos](#prints-automáticos) · [Conectar o iPhone](#conectar-o-iphone) · [Android e Google Play](#android-e-google-play) · [Rodar no celular Android](#rodar-no-celular-android) · [Versão do app](#versão-do-app) · [IA para notas de versão](#ia-para-notas-de-versão) · [GitHub](#github)
 
 **Publicar:** [Publicar na App Store](#publicar-na-app-store) · [Publicar no Google Play](#publicar-no-google-play) · [Compilar para PC (Electron)](#compilar-para-pc-electron) · [Publicar na Steam](#publicar-na-steam)
 
@@ -88,6 +88,10 @@ Edite a ficha do app nas abas App Store e Google Play, com contador de limites, 
 
 Depois de enviar uma versão para revisão ou promover uma release, o painel consulta as lojas em segundo plano e avisa quando a revisão muda, quando o app é rejeitado ou quando a versão vai à venda. Os avisos podem ir para o navegador, Telegram, Discord ou e-mail. Detalhes em [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas).
 
+### Avaliações, testes e prints
+
+Responda às avaliações da App Store e do Google Play sem sair do painel, gerencie testadores e builds do TestFlight e das faixas de teste do Google Play, e gere prints das lojas a partir de projetos web. Detalhes em [Avaliações das lojas](#avaliações-das-lojas), [Testes (TestFlight e Google Play)](#testes-testflight-e-google-play) e [Prints automáticos](#prints-automáticos).
+
 ### Textos da ficha com IA
 
 Gere os textos da ficha com IA a partir dos commits desde o último lançamento e dos textos que já estão na loja. Você revisa antes: nada é gravado na loja até **💾 Atualizar na loja**. Detalhes em [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas).
@@ -106,6 +110,7 @@ Gere os textos da ficha com IA a partir dos commits desde o último lançamento 
 | **Projetos** | Apps SwiftUI, Android e Capacitor, com build, arquivos gerados e envio às lojas. |
 | **Publicar** | Envio para a App Store, o Google Play e a Steam. |
 | **Notificações** | Avisos de build, envio e mudanças nas lojas no navegador, Telegram, Discord e e-mail. Acompanha as lojas em segundo plano e mostra o histórico em cada aba de **Gerenciar lojas publicadas**. |
+| **Avaliações, testes e prints** | Responde às avaliações da App Store e do Google Play, gerencia testadores e builds do TestFlight e das faixas de teste do Google Play, e gera prints automáticos de projetos web para as lojas. |
 | **GitHub** | Várias contas, importação de repositórios e pull automático pelo card do projeto. |
 | **IA** | Provedores para as notas de versão e para os textos das lojas. |
 | **Dispositivos** | iPhone, Android e PC, com status em tempo real. Instala, abre e remove apps. |
@@ -604,6 +609,7 @@ Em **Eventos**, escolha quais assuntos disparam aviso:
 | **Mudança de estado na loja** | A revisão ou a faixa de um app muda de estado |
 | **App rejeitado** | A Apple rejeita a versão |
 | **Atualização do painel disponível** | Há um commit novo do painel no GitHub |
+| **Nova avaliação na loja** | Chega uma avaliação nova na App Store ou no Google Play (a primeira consulta de cada loja não avisa) |
 
 ### Intervalo de consulta
 
@@ -630,6 +636,108 @@ A consulta roda no próprio painel, dentro do container. Por isso, o acompanhame
 
 - **App Store:** a API da Apple não informa o motivo de uma rejeição. O painel mostra o alerta e o link para o App Store Connect. O motivo fica na Central de Resolução do App Store Connect.
 - **Google Play:** a API não informa se a release está "em análise". O painel mostra só a faixa e o estado.
+
+## Avaliações das lojas
+
+Lê as avaliações do app na App Store e no Google Play, responde pelo painel e avisa quando chega uma avaliação nova. Não é preciso abrir o App Store Connect nem o Play Console para responder.
+
+Passo a passo:
+
+1. No card do projeto, clique em **⭐ Avaliações**. O selo ao lado mostra quantas avaliações estão sem resposta.
+2. Escolha a aba **App Store** ou **Google Play**. Lojas que não estão vinculadas ficam desabilitadas; vincule-as em **🏪 Gerenciar lojas publicadas**.
+3. Clique em **🔄 Buscar avaliações** para consultar a loja. Por padrão, a lista mostra só as avaliações sem resposta. Use o filtro de estrelas para ver uma nota só.
+4. Para responder, escreva no campo ou clique em **✨ Rascunho com IA**. Em **Orientação para a IA**, você pode pedir algo específico (por exemplo, "indique o e-mail de suporte"). O texto é salvo como rascunho sozinho, ou clique em **Salvar rascunho**.
+5. Revise e clique em **Enviar resposta**, e confirme. A resposta fica pública na loja. Para trocar uma resposta já enviada, clique em **Editar resposta**.
+
+O painel consulta as lojas a cada 60 minutos e avisa avaliações novas pelo evento **Nova avaliação na loja**, que vem ligado. Para desligar, use **Notificações** → **Eventos**. A primeira consulta de cada loja não avisa, para não mandar de uma vez todas as avaliações antigas.
+
+### Limites
+
+- **Google Play:** a API só devolve avaliações **com texto** dos **últimos 7 dias**. O painel guarda as que já viu, mas não consegue buscar as mais antigas.
+- **Tamanho da resposta:** no Google Play, a resposta tem no máximo **350 caracteres**. Na App Store, o limite é de 5.970. O contador fica vermelho quando passa do limite.
+- **App Store:** a chave da API precisa do papel **Admin**, **App Manager** ou **Customer Support** para ler avaliações. Com outro papel, o painel mostra esse aviso.
+- **IA:** a IA só escreve rascunho. Nada é enviado sem você revisar e clicar em **Enviar resposta**, uma por uma.
+
+## Testes (TestFlight e Google Play)
+
+Gerencia testadores e builds de teste: grupos, testadores, link público e revisão beta do TestFlight; e, no Google Play, as faixas de teste com Google Groups e link de convite.
+
+Passo a passo:
+
+1. No card do projeto, clique em **🧪 Testes**.
+2. Na aba **TestFlight (iOS)**:
+   - **Grupos:** clique em **➕ Novo grupo**, dê um nome e escolha interno ou externo. Expanda o grupo para ver, adicionar e remover testadores.
+   - **Adicionar testadores:** cole um e-mail por linha e clique em adicionar. Os e-mails que falharem aparecem com o motivo.
+   - **Link público:** ligue o link do grupo, copie e, se quiser, defina um limite de testadores.
+   - **Builds:** use **Colocar no grupo…** para pôr o build em um grupo.
+   - **O que testar:** escreva o texto de cada idioma ou clique em **✨ Gerar com IA**, revise e clique em **Salvar**.
+   - **Enviar para revisão beta:** preencha o contato (nome, sobrenome, telefone e e-mail), a conta demo se a Apple pedir, as notas e, por idioma, a descrição e o e-mail de feedback. O painel avisa o que falta antes de enviar.
+3. Na aba **Google Play**:
+   - Cada faixa de teste mostra as releases, com o nome, os versionCodes e o estado.
+   - Em **Google Groups**, cole um grupo por linha e clique em **Salvar**.
+   - Copie o link de convite e envie aos testadores.
+   - **Promover para…** leva o build de uma faixa para outra, com a mesma promoção que já existe em **Gerenciar lojas publicadas**.
+
+### Limites
+
+- **Grupo interno (TestFlight):** só aceita quem já é usuário da equipe no App Store Connect. Para testadores de fora da equipe, use um grupo externo.
+- **Google Play:** pela API, os testadores entram só por **Google Groups**. As listas de e-mail ficam no Play Console.
+- **O que testar:** até 4.000 caracteres por idioma. A IA escreve até 600 caracteres por idioma, a partir das mudanças do git.
+- Builds expirados aparecem em cinza.
+
+## Prints automáticos
+
+Gera os prints da ficha das lojas a partir de um projeto web com build estático (como Capacitor ou um site de uma página), em todos os tamanhos pedidos pela App Store e pelo Google Play e em cada idioma do projeto. Depois, envia as imagens direto para a ficha.
+
+### Limites
+
+- **Só projetos web com build estático** (Capacitor ou SPA, com `index.html`). Projetos SwiftUI e Android nativos não geram prints aqui.
+- **Chromium sob demanda:** o navegador (~150 MB) é baixado no primeiro uso e fica no volume `xtool-home`, em `/root/.xtool-panel/shots` e `/root/.cache/ms-playwright`. Se o container for recriado, as bibliotecas do sistema somem; nesse caso, o painel mostra **Reinstalar dependências**.
+- **Limites da loja:** a App Store aceita até 10 imagens por tipo, e o Google Play, até 8. O excedente é cortado e aparece na lista de erros do envio.
+- As execuções ficam em `/work/<projeto>/xtool/prints/`, e o painel guarda as 10 mais recentes.
+
+Passo a passo:
+
+1. No card do projeto, clique em **📸 Prints**.
+2. Se o Chromium não estiver instalado, clique em **Instalar Chromium**. A tarefa aparece em **Tarefas**, e o painel confere sozinho até terminar.
+3. Em **Configuração**, confira a pasta web (o painel detecta sozinho: o `webDir` do Capacitor ou uma pasta `dist`, `build`, `www`, `out` ou `public` com `index.html`), o script de build (opcional, por exemplo `build`), o estilo, os tamanhos, os idiomas e as telas. Clique em **Salvar**.
+4. Clique em **▶ Gerar prints** e acompanhe a tarefa.
+5. Em **Resultados**, escolha a execução, marque as imagens, informe a versão da loja e clique em **⬆ Enviar selecionadas**. Marque **Substituir as imagens atuais** para apagar antes as imagens daquele tipo e idioma.
+
+### Estilos
+
+- **Print puro:** só a captura, no tamanho exato escolhido.
+- **Com fundo e legenda:** fundo na cor escolhida, legenda no topo (até 3 linhas, com cor e fonte escolhidas) e o print abaixo, com cantos arredondados e sombra. A legenda é por idioma e tem até 120 caracteres.
+
+### Tamanhos
+
+| Id | Rótulo | Tamanho (px) | Loja | Tipo na loja |
+|---|---|---|---|---|
+| `iphone69` | iPhone 6,9" | 1320 × 2868 | App Store | `APP_IPHONE_67` |
+| `iphone65` | iPhone 6,5" | 1284 × 2778 | App Store | `APP_IPHONE_65` |
+| `ipad13` | iPad 13" | 2064 × 2752 | App Store | `APP_IPAD_PRO_3GEN_129` |
+| `playPhone` | Celular (Play) | 1080 × 1920 | Google Play | `phoneScreenshots` |
+| `playTab7` | Tablet 7" (Play) | 1200 × 1920 | Google Play | `sevenInchScreenshots` |
+| `playTab10` | Tablet 10" (Play) | 1600 × 2560 | Google Play | `tenInchScreenshots` |
+
+### Telas e idiomas
+
+Cada projeto tem de 1 a 10 telas. Cada tela tem:
+
+- **Nome**, **rota** (começa com `/` ou `#`, por exemplo `/` ou `#/config`) e **espera** em ms (padrão 1500);
+- **Ações** (JSON opcional, com a lista de ações): `click` (com `selector`), `type` (com `selector` e `text`), `wait` (com `ms`) e `eval` (com `js`);
+- **Legenda** por idioma, quando o estilo é com legenda.
+
+Exemplo de ações de uma tela:
+
+```json
+[
+  { "type": "click", "selector": "#abrir-menu" },
+  { "type": "wait", "ms": 500 }
+]
+```
+
+Os idiomas são os do projeto (os mesmos de **Gerenciar lojas publicadas**), a menos que você escolha outros. O **JS de idioma** é opcional: ele roda antes de cada tela e recebe a variável `locale`. Para um site que guarda o idioma no navegador, use `localStorage.setItem('lang', locale)`.
 
 ## Conectar o iPhone
 
@@ -973,6 +1081,10 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/selfupdate.py` | Atualização do painel: consulta o último commit de `marco3079/xtool-docker` no GitHub, lista os arquivos de `panel/` que mudam e aplica a atualização com backup e reinício |
 | `panel/watch.py` | Acompanhamento das lojas: consulta em segundo plano os projetos com versão pendente ou em revisão, guarda o histórico e dispara os avisos |
 | `panel/notify.py` | Notificações: configuração dos canais (navegador, Telegram, Discord e e-mail), eventos e envio dos avisos |
+| `panel/reviews.py` | Avaliações das lojas: busca, guarda em `.config/xtool-panel/reviews/<projeto>.json`, responde e gera rascunho com IA; consulta em segundo plano e avisa avaliações novas |
+| `panel/testes.py` | Aba **Testes**: grupos, testadores e builds do TestFlight, "O que testar" com IA, revisão beta e faixas de teste e Google Groups do Google Play |
+| `panel/prints.py` | Prints automáticos: instalação do Chromium, configuração por projeto, execuções, lista de execuções e envio às lojas |
+| `panel/shots/shoot.mjs` | Script Node que abre o site no Chromium e tira os prints por idioma, tamanho e tela |
 | `panel/static/index.html` | Interface do painel (página única, com as seções e a barra do topo) |
 | `panel/static/logo.svg` | Logo do painel |
 | `panel/static/devices.js` | Telas de Dispositivos: iPhone, Android (adb) e PC (status do Windows, serviço Apple, steamcmd, Node, cache do Electron e builds de PC) |
@@ -986,6 +1098,9 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/static/update.js` | Atualização do painel: botão no rodapé, card em **Configuração** e diálogo de confirmação |
 | `panel/static/notify.js` | Card **Notificações** em **Configuração**: canais, eventos, teste e avisos no navegador |
 | `panel/static/watch.js` | Card **Acompanhamento das lojas** em **Configuração** e selos nos cards dos projetos |
+| `panel/static/avaliacoes.js` | Popup **⭐ Avaliações** e selos nos cards dos projetos |
+| `panel/static/testes.js` | Popup **🧪 Testes**: TestFlight e Google Play |
+| `panel/static/prints.js` | Popup **📸 Prints automáticos**: instalação do Chromium, configuração, execuções e envio às lojas |
 
 <details>
 <summary>Rotas do <code>panel/server.py</code></summary>
@@ -1002,8 +1117,18 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 - Versões anteriores do painel: `/api/update/backups` e `/api/update/restore`
 - Notificações: `/api/notify/config`, `/api/notify/test` e `/api/notify/events`
 - Acompanhamento das lojas: `/api/watch`, `/api/watch/config` e `/api/watch/run`
+- Avaliações das lojas: `/api/reviews*`
+- Testes: `/api/testes/*`
+- Prints automáticos: `/api/prints/*`
 
 </details>
+
+Dados das novidades da 1.8.0:
+
+- avaliações: `.config/xtool-panel/reviews/<projeto>.json`, no volume `xtool-home`;
+- configuração dos prints: chave `prints` dentro de `.config/xtool-panel/projects.json`;
+- Chromium dos prints: `/root/.xtool-panel/shots` e `/root/.cache/ms-playwright`;
+- saída dos prints: `/work/<projeto>/xtool/prints/<AAAAMMDD-HHMMSS>/`.
 
 ## Dados e volumes
 
@@ -1253,6 +1378,13 @@ Ative um canal no card **Notificações** em **Configuração** (por exemplo, Te
 
 </details>
 
+<details>
+<summary><b>A IA responde as avaliações sozinha?</b></summary>
+
+Não. A IA só escreve rascunhos. Você revisa cada resposta e clica em **Enviar resposta** para publicar. Veja [Avaliações das lojas](#avaliações-das-lojas).
+
+</details>
+
 ## Atualização
 
 **xtool:** a versão **base** (1.24.0) vem do repositório, em `base/`, e é instalada no build da imagem sem acessar o GitHub do xtool. Com internet, o painel consulta a cada hora os [Releases do xtool](https://github.com/xtool-org/xtool/releases). Quando sai uma versão nova, o card **xtool** mostra **⬆ Atualizar**. A versão baixada aparece como **xtool-org**, fica em `/root/.xtool`, no volume, e continua valendo depois de reiniciar o container. Sem internet, o painel segue com a versão base.
@@ -1286,6 +1418,13 @@ As versões ficam fixas no `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.8.0
+
+- **Avaliações das lojas:** lê as avaliações da App Store e do Google Play, responde pelo painel (com rascunho de IA que você revisa) e avisa avaliações novas pelo evento **Nova avaliação na loja**
+- **Testes:** TestFlight (grupos, testadores, link público, builds, "O que testar" com IA e revisão beta) e faixas de teste do Google Play (Google Groups e link de convite)
+- **Prints automáticos:** prints de projetos web em todos os tamanhos da App Store e do Google Play, com estilo puro ou com fundo e legenda, enviados direto para a ficha da loja. O Chromium é baixado no primeiro uso
+- Rotas `/api/reviews*`, `/api/testes/*` e `/api/prints/*`
 
 ### 1.7.0
 
@@ -1410,6 +1549,6 @@ Este projeto é distribuído sob a licença [MIT](LICENSE), © marco3079.
 
 ---
 
-**xtool Painel 1.7.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.8.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

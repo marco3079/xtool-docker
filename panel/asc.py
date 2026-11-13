@@ -45,6 +45,14 @@ STATE_LABELS = {
 }
 
 
+# Rótulos (pt-BR) dos estados de revisão do TestFlight (betaReviewState)
+BETA_REVIEW_LABELS = {"WAITING_FOR_REVIEW": "Aguardando revisão", "IN_REVIEW": "Em revisão",
+                      "APPROVED": "Aprovado", "REJECTED": "Rejeitado"}
+# Campos editáveis dos detalhes de revisão beta (betaAppReviewDetails)
+BETA_REVIEW_DETAIL_FIELDS = ("contactFirstName", "contactLastName", "contactPhone", "contactEmail",
+                             "demoAccountRequired", "demoAccountName", "demoAccountPassword", "notes")
+
+
 def state_label(state):
     """Rótulo pt-BR de um estado de versão; estado desconhecido volta como está."""
     return STATE_LABELS.get(state, state or "")
@@ -544,3 +552,233 @@ class ASC:
         best = max(cands, key=lambda b: _build_number((b.get("attributes") or {}).get("version")))
         a = best.get("attributes") or {}
         return {"id": best["id"], "version": str(a.get("version") or ""), "uploadedDate": a.get("uploadedDate")}
+
+    # ---------------- avaliações (App Store) ----------------
+    @staticmethod
+    def _review_response(rel, inc):
+        """Resposta do dev ligada à avaliação (relationship response + included), ou None."""
+        d = (rel or {}).get("data") or {}
+        if not d.get("id"):
+            return None
+        a = (inc.get(("customerReviewResponses", d["id"])) or {}).get("attributes") or {}
+        return {"id": d["id"], "body": a.get("responseBody") or "", "state": a.get("state") or "",
+                "updatedAt": a.get("lastModifiedDate") or ""}
+
+    def customer_reviews(self, app_id, limit=200):
+        """Avaliações de clientes do app, da mais nova para a mais antiga (até `limit`).
+        Cada uma: {id, rating, title, body, author, territory, createdAt, response}."""
+        limit = max(1, int(limit))
+        out, inc = [], {}
+        r = self.get(f"/v1/apps/{app_id}/customerReviews", sort="-createdDate", include="response",
+                     limit=min(200, limit))
+        while True:
+            for x in r.get("included", []):
+                inc[(x.get("type"), x.get("id"))] = x
+            out += r.get("data", [])
+            nxt = (r.get("links") or {}).get("next")
+            if not nxt or len(out) >= limit:
+                break
+            r = self.req("GET", nxt)
+        res = []
+        for v in out[:limit]:
+            a = v.get("attributes") or {}
+            res.append({"id": v["id"], "rating": int(a.get("rating") or 0), "title": a.get("title") or "",
+                        "body": a.get("body") or "", "author": a.get("reviewerNickname") or "",
+                        "territory": a.get("territory") or "", "createdAt": a.get("createdDate") or "",
+                        "response": self._review_response((v.get("relationships") or {}).get("response"), inc)})
+        return res
+
+    def reply_review(self, review_id, text):
+        """Publica a resposta do dev a uma avaliação. Se já houver resposta, a Apple a substitui."""
+        r = self.req("POST", "/v1/customerReviewResponses", {"data": {
+            "type": "customerReviewResponses", "attributes": {"responseBody": text},
+            "relationships": {"review": {"data": {"type": "customerReviews", "id": review_id}}}}})
+        d = r.get("data") or {}
+        a = d.get("attributes") or {}
+        return {"id": d.get("id"), "body": a.get("responseBody") or text, "state": a.get("state") or ""}
+
+    def delete_review_reply(self, response_id):
+        """Apaga a resposta do dev a uma avaliação."""
+        self.req("DELETE", f"/v1/customerReviewResponses/{response_id}")
+
+    # ---------------- TestFlight: grupos ----------------
+    @staticmethod
+    def _beta_group(g):
+        a = g.get("attributes") or {}
+        paging = ((((g.get("relationships") or {}).get("betaTesters") or {}).get("meta") or {}).get("paging")) or {}
+        return {"id": g["id"], "name": a.get("name") or "", "internal": bool(a.get("isInternalGroup")),
+                "publicLinkEnabled": bool(a.get("publicLinkEnabled")), "publicLink": a.get("publicLink") or None,
+                "publicLinkLimit": a.get("publicLinkLimit") if a.get("publicLinkLimitEnabled") else None,
+                "testerCount": paging.get("total")}
+
+    def beta_groups(self, app_id):
+        """Grupos de teste (TestFlight) do app."""
+        return [self._beta_group(g) for g in self.all(f"/v1/apps/{app_id}/betaGroups")]
+
+    def create_beta_group(self, app_id, name, internal=False):
+        r = self.req("POST", "/v1/betaGroups", {"data": {
+            "type": "betaGroups", "attributes": {"name": name, "isInternalGroup": bool(internal)},
+            "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+        return self._beta_group(r["data"])
+
+    def set_public_link(self, group_id, enabled, limit=None):
+        """Liga/desliga o link público do grupo. `limit` (None = sem limite) é o nº máximo de testadores."""
+        attrs = {"publicLinkEnabled": bool(enabled), "publicLinkLimitEnabled": limit is not None}
+        if limit is not None:
+            attrs["publicLinkLimit"] = int(limit)
+        r = self.req("PATCH", f"/v1/betaGroups/{group_id}", {"data": {
+            "type": "betaGroups", "id": group_id, "attributes": attrs}})
+        return self._beta_group(r["data"])
+
+    # ---------------- TestFlight: testadores ----------------
+    @staticmethod
+    def _beta_tester(t):
+        a = t.get("attributes") or {}
+        return {"id": t["id"], "email": a.get("email") or "", "firstName": a.get("firstName") or "",
+                "lastName": a.get("lastName") or "", "state": a.get("state") or ""}
+
+    def beta_testers(self, group_id):
+        """Testadores do grupo: [{id, email, firstName, lastName, state}]."""
+        return [self._beta_tester(t) for t in self.all(f"/v1/betaGroups/{group_id}/betaTesters")]
+
+    def add_beta_tester(self, group_id, email, first="", last=""):
+        """Adiciona testador por e-mail ao grupo. Se a Apple disser que ele já existe (409),
+        acha o testador pelo e-mail e só o liga ao grupo."""
+        attrs = {"email": email}
+        if first:
+            attrs["firstName"] = first
+        if last:
+            attrs["lastName"] = last
+        try:
+            r = self.req("POST", "/v1/betaTesters", {"data": {
+                "type": "betaTesters", "attributes": attrs,
+                "relationships": {"betaGroups": {"data": [{"type": "betaGroups", "id": group_id}]}}}})
+            return self._beta_tester(r["data"])
+        except AscError as e:
+            if not str(e).startswith("App Store Connect 409"):
+                raise
+        found = self.get("/v1/betaTesters", **{"filter[email]": email}).get("data") or []
+        match = [t for t in found if ((t.get("attributes") or {}).get("email") or "").lower() == email.lower()]
+        if not match:
+            raise AscError(f"testador {email} já existe, mas não foi possível encontrá-lo pelo e-mail")
+        t = match[0]
+        self.req("POST", f"/v1/betaGroups/{group_id}/relationships/betaTesters",
+                 {"data": [{"type": "betaTesters", "id": t["id"]}]})
+        return self._beta_tester(t)
+
+    def remove_beta_tester(self, group_id, tester_id):
+        """Tira o testador do grupo (não apaga o testador da conta)."""
+        self.req("DELETE", f"/v1/betaGroups/{group_id}/relationships/betaTesters",
+                 {"data": [{"type": "betaTesters", "id": tester_id}]})
+
+    # ---------------- TestFlight: builds ----------------
+    @staticmethod
+    def _included_attrs(rels, name, inc):
+        """Atributos do recurso incluído ligado pela relação `name` (ou {})."""
+        d = (rels.get(name) or {}).get("data") or {}
+        return (inc.get((d.get("type"), d.get("id"))) or {}).get("attributes") or {}
+
+    def beta_builds(self, app_id, limit=20):
+        """Builds do app para TestFlight, do mais novo para o mais antigo:
+        [{id, version, build, uploadedAt, processing, expired, externalState, internalState, groups}]."""
+        r = self.get("/v1/builds", **{"filter[app]": app_id, "sort": "-uploadedDate", "limit": limit,
+                                      "include": "preReleaseVersion,buildBetaDetail,betaGroups"})
+        inc = {(x.get("type"), x.get("id")): x for x in r.get("included", [])}
+        out = []
+        for b in r.get("data", []):
+            a = b.get("attributes") or {}
+            rels = b.get("relationships") or {}
+            pre = self._included_attrs(rels, "preReleaseVersion", inc)
+            det = self._included_attrs(rels, "buildBetaDetail", inc)
+            groups = [g.get("id") for g in ((rels.get("betaGroups") or {}).get("data") or []) if g.get("id")]
+            out.append({"id": b["id"], "version": pre.get("version") or "", "build": a.get("version") or "",
+                        "uploadedAt": a.get("uploadedDate") or "", "processing": a.get("processingState") or "",
+                        "expired": bool(a.get("expired")), "externalState": det.get("externalBuildState") or "",
+                        "internalState": det.get("internalBuildState") or "", "groups": groups})
+        return out
+
+    def add_build_to_group(self, group_id, build_id):
+        """Libera o build para o grupo de teste."""
+        self.req("POST", f"/v1/betaGroups/{group_id}/relationships/builds",
+                 {"data": [{"type": "builds", "id": build_id}]})
+
+    def what_to_test(self, build_id):
+        """Textos de 'O que testar' do build por idioma: {locale: {id, text}}."""
+        out = {}
+        for l in self.all(f"/v1/builds/{build_id}/betaBuildLocalizations"):
+            a = l.get("attributes") or {}
+            out[a.get("locale")] = {"id": l["id"], "text": a.get("whatsNew") or ""}
+        return out
+
+    def set_what_to_test(self, build_id, locale, text):
+        """Grava 'O que testar' do build no idioma: PATCH se o idioma já existe, senão cria."""
+        existing = self.what_to_test(build_id).get(locale)
+        if existing:
+            self.req("PATCH", f"/v1/betaBuildLocalizations/{existing['id']}", {"data": {
+                "type": "betaBuildLocalizations", "id": existing["id"], "attributes": {"whatsNew": text}}})
+            return existing["id"]
+        r = self.req("POST", "/v1/betaBuildLocalizations", {"data": {
+            "type": "betaBuildLocalizations", "attributes": {"locale": locale, "whatsNew": text},
+            "relationships": {"build": {"data": {"type": "builds", "id": build_id}}}}})
+        return r["data"]["id"]
+
+    # ---------------- TestFlight: revisão beta ----------------
+    def beta_review_status(self, build_id):
+        """Estado da revisão beta do build: {state (betaReviewState ou ""), id (ou None)}."""
+        try:
+            r = self.get(f"/v1/builds/{build_id}/betaAppReviewSubmission")
+        except AscError as e:
+            if str(e).startswith("App Store Connect 404"):
+                return {"state": "", "id": None}
+            raise
+        d = r.get("data") or {}
+        if not d:
+            return {"state": "", "id": None}
+        return {"state": (d.get("attributes") or {}).get("betaReviewState") or "", "id": d.get("id")}
+
+    def beta_review_details(self, app_id):
+        """Contato e conta demo enviados à revisão beta do app."""
+        d = (self.get(f"/v1/apps/{app_id}/betaAppReviewDetail").get("data")) or {}
+        a = d.get("attributes") or {}
+        return {"id": d.get("id"), "contactFirstName": a.get("contactFirstName") or "",
+                "contactLastName": a.get("contactLastName") or "", "contactPhone": a.get("contactPhone") or "",
+                "contactEmail": a.get("contactEmail") or "", "demoAccountRequired": bool(a.get("demoAccountRequired")),
+                "demoAccountName": a.get("demoAccountName") or "", "demoAccountPassword": a.get("demoAccountPassword") or "",
+                "notes": a.get("notes") or ""}
+
+    def set_beta_review_details(self, detail_id, fields):
+        """Grava só as chaves recebidas (das conhecidas em BETA_REVIEW_DETAIL_FIELDS)."""
+        attrs = {k: v for k, v in (fields or {}).items() if k in BETA_REVIEW_DETAIL_FIELDS}
+        if not attrs:
+            return
+        self.req("PATCH", f"/v1/betaAppReviewDetails/{detail_id}", {"data": {
+            "type": "betaAppReviewDetails", "id": detail_id, "attributes": attrs}})
+
+    def beta_app_info(self, app_id):
+        """Descrição e e-mail de feedback do TestFlight por idioma: {locale: {id, description, feedbackEmail}}."""
+        out = {}
+        for l in self.all(f"/v1/apps/{app_id}/betaAppLocalizations"):
+            a = l.get("attributes") or {}
+            out[a.get("locale")] = {"id": l["id"], "description": a.get("description") or "",
+                                    "feedbackEmail": a.get("feedbackEmail") or ""}
+        return out
+
+    def set_beta_app_info(self, app_id, locale, description, feedback_email):
+        """Grava descrição e e-mail de feedback do TestFlight no idioma: PATCH se existe, senão cria."""
+        attrs = {"description": description, "feedbackEmail": feedback_email}
+        existing = self.beta_app_info(app_id).get(locale)
+        if existing:
+            self.req("PATCH", f"/v1/betaAppLocalizations/{existing['id']}", {"data": {
+                "type": "betaAppLocalizations", "id": existing["id"], "attributes": attrs}})
+        else:
+            self.req("POST", "/v1/betaAppLocalizations", {"data": {
+                "type": "betaAppLocalizations", "attributes": {"locale": locale, **attrs},
+                "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+
+    def submit_beta_review(self, build_id):
+        """Envia o build para a revisão beta do TestFlight. Devolve {id, state}."""
+        r = self.req("POST", "/v1/betaAppReviewSubmissions", {"data": {
+            "type": "betaAppReviewSubmissions",
+            "relationships": {"build": {"data": {"type": "builds", "id": build_id}}}}})
+        d = r.get("data") or {}
+        return {"id": d.get("id"), "state": (d.get("attributes") or {}).get("betaReviewState") or ""}

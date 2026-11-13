@@ -6,7 +6,7 @@
 
 **Develop, install and publish iOS and Android apps without a Mac, right from your browser.**
 
-[![Version](https://img.shields.io/badge/version-1.7.0-4f8cff?style=flat-square)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.8.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-and-google-play)
@@ -33,7 +33,7 @@ By **[marco3079](https://github.com/marco3079)**
 
 **Start:** [Overview](#overview) · [Highlights](#highlights) · [Features](#features) · [Screenshots](#screenshots) · [Requirements](#requirements) · [Installation](#installation) · [Getting started](#getting-started)
 
-**Use:** [Projects: configure, build and submit](#projects-configure-build-and-submit) · [Per-project database](#per-project-database) · [Manage published stores](#manage-published-stores) · [Notifications and store tracking](#notifications-and-store-tracking) · [Connect the iPhone](#connect-the-iphone) · [Android and Google Play](#android-and-google-play) · [Run on an Android phone](#run-on-an-android-phone) · [App version](#app-version) · [AI for release notes](#ai-for-release-notes) · [GitHub](#github)
+**Use:** [Projects: configure, build and submit](#projects-configure-build-and-submit) · [Per-project database](#per-project-database) · [Manage published stores](#manage-published-stores) · [Notifications and store tracking](#notifications-and-store-tracking) · [Store reviews](#store-reviews) · [Testing (TestFlight and Google Play)](#testing-testflight-and-google-play) · [Automatic screenshots](#automatic-screenshots) · [Connect the iPhone](#connect-the-iphone) · [Android and Google Play](#android-and-google-play) · [Run on an Android phone](#run-on-an-android-phone) · [App version](#app-version) · [AI for release notes](#ai-for-release-notes) · [GitHub](#github)
 
 **Publish:** [Publish to the App Store](#publish-to-the-app-store) · [Publish to Google Play](#publish-to-google-play) · [Build for PC (Electron)](#build-for-pc-electron) · [Publish to Steam](#publish-to-steam)
 
@@ -88,6 +88,10 @@ Edit the app listing in the App Store and Google Play tabs, with character count
 
 After you send a version for review or promote a release, the panel checks the stores in the background and alerts you when the review changes, when the app is rejected or when the version goes on sale. Alerts can go to the browser, Telegram, Discord or e-mail. Details in [Notifications and store tracking](#notifications-and-store-tracking).
 
+### Store reviews, tests and screenshots
+
+Reply to App Store and Google Play reviews without leaving the panel, manage TestFlight and Google Play testers and builds, and generate store screenshots from web projects. Details in [Store reviews](#store-reviews), [Testing (TestFlight and Google Play)](#testing-testflight-and-google-play) and [Automatic screenshots](#automatic-screenshots).
+
 ### Store texts with AI
 
 Generate the listing texts with AI from the commits since the last release and the texts already in the store. You review before anything else: nothing is saved to the store until **💾 Atualizar na loja** (Update on store). Details in [Manage published stores](#manage-published-stores).
@@ -106,6 +110,7 @@ Generate the listing texts with AI from the commits since the last release and t
 | **Projetos** (Projects) | SwiftUI, Android and Capacitor apps, with build, generated files and store uploads. |
 | **Publicar** (Publish) | Upload to the App Store, Google Play and Steam. |
 | **Notificações** (Notifications) | Alerts about builds, uploads and store changes in the browser, Telegram, Discord and e-mail. Tracks the stores in the background and shows the history in each tab of **Gerenciar lojas publicadas** (Manage published stores). |
+| **Avaliações, testes e prints** (Reviews, tests and screenshots) | Replies to App Store and Google Play reviews, manages TestFlight testers and builds and Google Play test tracks, and generates automatic store screenshots from web projects. |
 | **GitHub** | Multiple accounts, repository import and automatic pull from the project card. |
 | **IA** (AI) | Providers for release notes and for store texts. |
 | **Dispositivos** (Devices) | iPhone, Android and PC, with real-time status. Installs, opens and removes apps. |
@@ -604,6 +609,7 @@ In **Eventos** (Events), choose which events trigger an alert:
 | **Mudança de estado na loja** (Store status change) | The review or track of an app changes status |
 | **App rejeitado** (App rejected) | Apple rejects the version |
 | **Atualização do painel disponível** (Panel update available) | There is a new commit of the panel on GitHub |
+| **Nova avaliação na loja** (New store review) | A new App Store or Google Play review arrives (the first check of each store doesn't alert) |
 
 ### Check interval
 
@@ -630,6 +636,108 @@ The checks run in the panel's server, inside the container. That is why tracking
 
 - **App Store:** Apple's API does not say why a version was rejected. The panel shows the alert and the link to App Store Connect. The reason is in the Resolution Center of App Store Connect.
 - **Google Play:** the API does not say whether a release is "under review" (em análise). The panel shows only the track and the state.
+
+## Store reviews
+
+Reads the app's reviews on the App Store and Google Play, replies from the panel and alerts you when a new review arrives. You don't need to open App Store Connect or the Play Console to reply.
+
+Step by step:
+
+1. On the project card, click **⭐ Avaliações** (Reviews). The badge next to it shows how many reviews have no reply.
+2. Choose the **App Store** or **Google Play** tab. Stores that aren't linked are disabled; link them in **🏪 Gerenciar lojas publicadas** (Manage published stores).
+3. Click **🔄 Buscar avaliações** (Fetch reviews) to check the store. By default, the list shows only reviews without a reply. Use the star filter to see one rating only.
+4. To reply, type in the box or click **✨ Rascunho com IA** (Draft with AI). Under **Orientação para a IA** (AI guidance), you can ask for something specific (for example, "mention the support e-mail"). The text is saved as a draft automatically, or click **Salvar rascunho** (Save draft).
+5. Review it, click **Enviar resposta** (Send reply) and confirm. The reply becomes public in the store. To change a reply already sent, click **Editar resposta** (Edit reply).
+
+The panel checks the stores every 60 minutes and alerts you about new reviews with the **Nova avaliação na loja** (New store review) event, which is on by default. To turn it off, use **Notificações** (Notifications) → **Eventos** (Events). The first check of each store doesn't alert, so you don't get all the old reviews at once.
+
+### Limits
+
+- **Google Play:** the API only returns reviews **with text** from the **last 7 days**. The panel keeps the ones it has already seen, but can't fetch older ones.
+- **Reply length:** on Google Play, a reply can have at most **350 characters**. On the App Store, the limit is 5,970. The counter turns red when you go over.
+- **App Store:** the API key needs the **Admin**, **App Manager** or **Customer Support** role to read reviews. With another role, the panel shows this warning.
+- **AI:** the AI only writes drafts. Nothing is sent until you review it and click **Enviar resposta** (Send reply), one by one.
+
+## Testing (TestFlight and Google Play)
+
+Manages testers and test builds: TestFlight groups, testers, public link and beta review; and, on Google Play, the test tracks with Google Groups and an invite link.
+
+Step by step:
+
+1. On the project card, click **🧪 Testes** (Testing).
+2. On the **TestFlight (iOS)** tab:
+   - **Grupos** (Groups): click **➕ Novo grupo** (New group), enter a name and choose internal or external. Expand a group to add, view and remove testers.
+   - **Adicionar testadores** (Add testers): paste one e-mail per line and click add. Addresses that fail are listed with the reason.
+   - **Link público** (Public link): turn on the group's link, copy it and, if you want, set a tester limit.
+   - **Builds:** use **Colocar no grupo…** (Add to group…) to put a build in a group.
+   - **O que testar** (What to test): write the text for each language, or click **✨ Gerar com IA** (Generate with AI), review it and click **Salvar** (Save).
+   - **Enviar para revisão beta** (Submit for beta review): fill in the contact (first name, last name, phone and e-mail), the demo account if Apple asks for one, the notes and, for each language, the description and feedback e-mail. The panel tells you what is missing before sending.
+3. On the **Google Play** tab:
+   - Each test track shows its releases, with the name, versionCodes and state.
+   - In **Google Groups**, paste one group per line and click **Salvar** (Save).
+   - Copy the invite link and send it to testers.
+   - **Promover para…** (Promote to…) moves a build from one track to another, using the same promotion that already exists in **Gerenciar lojas publicadas** (Manage published stores).
+
+### Limits
+
+- **Internal group (TestFlight):** only accepts people who are already members of your App Store Connect team. For testers outside the team, use an external group.
+- **Google Play:** through the API, testers can only be added by **Google Groups**. E-mail lists stay in the Play Console.
+- **What to test:** up to 4,000 characters per language. The AI writes up to 600 characters per language, based on the git changes.
+- Expired builds appear in gray.
+
+## Automatic screenshots
+
+Generates store screenshots from a web project with a static build (such as Capacitor or a single-page site), in every size the App Store and Google Play ask for and in each project language. Then it uploads the images straight to the store listing.
+
+### Limits
+
+- **Web projects with a static build only** (Capacitor or SPA, with `index.html`). Native SwiftUI and Android projects don't generate screenshots here.
+- **Chromium on demand:** the browser (~150 MB) is downloaded on first use and stays in the `xtool-home` volume, at `/root/.xtool-panel/shots` and `/root/.cache/ms-playwright`. If the container is recreated, the system libraries are gone; in that case, the panel shows **Reinstalar dependências** (Reinstall dependencies).
+- **Store limits:** the App Store accepts up to 10 images per type, and Google Play up to 8. The extra ones are cut and listed as errors in the upload.
+- Runs are saved in `/work/<project>/xtool/prints/`, and the panel keeps the 10 most recent.
+
+Step by step:
+
+1. On the project card, click **📸 Prints** (Screenshots).
+2. If Chromium isn't installed, click **Instalar Chromium** (Install Chromium). The task appears in **Tarefas** (Tasks), and the panel checks by itself until it finishes.
+3. In **Configuração** (Setup), check the web folder (the panel detects it: the Capacitor `webDir`, or a `dist`, `build`, `www`, `out` or `public` folder with `index.html`), the build script (optional, for example `build`), the style, the sizes, the languages and the screens. Click **Salvar** (Save).
+4. Click **▶ Gerar prints** (Generate screenshots) and follow the task.
+5. In **Resultados** (Results), choose the run, select the images, enter the store version and click **⬆ Enviar selecionadas** (Upload selected). Check **Substituir as imagens atuais** (Replace current images) to delete the images of that type and language first.
+
+### Styles
+
+- **Print puro** (Plain screenshot): only the capture, at the exact size chosen.
+- **Com fundo e legenda** (With background and caption): a background in the chosen color, a caption at the top (up to 3 lines, with the chosen color and font) and the screenshot below, with rounded corners and a shadow. The caption is per language and has up to 120 characters.
+
+### Sizes
+
+| ID | Label | Size (px) | Store | Store type |
+|---|---|---|---|---|
+| `iphone69` | iPhone 6.9" | 1320 × 2868 | App Store | `APP_IPHONE_67` |
+| `iphone65` | iPhone 6.5" | 1284 × 2778 | App Store | `APP_IPHONE_65` |
+| `ipad13` | iPad 13" | 2064 × 2752 | App Store | `APP_IPAD_PRO_3GEN_129` |
+| `playPhone` | Phone (Play) | 1080 × 1920 | Google Play | `phoneScreenshots` |
+| `playTab7` | 7" tablet (Play) | 1200 × 1920 | Google Play | `sevenInchScreenshots` |
+| `playTab10` | 10" tablet (Play) | 1600 × 2560 | Google Play | `tenInchScreenshots` |
+
+### Screens and languages
+
+Each project has 1 to 10 screens. Each screen has:
+
+- a **name**, a **route** (starts with `/` or `#`, for example `/` or `#/config`) and a **wait** in ms (default 1500);
+- **Actions** (optional JSON, as a list of actions): `click` (with `selector`), `type` (with `selector` and `text`), `wait` (with `ms`) and `eval` (with `js`);
+- a **caption** per language, when the style has captions.
+
+Example of actions for one screen:
+
+```json
+[
+  { "type": "click", "selector": "#abrir-menu" },
+  { "type": "wait", "ms": 500 }
+]
+```
+
+The languages are the project's languages (the same as in **Gerenciar lojas publicadas** (Manage published stores)), unless you choose others. The **JS de idioma** (Language JS) is optional: it runs before each screen and receives the `locale` variable. For a site that stores the language in the browser, use `localStorage.setItem('lang', locale)`.
 
 ## Connect the iPhone
 
@@ -973,6 +1081,10 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/selfupdate.py` | Panel update: checks the latest commit of `marco3079/xtool-docker` on GitHub, lists the files in `panel/` that change and applies the update with a backup and restart |
 | `panel/watch.py` | Store tracking: checks in the background the projects with a pending or under-review version, keeps the history and triggers the alerts |
 | `panel/notify.py` | Notifications: channel settings (browser, Telegram, Discord and e-mail), events and sending of the alerts |
+| `panel/reviews.py` | Store reviews: fetches, keeps them in `.config/xtool-panel/reviews/<project>.json`, replies and drafts with AI; checks in the background and alerts about new reviews |
+| `panel/testes.py` | **Testes** (Testing) tab: TestFlight groups, testers and builds, **O que testar** (What to test) with AI, beta review, and Google Play test tracks and Google Groups |
+| `panel/prints.py` | Automatic screenshots: Chromium install, per-project settings, runs, list of runs and upload to the stores |
+| `panel/shots/shoot.mjs` | Node script that opens the site in Chromium and takes the screenshots per language, size and screen |
 | `panel/static/index.html` | Panel interface (single page, with the sections and the top bar) |
 | `panel/static/logo.svg` | Panel logo |
 | `panel/static/devices.js` | Devices screens: iPhone, Android (adb) and PC (Windows status, Apple service, steamcmd, Node, Electron cache and PC builds) |
@@ -986,6 +1098,9 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/static/update.js` | Panel update: button in the footer, card in **Configuração** and confirmation dialog |
 | `panel/static/notify.js` | **Notificações** (Notifications) card in **Configuração** (Setup): channels, events, test and browser alerts |
 | `panel/static/watch.js` | **Acompanhamento das lojas** (Store tracking) card in **Configuração** and badges on the project cards |
+| `panel/static/avaliacoes.js` | **⭐ Avaliações** (Reviews) dialog and badges on the project cards |
+| `panel/static/testes.js` | **🧪 Testes** (Testing) dialog: TestFlight and Google Play |
+| `panel/static/prints.js` | **📸 Prints automáticos** (Automatic screenshots) dialog: Chromium install, settings, runs and upload to the stores |
 
 <details>
 <summary>Routes of <code>panel/server.py</code></summary>
@@ -1002,8 +1117,18 @@ The **Listar** (List) button fetches the models available directly from the prov
 - Previous panel versions: `/api/update/backups` and `/api/update/restore`
 - Notifications: `/api/notify/config`, `/api/notify/test` and `/api/notify/events`
 - Store tracking: `/api/watch`, `/api/watch/config` and `/api/watch/run`
+- Store reviews: `/api/reviews*`
+- Testing: `/api/testes/*`
+- Automatic screenshots: `/api/prints/*`
 
 </details>
+
+Data for the 1.8.0 features:
+
+- reviews: `.config/xtool-panel/reviews/<project>.json`, in the `xtool-home` volume;
+- screenshot settings: `prints` key inside `.config/xtool-panel/projects.json`;
+- Chromium for screenshots: `/root/.xtool-panel/shots` and `/root/.cache/ms-playwright`;
+- screenshot output: `/work/<project>/xtool/prints/<YYYYMMDD-HHMMSS>/`.
 
 ## Data and volumes
 
@@ -1253,6 +1378,13 @@ Turn on a channel in the **Notificações** (Notifications) card in **Configura�
 
 </details>
 
+<details>
+<summary><b>A IA responde as avaliações sozinha?</b> (Does the AI reply to reviews on its own?)</summary>
+
+No. The AI only writes drafts. You review each reply and click **Enviar resposta** (Send reply) to publish it. See [Store reviews](#store-reviews).
+
+</details>
+
 ## Updating
 
 **xtool:** the **base** version (1.24.0) comes from the repository, in `base/`, and is installed when the image is built, without accessing xtool's GitHub. With internet access, the panel checks the [xtool Releases](https://github.com/xtool-org/xtool/releases) every hour. When a new version comes out, the **xtool** card shows **⬆ Atualizar** (Update). The downloaded version appears as **xtool-org**, is kept in `/root/.xtool` in the volume, and stays available after restarting the container. Without internet, the panel keeps using the base version.
@@ -1286,6 +1418,13 @@ Versions are pinned in the `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 The page is served with `Cache-Control: no-cache`: after updating the image, just reload the browser tab.
 
 ## Changelog
+
+### 1.8.0
+
+- **Store reviews** (Avaliações das lojas): reads App Store and Google Play reviews, replies from the panel (with an AI draft that you review) and alerts about new reviews with the **Nova avaliação na loja** (New store review) event
+- **Testing** (Testes): TestFlight (groups, testers, public link, builds, **O que testar** (What to test) with AI and beta review) and Google Play test tracks (Google Groups and invite link)
+- **Automatic screenshots** (Prints automáticos): screenshots of web projects in all App Store and Google Play sizes, plain or with background and caption, uploaded straight to the store listing. Chromium is downloaded on first use
+- Routes `/api/reviews*`, `/api/testes/*` and `/api/prints/*`
 
 ### 1.7.0
 
@@ -1410,6 +1549,6 @@ This project is distributed under the [MIT](LICENSE) license, © marco3079.
 
 ---
 
-**xtool Painel 1.7.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.8.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

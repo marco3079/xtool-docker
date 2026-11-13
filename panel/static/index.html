@@ -895,8 +895,11 @@ async function loadProjects(){
       ${anyCfg?`<button class="btn sm pri" onclick="projBuild(${P})">🔨 Build</button>
       <button class="btn sm" ${(p.releaseCount||0)>0?'':'disabled'} onclick="projDeliver(${P})" title="${(p.releaseCount||0)>0?'Enviar um build release para a loja':((p.dbCount||0)>0&&(p.releaseCount||0)===0?'Nenhum build release feito com o banco prod: gere um em Build escolhendo o banco Produção':'Nenhum build release ainda: gere um em Build (modo Release)')}">📤 Enviar para a loja</button>`:''}
       <button class="btn sm" onclick="lojasAbrir(${P})">🏪 Gerenciar lojas publicadas</button>
+      <button class="btn sm" onclick="avAbrir(${P})">⭐ Avaliações <span class="av-badge" data-av="${n}"></span></button>
+      <button class="btn sm" onclick="tsAbrir(${P})">🧪 Testes</button>
+      <button class="btn sm" onclick="prAbrir(${P})">📸 Prints</button>
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
-    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';if(typeof wchPaintBadges==='function')wchPaintBadges();hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
+    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';if(typeof wchPaintBadges==='function')wchPaintBadges();if(typeof avSelos==='function')avSelos();hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
 async function loadRunAdb(){
   const el=$('runAdb');if(!el)return;const keep=el.value;let ds=[];
   try{ds=(await api('/api/adb/devices')).filter(d=>d.state==='device')}catch(e){}
@@ -1582,5 +1585,6 @@ iconify(document.body);biObs.observe(document.body,BI_OPTS);
 <script src="/static/update.js"></script>
 <script src="/static/notify.js"></script>
 <script src="/static/watch.js"></script>
+<script src="/static/avaliacoes.js"></script><script src="/static/testes.js"></script><script src="/static/prints.js"></script>
 </body>
 </html>

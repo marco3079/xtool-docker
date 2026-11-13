@@ -10,6 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 
 import jwt  # python3-jwt (+ python3-cryptography for RS256)
 
@@ -30,6 +31,58 @@ def _http_text(e):
         return e.read().decode("utf-8", "replace")
     except (OSError, http.client.HTTPException):
         return ""
+
+
+def _iso(seconds):
+    """Epoch em segundos (string ou int, como o Google manda) para ISO UTC; "" se inválido."""
+    try:
+        return datetime.fromtimestamp(int(seconds), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError, OverflowError, OSError):
+        return ""
+
+
+def _review_item(rv):
+    """Converte um review da API no formato de avaliação do painel."""
+    user, dev = {}, None
+    for c in rv.get("comments") or []:
+        if not isinstance(c, dict):
+            continue
+        if isinstance(c.get("userComment"), dict):
+            user = c["userComment"]  # o último userComment é a versão mais recente
+        if isinstance(c.get("developerComment"), dict):
+            dev = c["developerComment"]
+    try:
+        rating = int(user.get("starRating") or 0)
+    except (TypeError, ValueError):
+        rating = 0
+    text = str(user.get("text") or "")
+    return {
+        "id": rv.get("reviewId", ""),
+        "rating": rating,
+        "title": "",
+        "body": text.lstrip("\t"),
+        "author": rv.get("authorName", "") or "",
+        "language": user.get("reviewerLanguage", "") or "",
+        "appVersion": user.get("appVersionName", "") or "",
+        "device": user.get("device", "") or "",
+        "createdAt": _iso((user.get("lastModified") or {}).get("seconds")),
+        "response": None if dev is None else {
+            "body": dev.get("text", "") or "",
+            "updatedAt": _iso((dev.get("lastModified") or {}).get("seconds")),
+        },
+    }
+
+
+def _is_not_found(e):
+    msg = str(e)
+    return msg.startswith("Google Play 404") or "not found" in msg.lower()
+
+
+def _is_email(s):
+    if not s or any(c.isspace() for c in s) or s.count("@") != 1:
+        return False
+    local, domain = s.split("@")
+    return bool(local) and "." in domain and all(domain.split("."))
 
 
 class Play:
@@ -539,3 +592,116 @@ class Play:
                 self.edit_delete(pkg, eid)
         log(f"Google Play: build {vc} copiado de {from_track} para {to_track} ({status})")
         return {"track": to_track, "status": status, "versionCode": vc}
+
+    # ---------------- avaliações (fora de edits) ----------------
+    def reviews(self, pkg, max_results=100, translation_language=None):
+        """Avaliações com texto (últimos 7 dias, segundo o Google). Pagina até acabar ou chegar a 500.
+
+        `max_results` é o tamanho de cada página (1 a 100). `translation_language` pede a tradução
+        para o idioma dado (ex.: "pt-BR"). Devolve a lista no formato de avaliação do painel.
+        """
+        try:
+            page = min(max(int(max_results), 1), 100)
+        except (TypeError, ValueError):
+            page = 100
+        out, token, seen = [], None, set()
+        while True:
+            params = {"maxResults": page}
+            if token:
+                params["token"] = token
+            if translation_language:
+                params["translationLanguage"] = translation_language
+            d = self.req("GET", f"/{pkg}/reviews", params=params)
+            for rv in d.get("reviews") or []:
+                if isinstance(rv, dict) and rv.get("reviewId"):
+                    out.append(_review_item(rv))
+            token = (d.get("tokenPagination") or {}).get("nextPageToken")
+            if not token or token in seen or len(out) >= 500:
+                break
+            seen.add(token)
+        return out[:500]
+
+    def reply_review(self, pkg, review_id, text):
+        """Publica (ou substitui) a resposta do desenvolvedor a uma avaliação. Máximo 350 caracteres."""
+        txt = "" if text is None else str(text)
+        if len(txt) > 350:
+            raise PlayError("a resposta no Google Play tem no máximo 350 caracteres")
+        rid = urllib.parse.quote(str(review_id), safe="")
+        d = self.req("POST", f"/{pkg}/reviews/{rid}:reply", body={"replyText": txt})
+        res = d.get("result") if isinstance(d.get("result"), dict) else {}
+        return {"body": res.get("replyText") or txt,
+                "updatedAt": _iso((res.get("lastEdited") or {}).get("seconds")) or _iso(int(time.time()))}
+
+    # ---------------- testes (edit aberto e apagado, exceto testers/set_testers) ----------------
+    def test_tracks(self, pkg):
+        """Faixas que não são produção: [{"track", "releases": [{"name","versionCodes","status","userFraction"}]}]."""
+        eid = self.edit_open(pkg)
+        try:
+            tracks = self.tracks(pkg, eid)
+        finally:
+            self.edit_delete(pkg, eid)
+        out = []
+        for t in tracks:
+            if not isinstance(t, dict) or not t.get("track") or t.get("track") == "production":
+                continue
+            rels = []
+            for rel in t.get("releases") or []:
+                if not isinstance(rel, dict):
+                    continue
+                uf = rel.get("userFraction")
+                try:
+                    uf = float(uf) if uf is not None else None
+                except (TypeError, ValueError):
+                    uf = None
+                rels.append({"name": rel.get("name", "") or "",
+                             "versionCodes": [str(v) for v in rel.get("versionCodes") or []],
+                             "status": rel.get("status", "") or "",
+                             "userFraction": uf})
+            out.append({"track": t["track"], "releases": rels})
+        return out
+
+    def testers(self, pkg, track):
+        """Grupos do Google (Google Groups) de testadores da faixa: {"googleGroups": [str]}. 404 = vazio."""
+        if not track:
+            raise PlayError("faixa não informada")
+        tr = urllib.parse.quote(str(track), safe="")
+        eid = self.edit_open(pkg)
+        try:
+            try:
+                d = self.req("GET", f"/{pkg}/edits/{eid}/testers/{tr}")
+            except PlayError as e:
+                if not _is_not_found(e):
+                    raise
+                d = {}
+        finally:
+            self.edit_delete(pkg, eid)
+        return {"googleGroups": [str(g) for g in (d.get("googleGroups") or [])]}
+
+    def set_testers(self, pkg, track, groups):
+        """Troca os Google Groups de testadores da faixa. Cada item precisa ser um e-mail. Com commit."""
+        if not track:
+            raise PlayError("faixa não informada")
+        if not isinstance(groups, (list, tuple)):
+            raise PlayError("lista de grupos inválida")
+        clean = []
+        for g in groups:
+            s = str(g).strip()
+            if not _is_email(s):
+                raise PlayError(f"e-mail inválido no grupo de testadores: {s or '(vazio)'}")
+            clean.append(s)
+        tr = urllib.parse.quote(str(track), safe="")
+        eid = self.edit_open(pkg)
+        ok = False
+        try:
+            d = self.req("PUT", f"/{pkg}/edits/{eid}/testers/{tr}", body={"googleGroups": clean})
+            self.edit_commit(pkg, eid)
+            ok = True
+        finally:
+            if not ok:
+                self.edit_delete(pkg, eid)
+        return {"googleGroups": [str(g) for g in (d.get("googleGroups") or clean)]}
+
+
+def opt_in_url(pkg):
+    """Link público para o testador entrar no programa de teste do app."""
+    return "https://play.google.com/apps/testing/" + pkg

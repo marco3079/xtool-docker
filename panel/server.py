@@ -31,9 +31,12 @@ import lojas
 import lojas_io
 import notify
 import pc
+import prints
+import reviews
 import selfupdate
 import steam
 import store
+import testes
 import versions
 import watch
 from asc import ASC, AscError
@@ -41,7 +44,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -54,11 +57,12 @@ LOCK = threading.Lock()
 
 
 class Job:
-    def __init__(self, argv, cwd, title, env=None):
+    def __init__(self, argv, cwd, title, env=None, kind=None):
         self.id = uuid.uuid4().hex[:10]
         self.argv = argv
         self.cwd = cwd
         self.title = title
+        self.kind = kind  # tipo lógico (ex.: "prints.install"), usado para bloquear duplicatas
         self.started = time.time()
         self.ended = None
         self.code = None
@@ -1899,6 +1903,208 @@ def notify_events(qs):
     return notify.events_since(since)
 
 
+# ---------------------------------------------------------------------------
+# Avaliações, Testes e Prints (1.8.0): rotas /api/reviews/*, /api/testes/*, /api/prints/*
+# Todas validam o projeto com _lojas_project (erro vira {"error"} com HTTP 400).
+# ---------------------------------------------------------------------------
+def _ok(r):
+    return r if r is not None else {"ok": True}
+
+
+def _list_or_text(b, key):
+    """Campo que aceita texto (vírgulas/linhas) ou lista; ausente vira texto vazio."""
+    v = b.get(key)
+    if v is None:
+        return ""
+    if isinstance(v, (str, list)):
+        return v
+    raise ValueError("dados inválidos")
+
+
+def _review_id(b):
+    rid = _txt(b, "id")
+    if not rid:
+        raise ValueError("avaliação não informada")
+    return rid
+
+
+def reviews_listing(qs):
+    project = _lojas_project(qs)
+    return reviews.listing(project, _lojas_store(qs), only_unanswered=qs.get("unanswered") == "1")
+
+
+def reviews_summary(qs):
+    return reviews.summary(_lojas_project(qs))
+
+
+def reviews_fetch(b):
+    project = _lojas_project(b)
+    return reviews.fetch(project, _lojas_store(b))
+
+
+def reviews_draft(b):
+    project = _lojas_project(b)
+    store_key = _lojas_store(b)
+    reviews.save_draft(project, store_key, _review_id(b), str(b.get("text") or ""))
+    return {"ok": True}
+
+
+def reviews_ai(b):
+    """Rascunho da resposta pela IA: só gera e grava como rascunho; quem envia é o usuário."""
+    project = _lojas_project(b)
+    store_key = _lojas_store(b)
+    return reviews.draft_ai(ai_conf_for(b), project, store_key, _review_id(b), _txt(b, "extra"))
+
+
+def reviews_reply(b):
+    project = _lojas_project(b)
+    store_key = _lojas_store(b)
+    return reviews.reply(project, store_key, _review_id(b), _txt(b, "text"))
+
+
+def testes_ios_overview(qs):
+    return testes.ios_overview(_lojas_project(qs))
+
+
+def testes_ios_group(b):
+    project = _lojas_project(b)
+    return _ok(testes.ios_create_group(project, _txt(b, "name"), bool(b.get("internal"))))
+
+
+def testes_ios_link(b):
+    project = _lojas_project(b)
+    limit = b.get("limit")
+    if limit == "":
+        limit = None
+    return _ok(testes.ios_public_link(project, _txt(b, "groupId"), bool(b.get("enabled")), limit))
+
+
+def testes_ios_testers_add(b):
+    project = _lojas_project(b)
+    return _ok(testes.ios_add_testers(project, _txt(b, "groupId"), _list_or_text(b, "emails")))
+
+
+def testes_ios_testers_remove(b):
+    project = _lojas_project(b)
+    return _ok(testes.ios_remove_tester(project, _txt(b, "groupId"), _txt(b, "testerId")))
+
+
+def testes_ios_build(b):
+    project = _lojas_project(b)
+    return _ok(testes.ios_add_build(project, _txt(b, "groupId"), _txt(b, "buildId")))
+
+
+def testes_ios_whattotest(b):
+    project = _lojas_project(b)
+    texts = b.get("texts")
+    if not isinstance(texts, dict):
+        raise ValueError("dados inválidos")
+    return _ok(testes.ios_set_what_to_test(project, _txt(b, "buildId"), texts))
+
+
+def testes_ios_whattotest_ai(b):
+    """'O que testar' pela IA: só devolve o texto por idioma; quem salva é o usuário."""
+    project = _lojas_project(b)
+    locales = b.get("locales") or lojas.project_locales(project)
+    if not isinstance(locales, list):
+        raise ValueError("dados inválidos")
+    extra = _txt(b, "extra")
+    changes = lojas_changes(project, "ios")
+    if not changes.strip() and not extra:
+        raise ValueError("não há mudanças registradas no git; escreva um resumo no campo de observações")
+    return testes.ios_what_to_test_ai(ai_conf_for(b), project, _txt(b, "version"), locales, changes, extra)
+
+
+def testes_ios_submit(b):
+    project = _lojas_project(b)
+    details = b.get("details")
+    info = b.get("info")
+    for v in (details, info):
+        if v is not None and not isinstance(v, dict):
+            raise ValueError("dados inválidos")
+    return _ok(testes.ios_submit_beta_review(project, _txt(b, "buildId"), details or None, info or None))
+
+
+def testes_android_overview(qs):
+    return testes.android_overview(_lojas_project(qs))
+
+
+def testes_android_testers(b):
+    project = _lojas_project(b)
+    return _ok(testes.android_set_testers(project, _txt(b, "track"), _list_or_text(b, "groups")))
+
+
+def prints_status():
+    return prints.status()
+
+
+def prints_config_get(qs):
+    return prints.get_config(_lojas_project(qs))
+
+
+def prints_config_save(b):
+    project = _lojas_project(b)
+    cfg = b.get("config")
+    if not isinstance(cfg, dict):
+        raise ValueError("configuração inválida")
+    prints.save_config(project, cfg)
+    return prints.get_config(project)
+
+
+def prints_runs(qs):
+    return prints.runs(_lojas_project(qs))
+
+
+def prints_files(qs):
+    return prints.run_files(_lojas_project(qs), _txt(qs, "run"))
+
+
+def prints_upload(b):
+    project = _lojas_project(b)
+    items = b.get("items")
+    if not isinstance(items, list):
+        raise ValueError("dados inválidos")
+    return prints.upload(project, _txt(b, "run"), _txt(b, "version"), [str(i) for i in items],
+                         replace=bool(b.get("replace")))
+
+
+def _job_busy(kind):
+    return any(j.kind == kind and j.ended is None for j in JOBS.values())
+
+
+def _start_unique_job(kind, argv, cwd, title, env):
+    """Cria o Job só se não houver outro do mesmo tipo rodando; None = já em andamento (409)."""
+    with LOCK:
+        if _job_busy(kind):
+            return None
+        j = Job(argv, cwd, title, env, kind=kind)
+        JOBS[j.id] = j
+        return j
+
+
+def prints_install_start():
+    """POST /api/prints/install: Job com install_cmd(). Devolve (corpo, código HTTP)."""
+    argv, env = prints.install_cmd()
+    j = _start_unique_job("prints.install", argv, WORK, "Instalar Chromium (prints)", env)
+    if j is None:
+        return {"error": "a instalação do Chromium já está em andamento"}, 409
+    return {"job": j.id}, 200
+
+
+def prints_run_start(b):
+    """POST /api/prints/run: Job com run_cmd(project). Devolve (corpo, código HTTP)."""
+    project = _lojas_project(b)
+    kind = f"prints.run:{project}"
+    if _job_busy(kind):
+        return {"error": "já há uma geração de prints em andamento neste projeto"}, 409
+    argv, env, run_dir = prints.run_cmd(project)
+    os.makedirs(run_dir, exist_ok=True)
+    j = _start_unique_job(kind, argv, run_dir, f"Prints: {project}", env)
+    if j is None:
+        return {"error": "já há uma geração de prints em andamento neste projeto"}, 409
+    return {"job": j.id, "run": os.path.basename(os.path.normpath(run_dir))}, 200
+
+
 def write_args(a):
     os.makedirs("/tmp/panel-args", exist_ok=True)
     p = f"/tmp/panel-args/{uuid.uuid4().hex}.json"
@@ -2060,6 +2266,22 @@ class H(BaseHTTPRequestHandler):
                 return self._json(notify_events(qs))
             if u.path == "/api/update/backups":
                 return self._json(selfupdate.backups())
+            if u.path == "/api/reviews":
+                return self._json(reviews_listing(qs))
+            if u.path == "/api/reviews/summary":
+                return self._json(reviews_summary(qs))
+            if u.path == "/api/testes/ios":
+                return self._json(testes_ios_overview(qs))
+            if u.path == "/api/testes/android":
+                return self._json(testes_android_overview(qs))
+            if u.path == "/api/prints/status":
+                return self._json(prints_status())
+            if u.path == "/api/prints/config":
+                return self._json(prints_config_get(qs))
+            if u.path == "/api/prints/runs":
+                return self._json(prints_runs(qs))
+            if u.path == "/api/prints/files":
+                return self._json(prints_files(qs))
             if u.path == "/api/pull/state":  # leve: só lê o dicionário, não roda git
                 with PULL_LOCK:
                     return self._json({k: dict(v) for k, v in PULL_STATE.items()})
@@ -2104,6 +2326,12 @@ class H(BaseHTTPRequestHandler):
                 else:
                     threading.Thread(target=j.stop, daemon=True).start()
                 return self._json({"ok": True})
+            if u.path == "/api/prints/install":
+                payload, code = prints_install_start()
+                return self._json(payload, code)
+            if u.path == "/api/prints/run":
+                payload, code = prints_run_start(self._body())
+                return self._json(payload, code)
             acc_routes = {
                 "/api/accounts/add": lambda b: accounts_add(str(b.get("label", "")).strip()),
                 "/api/accounts/switch": lambda b: accounts_switch(b.get("id")),
@@ -2164,6 +2392,21 @@ class H(BaseHTTPRequestHandler):
                 "/api/notify/config": lambda b: (notify.config_save(b), notify.config_public())[1],
                 "/api/notify/test": lambda b: notify.test(str(b.get("channel", ""))),
                 "/api/projects/pull": project_pull,
+                "/api/reviews/fetch": reviews_fetch,
+                "/api/reviews/draft": reviews_draft,
+                "/api/reviews/ai": reviews_ai,
+                "/api/reviews/reply": reviews_reply,
+                "/api/testes/ios/group": testes_ios_group,
+                "/api/testes/ios/link": testes_ios_link,
+                "/api/testes/ios/testers/add": testes_ios_testers_add,
+                "/api/testes/ios/testers/remove": testes_ios_testers_remove,
+                "/api/testes/ios/build": testes_ios_build,
+                "/api/testes/ios/whattotest": testes_ios_whattotest,
+                "/api/testes/ios/whattotest/ai": testes_ios_whattotest_ai,
+                "/api/testes/ios/submit": testes_ios_submit,
+                "/api/testes/android/testers": testes_android_testers,
+                "/api/prints/config": prints_config_save,
+                "/api/prints/upload": prints_upload,
             }
             if u.path in acc_routes:
                 return self._json(acc_routes[u.path](self._body()))
@@ -2203,5 +2446,6 @@ if __name__ == "__main__":
     threading.Thread(target=_watch_devices, daemon=True).start()
     threading.Thread(target=_auto_pull_loop, daemon=True).start()
     watch.start(VERSION)
+    reviews.start()
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()

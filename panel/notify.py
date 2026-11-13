@@ -30,6 +30,7 @@ EVENT_LABELS = {
     "store_change": "Mudança de estado na loja",
     "store_rejected": "App rejeitado",
     "panel_update": "Atualização do painel disponível",
+    "review_new": "Nova avaliação na loja",
 }
 _EMAIL_RE = re.compile(r"[^@\s,]+@[^@\s,]+")
 
