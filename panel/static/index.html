@@ -343,6 +343,12 @@ h2:first-child{margin-top:0}
     <div class="card"><h3>Remover SDK</h3><p>Apaga o SDK instalado.</p><button class="btn danger" onclick="confirmRun('Remover o SDK do iOS?','sdk.remove',{},'Remover SDK')">Remover</button></div>
   </div>
 
+  <h2>Notificações</h2>
+  <div class="card" id="ntfCard" style="max-width:860px"><p class="hint">Carregando…</p></div>
+
+  <h2>Acompanhamento das lojas</h2>
+  <div class="card" id="wchCard" style="max-width:860px"><p class="hint">Carregando…</p></div>
+
   <h2>Painel</h2>
   <div class="card" id="updCard" style="max-width:680px"><h3>Atualização do painel</h3><p class="hint">Verificando…</p></div>
 </section>
@@ -768,7 +774,7 @@ function topSet(key,value){
 const NAV_OF={play:'accounts',steam:'accounts',playapps:'apps',android:'publish',pc:'publish',steamapps:'apps',androiddev:'devices',pcdev:'devices'};
 function go(s){const parent=NAV_OF[s]||s;if(parent!==s||s in{accounts:1,apps:1,publish:1,devices:1}){try{localStorage.setItem('xtool-tab-'+parent,s)}catch(e){}}
   document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.s===parent));document.querySelectorAll('.segtabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===s));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$('htitle').textContent=titles[s][0];$('hsub').textContent=titles[s][1];side.classList.remove('open');
-  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:loadXips,accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay,playapps:initPlayApps,pc:()=>initPc(),steam:()=>loadSteam(),steamapps:()=>initSteamApps(),androiddev:()=>initAndroidDev(),pcdev:()=>initPcDev()})[s]?.()}
+  ({projects:loadProjects,files:loadFiles,jobs:loadJobs,devices:()=>{loadIpas();loadDevs()},setup:()=>{loadXips();ntfLoad()},accounts:loadAccounts,apps:initApps,publish:initPublish,github:loadGh,ai:loadAi,android:initAndroid,play:loadPlay,playapps:initPlayApps,pc:()=>initPc(),steam:()=>loadSteam(),steamapps:()=>initSteamApps(),androiddev:()=>initAndroidDev(),pcdev:()=>initPcDev()})[s]?.()}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{let t=n.dataset.s;try{t=localStorage.getItem('xtool-tab-'+t)||t}catch(e){}go(t)});
 
 /* terminal */
@@ -880,7 +886,7 @@ async function loadProjects(){
     const verBtn=g&&!(ap&&ap.state==='fetching')?`<button class="btn sm" style="font-size:11px;padding:1px 8px;margin-left:6px" title="Verificar atualizações agora" onclick="pullNow(${P})">↻ verificar</button>`:'';
     const ghRow=`<div class="meta" style="margin-top:4px">${repo?`<a href="https://github.com/${esc(repo)}" target="_blank">🐙 ${esc(repo)}</a>${g?` · ${esc(g.branch)}${g.commit?` · <code class="mono" title="${esc(g.commit.subject)} — ${new Date(g.commit.at*1000).toLocaleString()}">${esc(g.commit.hash)}</code> · <span title="commit nº ${g.commit.count} desta branch">#${g.commit.count}</span>`:''}${g.changes?` · <b style="color:var(--warn)">${g.changes} alteração(ões)</b>`:''}${g.ahead?` · ↑${g.ahead}`:''}${g.behind?` · ↓${g.behind}`:''}`:''}${apPill}${apBar}${verBtn}`:`<a href="#" onclick="linkRepo(${P});return false">🐙 vincular ao GitHub</a>`}</div>${appRow(p,P)}${typeof androidRow==='function'?androidRow(p,P):''}${typeof steamRow==='function'?steamRow(p,P):''}`;
     return `<div class="item" style="flex-wrap:wrap"><div class="ico" style="width:38px;height:38px;border-radius:10px;background:var(--panel2);display:grid;place-items:center">📁</div>
-    <div class="grow"><div class="name">${n}${pills}${cfgMiss?'<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px;color:var(--warn)"><i></i>⚙ falta configurar</span>':''}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
+    <div class="grow"><div class="name">${n}${pills}<span class="wch-badges" data-wch="${n}"></span>${cfgMiss?'<span class="pill" style="font-size:11px;padding:1px 8px;margin-left:6px;color:var(--warn)"><i></i>⚙ falta configurar</span>':''}</div><div class="meta">/work/${n} · ${new Date(p.mtime*1000).toLocaleString()}${p.artifacts.length?' · '+p.artifacts.length+' build(s)':''}</div>
     ${ghRow}
     ${p.artifacts.map(a=>`<a class="meta" href="/api/download?root=work&path=${encodeURIComponent(a)}">⬇ ${esc(a.split('/').pop())}</a>`).join(' &nbsp; ')}</div>
     <div class="row" style="flex-basis:100%;padding:10px 0 0 50px;border-top:1px solid var(--line);margin-top:4px">
@@ -890,7 +896,7 @@ async function loadProjects(){
       <button class="btn sm" ${(p.releaseCount||0)>0?'':'disabled'} onclick="projDeliver(${P})" title="${(p.releaseCount||0)>0?'Enviar um build release para a loja':((p.dbCount||0)>0&&(p.releaseCount||0)===0?'Nenhum build release feito com o banco prod: gere um em Build escolhendo o banco Produção':'Nenhum build release ainda: gere um em Build (modo Release)')}">📤 Enviar para a loja</button>`:''}
       <button class="btn sm" onclick="lojasAbrir(${P})">🏪 Gerenciar lojas publicadas</button>
       <button class="btn sm" onclick="fRoot.value='work';fPath=${P};go('files')">Arquivos</button>
-    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
+    </div></div>`}).join(''):'<div class="empty">Nenhum projeto em /work. Crie um acima.</div>';if(typeof wchPaintBadges==='function')wchPaintBadges();hydrateIcons();if(ps.some(p=>(p.platforms||[]).includes('android')))loadRunAdb();pullWatch()}
 async function loadRunAdb(){
   const el=$('runAdb');if(!el)return;const keep=el.value;let ds=[];
   try{ds=(await api('/api/adb/devices')).filter(d=>d.state==='device')}catch(e){}
@@ -1574,5 +1580,7 @@ iconify(document.body);biObs.observe(document.body,BI_OPTS);
 <script src="/static/deliver.js"></script>
 <script src="/static/projlinks.js"></script>
 <script src="/static/update.js"></script>
+<script src="/static/notify.js"></script>
+<script src="/static/watch.js"></script>
 </body>
 </html>

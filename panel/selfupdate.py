@@ -219,7 +219,8 @@ def _backup(old_short):
 
 
 def _swap(new_panel, sha):
-    """Apaga o que não existe no painel novo, copia o novo por cima e grava o commit."""
+    """Apaga o que não existe no painel novo, copia o novo por cima e grava o commit
+    (se 'sha' for None, apaga o .commit)."""
     new_files, new_dirs = _tree(new_panel)
 
     def prune(d, rel):
@@ -247,13 +248,28 @@ def _swap(new_panel, sha):
         for d in [d for d in ds if d == "__pycache__"]:
             shutil.rmtree(os.path.join(root, d), ignore_errors=True)
             ds.remove(d)
-    with open(COMMIT_FILE, "w") as f:
-        f.write(sha)
+    if sha:
+        with open(COMMIT_FILE, "w") as f:
+            f.write(sha)
+    elif os.path.exists(COMMIT_FILE):
+        os.remove(COMMIT_FILE)
 
 
 def restart():
     """Troca o processo do servidor por uma nova execução (o container continua no ar)."""
     os.execv(sys.executable, [sys.executable, "-u", os.path.join(PANEL_DIR, "server.py")])
+
+
+def _install(src_panel, commit):
+    """Troca o painel instalado por 'src_panel' (pasta já validada): faz backup do atual,
+    copia o novo, grava o commit (ou apaga o .commit se 'commit' for None), limpa o cache
+    do check e agenda o restart. Devolve a pasta do backup criado."""
+    backup = _backup((installed_commit() or "")[:7] or "desconhecido")
+    _swap(src_panel, commit)
+    with _lock:
+        _cache.update(at=0.0, res=None)
+    threading.Timer(1.5, restart).start()
+    return backup
 
 
 def _apply(sha, short):
@@ -275,13 +291,9 @@ def _apply(sha, short):
         if not os.path.isfile(os.path.join(new_panel, "server.py")):
             raise UpdateError(f"O commit {short} não tem panel/server.py")
         _compile_check(new_panel, tmp, short)
-        backup = _backup((installed_commit() or "")[:7] or "desconhecido")
-        _swap(new_panel, sha)
+        backup = _install(new_panel, sha)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    with _lock:
-        _cache.update(at=0.0, res=None)
-    threading.Timer(1.5, restart).start()
     return {"ok": True, "sha": sha, "short": sha[:7], "restarting": True, "backup": backup}
 
 
@@ -295,3 +307,57 @@ def apply(sha):
         raise UpdateError("Verifique de novo: o commit mudou")
     with _apply_lock:
         return _apply(sha, latest["short"])
+
+
+def backups():
+    """Backups do painel em BACKUP_DIR, do mais novo para o mais antigo.
+    Cada um: name, date (epoch), commit (ou None), short (7 letras ou None), version (ou None)."""
+    if not os.path.isdir(BACKUP_DIR):
+        return []
+    out = []
+    for name in sorted(os.listdir(BACKUP_DIR), reverse=True):
+        p = os.path.join(BACKUP_DIR, name)
+        if not os.path.isdir(p):
+            continue
+        try:
+            date = time.mktime(time.strptime(name[:15], "%Y%m%d-%H%M%S"))
+        except ValueError:
+            date = os.path.getmtime(p)
+        commit = None
+        try:
+            with open(os.path.join(p, ".commit")) as f:
+                commit = f.read().strip() or None
+        except OSError:
+            pass
+        version = None
+        try:
+            with open(os.path.join(p, "server.py"), encoding="utf-8", errors="replace") as f:
+                m = re.search(r'^VERSION\s*=\s*"([^"]+)"', f.read(), re.M)
+                version = m.group(1) if m else None
+        except OSError:
+            pass
+        out.append({"name": name, "date": date, "commit": commit,
+                    "short": commit[:7] if commit else None, "version": version})
+    return out
+
+
+def restore(name):
+    """Volta o painel para um backup da lista. O backup é copiado para um tempdir antes,
+    assim a poda do novo backup não apaga a origem. Reinicia o servidor."""
+    name = str(name or "")
+    item = next((b for b in backups() if b["name"] == name), None)
+    if not item:
+        raise UpdateError("Backup não encontrado")
+    with _apply_lock:
+        tmp = tempfile.mkdtemp(prefix="xtool-restore-")
+        try:
+            src = os.path.join(tmp, "panel")
+            shutil.copytree(os.path.join(BACKUP_DIR, name), src,
+                            ignore=shutil.ignore_patterns("__pycache__"))
+            if not os.path.isfile(os.path.join(src, "server.py")):
+                raise UpdateError("O backup está incompleto: falta panel/server.py")
+            _compile_check(src, tmp, item["short"] or "do backup")
+            _install(src, item["commit"])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+    return {"ok": True, "restarting": True, "version": item["version"], "short": item["short"]}

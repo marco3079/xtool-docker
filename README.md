@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.6.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.7.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -33,7 +33,7 @@ By **[marco3079](https://github.com/marco3079)**
 
 **Começar:** [Visão geral](#visão-geral) · [Destaques](#destaques) · [Recursos](#recursos) · [Telas](#telas) · [Requisitos](#requisitos) · [Instalação](#instalação) · [Primeiros passos](#primeiros-passos)
 
-**Usar:** [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar) · [Banco de dados por projeto](#banco-de-dados-por-projeto) · [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas) · [Conectar o iPhone](#conectar-o-iphone) · [Android e Google Play](#android-e-google-play) · [Rodar no celular Android](#rodar-no-celular-android) · [Versão do app](#versão-do-app) · [IA para notas de versão](#ia-para-notas-de-versão) · [GitHub](#github)
+**Usar:** [Projetos: configurar, compilar e enviar](#projetos-configurar-compilar-e-enviar) · [Banco de dados por projeto](#banco-de-dados-por-projeto) · [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas) · [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas) · [Conectar o iPhone](#conectar-o-iphone) · [Android e Google Play](#android-e-google-play) · [Rodar no celular Android](#rodar-no-celular-android) · [Versão do app](#versão-do-app) · [IA para notas de versão](#ia-para-notas-de-versão) · [GitHub](#github)
 
 **Publicar:** [Publicar na App Store](#publicar-na-app-store) · [Publicar no Google Play](#publicar-no-google-play) · [Compilar para PC (Electron)](#compilar-para-pc-electron) · [Publicar na Steam](#publicar-na-steam)
 
@@ -84,6 +84,10 @@ Edite a ficha do app nas abas App Store e Google Play, com contador de limites, 
 <p align="center"><img src="docs/telas/10-lojas-app-store.png" alt="Gerenciar lojas publicadas, App Store" width="860"></p>
 <p align="center"><sub>Gerenciar lojas publicadas, aba App Store: versão na loja, versão mais recente e campos por idioma.</sub></p>
 
+### Acompanhamento das lojas
+
+Depois de enviar uma versão para revisão ou promover uma release, o painel consulta as lojas em segundo plano e avisa quando a revisão muda, quando o app é rejeitado ou quando a versão vai à venda. Os avisos podem ir para o navegador, Telegram, Discord ou e-mail. Detalhes em [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas).
+
 ### Textos da ficha com IA
 
 Gere os textos da ficha com IA a partir dos commits desde o último lançamento e dos textos que já estão na loja. Você revisa antes: nada é gravado na loja até **💾 Atualizar na loja**. Detalhes em [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas).
@@ -101,6 +105,7 @@ Gere os textos da ficha com IA a partir dos commits desde o último lançamento 
 | **Barra do topo** | Seletores da conta Steam e da conta Google Play, e indicadores de iPhone, Android e PC. |
 | **Projetos** | Apps SwiftUI, Android e Capacitor, com build, arquivos gerados e envio às lojas. |
 | **Publicar** | Envio para a App Store, o Google Play e a Steam. |
+| **Notificações** | Avisos de build, envio e mudanças nas lojas no navegador, Telegram, Discord e e-mail. Acompanha as lojas em segundo plano e mostra o histórico em cada aba de **Gerenciar lojas publicadas**. |
 | **GitHub** | Várias contas, importação de repositórios e pull automático pelo card do projeto. |
 | **IA** | Provedores para as notas de versão e para os textos das lojas. |
 | **Dispositivos** | iPhone, Android e PC, com status em tempo real. Instala, abre e remove apps. |
@@ -573,6 +578,59 @@ Os idiomas do app são gravados pela rota de configurações do projeto (`/api/p
 
 Detalhes técnicos: a visão geral e os vínculos com as lojas ficam em `panel/lojas.py`; a leitura e a gravação de textos e imagens, o envio para revisão e a promoção entre faixas, em `panel/lojas_io.py`; o popup, em `panel/static/lojas.js`; e a IA e as imagens, em `panel/static/lojas2.js`.
 
+## Notificações e acompanhamento das lojas
+
+O painel avisa o que acontece com builds, envios e lojas, e acompanha as lojas enquanto a versão espera a revisão. A configuração fica em **Configuração**, nos cards **Notificações** e **Acompanhamento das lojas**.
+
+### Canais de aviso
+
+No card **Notificações**, ative os canais que quiser. Cada canal tem o botão **Enviar teste**, que manda uma mensagem de teste e mostra o resultado. Se um canal falhar, o último erro aparece em vermelho no card.
+
+- **Navegador:** marque a caixa e clique em **Permitir notificações do navegador**. Os avisos aparecem como notificação do sistema e como mensagem na tela, e só chegam com o painel aberto numa aba do navegador.
+- **Telegram:** crie um bot com o [@BotFather](https://t.me/BotFather) e cole o token do bot. Depois informe o chat ID para onde as mensagens devem ir.
+- **Discord:** nas configurações do canal, abra **Integrações** → **Webhooks**, crie um webhook e cole a URL no painel.
+- **E-mail (SMTP):** informe servidor, porta, segurança (STARTTLS, SSL ou nenhuma), usuário, senha, remetente e destinatário. Vários destinatários são separados por vírgula. No Gmail, use uma senha de app, não a senha da conta.
+
+Tokens, URLs de webhook e senhas ficam no `secrets.json` e aparecem mascarados na interface. Para apagar um deles, use o botão **remover** ao lado do campo. Campo vazio mantém o valor salvo.
+
+### Eventos
+
+Em **Eventos**, escolha quais assuntos disparam aviso:
+
+| Evento | Quando |
+|---|---|
+| **Build/envio concluído** | Uma tarefa de build ou envio termina sem erro e durou pelo menos 20 s |
+| **Build/envio com erro** | Uma tarefa termina com erro |
+| **Mudança de estado na loja** | A revisão ou a faixa de um app muda de estado |
+| **App rejeitado** | A Apple rejeita a versão |
+| **Atualização do painel disponível** | Há um commit novo do painel no GitHub |
+
+### Intervalo de consulta
+
+O painel consulta as lojas no intervalo escolhido no card **Acompanhamento das lojas**: 5, 10, 15, 30, 60, 120 ou 240 minutos. O padrão é 15 minutos. O card mostra a hora da última consulta, e **Consultar agora** força uma consulta.
+
+### Quais projetos são acompanhados
+
+O acompanhamento não consulta todos os projetos o tempo todo. Um projeto entra na consulta quando:
+
+- tem uma versão pendente ou em revisão em alguma loja; isso vale também para apps ainda não publicados, cuja primeira versão está em revisão;
+- teve alguma mudança nas lojas nas últimas 24 horas. Cada mudança renova essas 24 horas.
+
+Enviar uma versão para revisão, promover uma release ou enviar um build também deixa o projeto acompanhado por 24 horas. A cada 6 horas, o painel faz uma varredura em todos os projetos vinculados, para achar versões pendentes criadas fora do painel.
+
+A consulta roda no próprio painel, dentro do container. Por isso, o acompanhamento e os avisos por Telegram, Discord e e-mail funcionam mesmo com o navegador fechado, desde que o container esteja rodando.
+
+### Onde os avisos aparecem
+
+- **Card do projeto:** selos ao lado das plataformas, como "🍎 1.0.3 · Em revisão". O selo fica verde quando a versão está à venda ou concluída, amarelo em andamento e vermelho quando foi rejeitada. Ao passar o mouse, aparece o último evento.
+- **Gerenciar lojas publicadas:** nas abas App Store e Google Play, a seção **Histórico**, no fim da aba, lista as mudanças do projeto nessa loja. Na aba App Store, uma versão rejeitada mostra um alerta com o link para o App Store Connect.
+- **Configuração:** o card **Acompanhamento das lojas** lista os projetos acompanhados, com os selos de cada um.
+
+### Limites
+
+- **App Store:** a API da Apple não informa o motivo de uma rejeição. O painel mostra o alerta e o link para o App Store Connect. O motivo fica na Central de Resolução do App Store Connect.
+- **Google Play:** a API não informa se a release está "em análise". O painel mostra só a faixa e o estado.
+
 ## Conectar o iPhone
 
 O container usa o serviço da Apple que roda no Windows, por meio de `USBMUXD_SOCKET_ADDRESS=host.docker.internal:27015`. Por isso não é preciso usar o usbipd.
@@ -913,6 +971,8 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/lojas.py` | Gerenciar lojas publicadas: estado de cada loja (App Store, Google Play e Steam), vínculos com conta e app, versão na loja × mais recente e idiomas do projeto |
 | `panel/lojas_io.py` | Gerenciar lojas publicadas: lê e grava textos e imagens da ficha na App Store e no Google Play; envia a versão para revisão (App Store) e promove a release entre faixas (Google Play) |
 | `panel/selfupdate.py` | Atualização do painel: consulta o último commit de `marco3079/xtool-docker` no GitHub, lista os arquivos de `panel/` que mudam e aplica a atualização com backup e reinício |
+| `panel/watch.py` | Acompanhamento das lojas: consulta em segundo plano os projetos com versão pendente ou em revisão, guarda o histórico e dispara os avisos |
+| `panel/notify.py` | Notificações: configuração dos canais (navegador, Telegram, Discord e e-mail), eventos e envio dos avisos |
 | `panel/static/index.html` | Interface do painel (página única, com as seções e a barra do topo) |
 | `panel/static/logo.svg` | Logo do painel |
 | `panel/static/devices.js` | Telas de Dispositivos: iPhone, Android (adb) e PC (status do Windows, serviço Apple, steamcmd, Node, cache do Electron e builds de PC) |
@@ -924,6 +984,8 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/static/lojas.js` | Popup **🏪 Gerenciar lojas publicadas**: abas, versões, campos e **Atualizar na loja** |
 | `panel/static/lojas2.js` | Popup **✨ Gerar com IA** e seção de imagens da ficha das lojas |
 | `panel/static/update.js` | Atualização do painel: botão no rodapé, card em **Configuração** e diálogo de confirmação |
+| `panel/static/notify.js` | Card **Notificações** em **Configuração**: canais, eventos, teste e avisos no navegador |
+| `panel/static/watch.js` | Card **Acompanhamento das lojas** em **Configuração** e selos nos cards dos projetos |
 
 <details>
 <summary>Rotas do <code>panel/server.py</code></summary>
@@ -937,6 +999,9 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 - Ações `init.android` e `multi`
 - Ficha das lojas: `/api/lojas/*` (veja [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas))
 - Atualização do painel: `/api/update/check` e `/api/update/apply`
+- Versões anteriores do painel: `/api/update/backups` e `/api/update/restore`
+- Notificações: `/api/notify/config`, `/api/notify/test` e `/api/notify/events`
+- Acompanhamento das lojas: `/api/watch`, `/api/watch/config` e `/api/watch/run`
 
 </details>
 
@@ -957,6 +1022,8 @@ O volume `xtool-home` guarda:
 - versões do xtool baixadas pelo painel (`.xtool/`);
 - contas e apps Steam (`.config/xtool-panel/steam_accounts.json` e `steam_apps.json`, sem senhas);
 - contas principais Steam e Google Play (`.config/xtool-panel/defaults.json`, sem segredos);
+- configuração das notificações (`.config/xtool-panel/notify.json`, sem segredos) e histórico do acompanhamento das lojas (`.config/xtool-panel/watch.json`);
+- segredos das notificações (token do Telegram, webhook do Discord e senha SMTP), na chave `notify` do `secrets.json`;
 - login do steamcmd (`/root/Steam`) e cache do Electron (`/root/.cache/electron`).
 
 Dentro do `xtool-work`, os builds ficam em `<projeto>/xtool/`, os do Android em `<projeto>/xtool/android/`, os de PC em `<projeto>/xtool/pc/` e a pasta da Steam em `<projeto>/xtool/steam/`.
@@ -968,6 +1035,7 @@ Dentro do `xtool-work`, os builds ficam em `<projeto>/xtool/`, os do Android em 
 
 - O painel **não tem login** e executa comandos no container. Por isso ele só escuta em `127.0.0.1`.
 - As chaves de API e os JSON das contas de serviço do Google Play ficam em `secrets.json`, com permissão `600`, e nunca voltam completos para o navegador.
+- Os segredos das notificações (token do Telegram, webhook do Discord e senha SMTP) também ficam no `secrets.json`, com permissão `600`, e aparecem mascarados na interface.
 - As chaves de upload do Android ficam em `android-keys/`. As senhas delas (geradas pelo painel, ou as que você informou ao importar) ficam no `secrets.json` e não voltam para o navegador.
 - As senhas Apple vão direto para o xtool pelo console. O painel não as grava.
 - A senha da Steam nunca é gravada pelo painel: é digitada no console, direto no steamcmd.
@@ -1178,6 +1246,13 @@ Na primeira vez, o container compila o `accord` a partir do código-fonte, o que
 
 </details>
 
+<details>
+<summary><b>Como recebo aviso quando a Apple aprovar?</b></summary>
+
+Ative um canal no card **Notificações** em **Configuração** (por exemplo, Telegram) e deixe marcado o evento **Mudança de estado na loja**. O painel consulta a App Store no intervalo configurado (padrão de 15 min), só para projetos com versão pendente ou em revisão, e avisa quando a versão muda de estado ou vai à venda. Veja [Notificações e acompanhamento das lojas](#notificações-e-acompanhamento-das-lojas).
+
+</details>
+
 ## Atualização
 
 **xtool:** a versão **base** (1.24.0) vem do repositório, em `base/`, e é instalada no build da imagem sem acessar o GitHub do xtool. Com internet, o painel consulta a cada hora os [Releases do xtool](https://github.com/xtool-org/xtool/releases). Quando sai uma versão nova, o card **xtool** mostra **⬆ Atualizar**. A versão baixada aparece como **xtool-org**, fica em `/root/.xtool`, no volume, e continua valendo depois de reiniciar o container. Sem internet, o painel segue com a versão base.
@@ -1190,6 +1265,8 @@ Na primeira vez, o container compila o `accord` a partir do código-fonte, o que
 - O painel atual vai para `/root/.xtool-panel-backup` (são mantidos os 3 backups mais recentes).
 - A atualização fica bloqueada enquanto houver tarefas rodando.
 - Mudanças fora de `panel/` (Dockerfile, `base/`, `docker-compose.yml`) não entram pelo painel: ele avisa, e nesse caso rode `docker compose up -d --build`.
+
+**Voltar uma versão:** o card **Atualização do painel** também lista as **Versões anteriores**, com a data, a versão e o commit de cada backup (os 3 mais recentes). Clique em **↩ Restaurar** para voltar o painel àquela versão. O painel atual vira um backup, o painel reinicia (cerca de 5 s), e logins, projetos e builds não são afetados. Como na atualização, a volta fica bloqueada enquanto houver tarefas rodando.
 
 ### Pela imagem (rebuild)
 
@@ -1209,6 +1286,13 @@ As versões ficam fixas no `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.7.0
+
+- **Notificações:** card **Notificações** em **Configuração**, com avisos no navegador, Telegram, Discord e e-mail (SMTP), botão **Enviar teste** e escolha dos eventos. Os segredos ficam no `secrets.json`
+- **Acompanhamento das lojas:** consulta as lojas em segundo plano (padrão de 15 min, de 5 a 240) só para projetos com versão pendente ou em revisão, e por 24 h depois de qualquer mudança. Selos no card do projeto e **Histórico** em cada aba de **Gerenciar lojas publicadas**. Avisa quando a versão muda de estado, é rejeitada ou vai à venda
+- **Voltar uma versão do painel:** o card **Atualização do painel** lista as versões anteriores (os 3 backups mais recentes), com **↩ Restaurar**
+- Rotas `/api/watch`, `/api/watch/config`, `/api/watch/run`, `/api/notify/config`, `/api/notify/test`, `/api/notify/events`, `/api/update/backups` e `/api/update/restore`
 
 ### 1.6.0
 
@@ -1326,6 +1410,6 @@ Este projeto é distribuído sob a licença [MIT](LICENSE), © marco3079.
 
 ---
 
-**xtool Painel 1.6.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.7.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

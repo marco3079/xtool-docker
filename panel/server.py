@@ -29,17 +29,19 @@ import dbenv
 import github
 import lojas
 import lojas_io
+import notify
 import pc
 import selfupdate
 import steam
 import store
 import versions
+import watch
 from asc import ASC, AscError
 from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -99,6 +101,14 @@ class Job:
             pass
         try:  # a login/logout may have changed the active account's data
             accounts_sync()
+        except Exception:  # noqa
+            pass
+        try:  # aviso: erro, ou tarefa longa que terminou (20 s ou mais)
+            if self.code != 0:
+                notify.emit("job_fail", "Tarefa com erro", f"{self.title} (código {self.code})")
+            elif self.ended - self.started >= 20:
+                secs = int(self.ended - self.started)
+                notify.emit("job_ok", "Tarefa concluída", f"{self.title} ({secs // 60:02d}:{secs % 60:02d})")
         except Exception:  # noqa
             pass
 
@@ -1833,7 +1843,9 @@ def lojas_submit(b):
     """Envia a versão do App Store Connect para a revisão da Apple (só iOS)."""
     project = _lojas_project(b)
     _lojas_store_is(b, "ios")
-    return lojas_io.submit_review(project, "ios", _lojas_version(b), _txt(b, "build"))
+    r = lojas_io.submit_review(project, "ios", _lojas_version(b), _txt(b, "build"))
+    _watch_touch(project)
+    return r
 
 
 def lojas_promote(b):
@@ -1849,11 +1861,42 @@ def lojas_promote(b):
             raise ValueError("fração inválida")
     else:
         fraction = None
-    return lojas_io.promote(project, "android", version, _txt(b, "build"),
-                            to_track=_txt(b, "to_track") or "production",
-                            status=_txt(b, "status") or "completed",
-                            fraction=fraction,
-                            from_track=_txt(b, "from_track"))
+    r = lojas_io.promote(project, "android", version, _txt(b, "build"),
+                         to_track=_txt(b, "to_track") or "production",
+                         status=_txt(b, "status") or "completed",
+                         fraction=fraction,
+                         from_track=_txt(b, "from_track"))
+    _watch_touch(project)
+    return r
+
+
+def _watch_touch(project):
+    """Depois de enviar/promover, acompanha as lojas do projeto por 24 h (falha não atrapalha)."""
+    try:
+        watch.touch(project)
+    except Exception:  # noqa
+        pass
+
+
+def watch_config(b):
+    watch.set_interval(b.get("intervalMin"))
+    return watch.config()
+
+
+def watch_run(b):
+    """Consulta as lojas em segundo plano (um projeto, ou todos os ativos se não vier projeto)."""
+    project = str(b.get("project") or "").strip() or None
+    threading.Thread(target=watch.run_once, kwargs={"force_project": project, "sweep": project is None},
+                     daemon=True).start()
+    return {"ok": True}
+
+
+def notify_events(qs):
+    try:
+        since = int(qs.get("since") or 0)
+    except ValueError:
+        since = 0
+    return notify.events_since(since)
 
 
 def write_args(a):
@@ -2009,6 +2052,14 @@ class H(BaseHTTPRequestHandler):
                 return self._json(lojas_overview(qs))
             if u.path == "/api/lojas/fields":
                 return self._json(lojas_fields(qs))
+            if u.path == "/api/watch":
+                return self._json(watch.public())
+            if u.path == "/api/notify/config":
+                return self._json(notify.config_public())
+            if u.path == "/api/notify/events":
+                return self._json(notify_events(qs))
+            if u.path == "/api/update/backups":
+                return self._json(selfupdate.backups())
             if u.path == "/api/pull/state":  # leve: só lê o dicionário, não roda git
                 with PULL_LOCK:
                     return self._json({k: dict(v) for k, v in PULL_STATE.items()})
@@ -2027,6 +2078,14 @@ class H(BaseHTTPRequestHandler):
                 j = Job(argv, cwd, b.get("title") or " ".join(argv), env)
                 JOBS[j.id] = j
                 return self._json(j.info())
+            if u.path == "/api/update/restore":
+                b = self._body()
+                if any_running():
+                    return self._json({"error": "Há tarefas em andamento: espere terminarem para restaurar o painel"}, 409)
+                try:
+                    return self._json(selfupdate.restore(b.get("name", "")))
+                except selfupdate.UpdateError as e:
+                    return self._json({"error": str(e)}, 400)
             if u.path == "/api/update/apply":
                 b = self._body()
                 if any_running():
@@ -2100,6 +2159,10 @@ class H(BaseHTTPRequestHandler):
                 "/api/lojas/image/delete": lojas_image_delete,
                 "/api/lojas/submit": lojas_submit,
                 "/api/lojas/promote": lojas_promote,
+                "/api/watch/config": watch_config,
+                "/api/watch/run": watch_run,
+                "/api/notify/config": lambda b: (notify.config_save(b), notify.config_public())[1],
+                "/api/notify/test": lambda b: notify.test(str(b.get("channel", ""))),
                 "/api/projects/pull": project_pull,
             }
             if u.path in acc_routes:
@@ -2139,5 +2202,6 @@ if __name__ == "__main__":
     accounts_state()  # adopt an existing login on first run
     threading.Thread(target=_watch_devices, daemon=True).start()
     threading.Thread(target=_auto_pull_loop, daemon=True).start()
+    watch.start(VERSION)
     print(f"xtool panel em http://0.0.0.0:{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()

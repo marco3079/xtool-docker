@@ -26,11 +26,18 @@ const ljRoleLabels={prod:'Produção',dev:'Desenvolvimento'};
 .lj-cnt{text-align:right;font-size:12px}
 .lj-cnt.lj-over{color:var(--bad)}
 .lj-bar{flex-wrap:wrap}
+.lj-badbox{background:rgba(255,95,95,.12);border:1px solid var(--bad);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px}
+.lj-hist{margin:8px 0 0;padding-left:20px;font-size:13px}
+.lj-hist li{margin-bottom:4px}
+.lj-hist-bad{color:var(--bad)}
 `;
   document.head.appendChild(s)})();
 
-/* estado do popup aberto (um por vez): {project, ov, tab, st:{ios,android,pc}, el, body} */
+/* estado do popup aberto (um por vez): {project, ov, tab, st:{ios,android,pc}, el, body, watch}
+   watch = resposta de /api/watch (undefined = ainda não carregou; null = falhou: sem seção de histórico) */
 let ljS=null;
+const ljRejeitado=['REJECTED','METADATA_REJECTED','INVALID_BINARY'];
+const ljAppStoreUrl='https://appstoreconnect.apple.com/apps';
 
 /* ---------- helpers ---------- */
 function ljAlive(){return !!(ljS&&pmCur&&pmCur.el===ljS.el)}
@@ -99,7 +106,36 @@ function ljOpen(project,ov){
   m.body.addEventListener('click',ljOnClick);
   m.body.addEventListener('input',ljOnInput);
   m.body.addEventListener('change',ljOnChange);
-  ljRenderPane()}
+  ljRenderPane();
+  ljLoadWatch()}
+
+/* histórico das lojas: busca /api/watch ao abrir; falha = a seção não aparece (só repinta o histórico) */
+async function ljLoadWatch(){
+  const S0=ljS;
+  let w=null;
+  try{w=await api('/api/watch')}catch(e){w=null}
+  if(!ljAlive()||ljS!==S0)return;
+  ljS.watch=w;
+  ljRenderHistory(ljS.tab)}
+
+/* seção "Histórico" (<details>) das abas App Store e Google Play; '' se não há dados */
+function ljHistHtml(k){
+  const W=ljS&&ljS.watch;
+  if(!W||!W.projects||(k!=='ios'&&k!=='android'))return '';
+  const info=W.projects[ljS.project]||null;
+  const evs=((info&&info.history)||[]).filter(e=>e&&e.store===k);
+  const lista=evs.length
+    ? `<ul class="lj-hist">${evs.map(e=>`<li class="${e.rejected?'lj-hist-bad':''}"><span class="hint">${esc(ljDate(e.at))}</span> ${esc(e.text||'')}${e.rejected?` · <a href="${esc(ljAppStoreUrl)}" target="_blank" rel="noopener">Abrir no App Store Connect</a>`:''}</li>`).join('')}</ul>`
+    : '<p class="hint" style="margin:8px 0 0">Sem mudanças registradas ainda.</p>';
+  return `<details style="margin-top:14px"><summary>Histórico</summary>${lista}</details>`}
+
+/* repinta só a seção de histórico, mantendo o <details> aberto ou fechado como estava */
+function ljRenderHistory(k){
+  if(!ljAlive())return;
+  const box=ljS.body.querySelector('[data-lj-pane] [data-lj-hist]');if(!box)return;
+  const antes=box.querySelector('details');const aberto=!!(antes&&antes.open);
+  box.innerHTML=ljHistHtml(k);
+  const depois=box.querySelector('details');if(depois&&aberto)depois.open=true}
 
 function ljClose(){
   if(ljDirtyAny(ljS&&ljS.tab)&&!confirm('Há alterações não salvas. Fechar mesmo assim?'))return;
@@ -265,9 +301,13 @@ function ljVerOpts(S,sel){
 function ljStoreHtml(k,S){
   const st=ljSt(k);
   if(!st.version){const d=ljDefaultVer(S);st.version=d.version;st.build=d.build}
-  return ljHeadHtml(S)+
+  /* versão pendente rejeitada pela Apple: alerta vermelho (o motivo não vem pela API) */
+  const rej=k==='ios'&&!!S.pending&&ljRejeitado.includes(S.pending.state);
+  const alerta=rej?`<div class="lj-badbox"><b>A Apple rejeitou esta versão. O motivo fica na Central de Resolução do App Store Connect.</b> <a href="${esc(ljAppStoreUrl)}" target="_blank" rel="noopener">Abrir no App Store Connect</a></div>`:'';
+  return alerta+ljHeadHtml(S)+
     `<div class="field"><label for="ljVer">Versão</label><select id="ljVer" data-lj-ver>${ljVerOpts(S,st.version)}</select></div>`+
-    `<div data-lj-fields></div>`}
+    `<div data-lj-fields></div>`+
+    `<div data-lj-hist>${ljHistHtml(k)}</div>`}
 
 /* ---------- carregamento dos campos ---------- */
 async function ljLoad(k){

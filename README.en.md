@@ -6,7 +6,7 @@
 
 **Develop, install and publish iOS and Android apps without a Mac, right from your browser.**
 
-[![Version](https://img.shields.io/badge/version-1.6.0-4f8cff?style=flat-square)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.7.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-and-google-play)
@@ -33,7 +33,7 @@ By **[marco3079](https://github.com/marco3079)**
 
 **Start:** [Overview](#overview) · [Highlights](#highlights) · [Features](#features) · [Screenshots](#screenshots) · [Requirements](#requirements) · [Installation](#installation) · [Getting started](#getting-started)
 
-**Use:** [Projects: configure, build and submit](#projects-configure-build-and-submit) · [Per-project database](#per-project-database) · [Manage published stores](#manage-published-stores) · [Connect the iPhone](#connect-the-iphone) · [Android and Google Play](#android-and-google-play) · [Run on an Android phone](#run-on-an-android-phone) · [App version](#app-version) · [AI for release notes](#ai-for-release-notes) · [GitHub](#github)
+**Use:** [Projects: configure, build and submit](#projects-configure-build-and-submit) · [Per-project database](#per-project-database) · [Manage published stores](#manage-published-stores) · [Notifications and store tracking](#notifications-and-store-tracking) · [Connect the iPhone](#connect-the-iphone) · [Android and Google Play](#android-and-google-play) · [Run on an Android phone](#run-on-an-android-phone) · [App version](#app-version) · [AI for release notes](#ai-for-release-notes) · [GitHub](#github)
 
 **Publish:** [Publish to the App Store](#publish-to-the-app-store) · [Publish to Google Play](#publish-to-google-play) · [Build for PC (Electron)](#build-for-pc-electron) · [Publish to Steam](#publish-to-steam)
 
@@ -84,6 +84,10 @@ Edit the app listing in the App Store and Google Play tabs, with character count
 <p align="center"><img src="docs/telas/10-lojas-app-store.png" alt="Manage published stores, App Store" width="860"></p>
 <p align="center"><sub>Gerenciar lojas publicadas, App Store tab: version in the store, latest version and fields per language.</sub></p>
 
+### Store tracking
+
+After you send a version for review or promote a release, the panel checks the stores in the background and alerts you when the review changes, when the app is rejected or when the version goes on sale. Alerts can go to the browser, Telegram, Discord or e-mail. Details in [Notifications and store tracking](#notifications-and-store-tracking).
+
 ### Store texts with AI
 
 Generate the listing texts with AI from the commits since the last release and the texts already in the store. You review before anything else: nothing is saved to the store until **💾 Atualizar na loja** (Update on store). Details in [Manage published stores](#manage-published-stores).
@@ -101,6 +105,7 @@ Generate the listing texts with AI from the commits since the last release and t
 | **Barra do topo** (Top bar) | Steam account and Google Play account selectors, and iPhone, Android and PC indicators. |
 | **Projetos** (Projects) | SwiftUI, Android and Capacitor apps, with build, generated files and store uploads. |
 | **Publicar** (Publish) | Upload to the App Store, Google Play and Steam. |
+| **Notificações** (Notifications) | Alerts about builds, uploads and store changes in the browser, Telegram, Discord and e-mail. Tracks the stores in the background and shows the history in each tab of **Gerenciar lojas publicadas** (Manage published stores). |
 | **GitHub** | Multiple accounts, repository import and automatic pull from the project card. |
 | **IA** (AI) | Providers for release notes and for store texts. |
 | **Dispositivos** (Devices) | iPhone, Android and PC, with real-time status. Installs, opens and removes apps. |
@@ -573,6 +578,59 @@ App languages are saved through the project settings route (`/api/project/settin
 
 Technical details: the overview and the store links are in `panel/lojas.py`; reading and saving texts and images, submitting for review and promoting between tracks are in `panel/lojas_io.py`; the popup is in `panel/static/lojas.js`; and the AI and images are in `panel/static/lojas2.js`.
 
+## Notifications and store tracking
+
+The panel alerts you about builds, uploads and store changes, and tracks the stores while a version waits for review. The settings are in **Configuração** (Setup), in the cards **Notificações** (Notifications) and **Acompanhamento das lojas** (Store tracking).
+
+### Notification channels
+
+In the **Notificações** card, turn on the channels you want. Each channel has a **Enviar teste** (Send test) button, which sends a test message and shows the result. If a channel fails, the last error appears in red on the card.
+
+- **Browser:** tick the box and click **Permitir notificações do navegador** (Allow browser notifications). Alerts appear as system notifications and as messages on screen, and only arrive while the panel is open in a browser tab.
+- **Telegram:** create a bot with [@BotFather](https://t.me/BotFather) and paste the bot token. Then enter the chat ID where the messages should go.
+- **Discord:** in the channel settings, open **Integrações** (Integrations) → **Webhooks**, create a webhook and paste its URL into the panel.
+- **E-mail (SMTP):** enter the server, port, security (STARTTLS, SSL or none), user, password, sender and recipient. Separate several recipients with commas. With Gmail, use an app password, not your account password.
+
+Tokens, webhook URLs and passwords are kept in `secrets.json` and appear masked in the interface. To delete one, use the **remover** (remove) button next to the field. An empty field keeps the saved value.
+
+### Events
+
+In **Eventos** (Events), choose which events trigger an alert:
+
+| Event | When |
+|---|---|
+| **Build/envio concluído** (Build/upload finished) | A build or upload task finishes without error and took at least 20 s |
+| **Build/envio com erro** (Build/upload failed) | A task finishes with an error |
+| **Mudança de estado na loja** (Store status change) | The review or track of an app changes status |
+| **App rejeitado** (App rejected) | Apple rejects the version |
+| **Atualização do painel disponível** (Panel update available) | There is a new commit of the panel on GitHub |
+
+### Check interval
+
+The panel checks the stores at the interval chosen in the **Acompanhamento das lojas** (Store tracking) card: 5, 10, 15, 30, 60, 120 or 240 minutes. The default is 15 minutes. The card shows the time of the last check, and **Consultar agora** (Check now) forces a check.
+
+### Which projects are tracked
+
+Tracking does not check every project all the time. A project is checked when:
+
+- it has a pending version or one under review in a store; this also covers apps not yet published whose first version is under review;
+- there was a change in the stores in the last 24 hours. Each change renews those 24 hours.
+
+Sending a version for review, promoting a release or sending a build also keeps the project tracked for 24 hours. Every 6 hours, the panel also scans all linked projects to find pending versions created outside the panel.
+
+The checks run in the panel's server, inside the container. That is why tracking and the Telegram, Discord and e-mail alerts work even with the browser closed, as long as the container is running.
+
+### Where the alerts appear
+
+- **Project card:** badges next to the platform pills, such as "🍎 1.0.3 · Em revisão" (In review). The badge is green when the version is on sale or completed, yellow while in progress, and red when it was rejected. Hovering shows the last event.
+- **Manage published stores:** in the App Store and Google Play tabs, the **Histórico** (History) section at the bottom lists the project's changes in that store. In the App Store tab, a rejected version shows an alert with a link to App Store Connect.
+- **Configuração** (Setup): the **Acompanhamento das lojas** (Store tracking) card lists the tracked projects, with their badges.
+
+### Limits
+
+- **App Store:** Apple's API does not say why a version was rejected. The panel shows the alert and the link to App Store Connect. The reason is in the Resolution Center of App Store Connect.
+- **Google Play:** the API does not say whether a release is "under review" (em análise). The panel shows only the track and the state.
+
 ## Connect the iPhone
 
 The container uses the Apple service running on Windows, through `USBMUXD_SOCKET_ADDRESS=host.docker.internal:27015`. That is why you don't need usbipd.
@@ -913,6 +971,8 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/lojas.py` | Manage published stores: status of each store (App Store, Google Play and Steam), links to account and app, store version × latest version and the project languages |
 | `panel/lojas_io.py` | Manage published stores: reads and writes the listing texts and images on the App Store and Google Play; submits the version for review (App Store) and promotes the release between tracks (Google Play) |
 | `panel/selfupdate.py` | Panel update: checks the latest commit of `marco3079/xtool-docker` on GitHub, lists the files in `panel/` that change and applies the update with a backup and restart |
+| `panel/watch.py` | Store tracking: checks in the background the projects with a pending or under-review version, keeps the history and triggers the alerts |
+| `panel/notify.py` | Notifications: channel settings (browser, Telegram, Discord and e-mail), events and sending of the alerts |
 | `panel/static/index.html` | Panel interface (single page, with the sections and the top bar) |
 | `panel/static/logo.svg` | Panel logo |
 | `panel/static/devices.js` | Devices screens: iPhone, Android (adb) and PC (Windows status, Apple service, steamcmd, Node, Electron cache and PC builds) |
@@ -924,6 +984,8 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/static/lojas.js` | **🏪 Gerenciar lojas publicadas** popup: tabs, versions, fields and **Atualizar na loja** |
 | `panel/static/lojas2.js` | **✨ Gerar com IA** popup and the listing images section |
 | `panel/static/update.js` | Panel update: button in the footer, card in **Configuração** and confirmation dialog |
+| `panel/static/notify.js` | **Notificações** (Notifications) card in **Configuração** (Setup): channels, events, test and browser alerts |
+| `panel/static/watch.js` | **Acompanhamento das lojas** (Store tracking) card in **Configuração** and badges on the project cards |
 
 <details>
 <summary>Routes of <code>panel/server.py</code></summary>
@@ -937,6 +999,9 @@ The **Listar** (List) button fetches the models available directly from the prov
 - Actions `init.android` and `multi`
 - Store listings: `/api/lojas/*` (see [Manage published stores](#manage-published-stores))
 - Panel update: `/api/update/check` and `/api/update/apply`
+- Previous panel versions: `/api/update/backups` and `/api/update/restore`
+- Notifications: `/api/notify/config`, `/api/notify/test` and `/api/notify/events`
+- Store tracking: `/api/watch`, `/api/watch/config` and `/api/watch/run`
 
 </details>
 
@@ -957,6 +1022,8 @@ The `xtool-home` volume stores:
 - xtool versions downloaded by the panel (`.xtool/`);
 - Steam accounts and apps (`.config/xtool-panel/steam_accounts.json` and `steam_apps.json`, no passwords);
 - main Steam and Google Play accounts (`.config/xtool-panel/defaults.json`, no secrets);
+- notification settings (`.config/xtool-panel/notify.json`, no secrets) and the store tracking history (`.config/xtool-panel/watch.json`);
+- notification secrets (Telegram token, Discord webhook and SMTP password), under the `notify` key in `secrets.json`;
 - steamcmd login (`/root/Steam`) and Electron cache (`/root/.cache/electron`).
 
 Inside `xtool-work`, builds are in `<projeto>/xtool/`, Android ones in `<projeto>/xtool/android/`, PC ones in `<projeto>/xtool/pc/`, and the Steam folder in `<projeto>/xtool/steam/`.
@@ -968,6 +1035,7 @@ Inside `xtool-work`, builds are in `<projeto>/xtool/`, Android ones in `<projeto
 
 - The panel **has no login** and runs commands in the container. That is why it only listens on `127.0.0.1`.
 - API keys and the Google Play service account JSON files are kept in `secrets.json`, with `600` permissions, and never go back to the browser in full.
+- Notification secrets (Telegram token, Discord webhook and SMTP password) are also kept in `secrets.json`, with `600` permissions, and appear masked in the interface.
 - The Android upload keys are kept in `android-keys/`. Their passwords (generated by the panel, or the ones you entered when importing) are kept in `secrets.json` and do not go back to the browser.
 - Apple passwords go straight to xtool through the console. The panel does not store them.
 - The Steam password is never stored by the panel: it is typed in the console, directly into steamcmd.
@@ -1178,6 +1246,13 @@ The first time, the container compiles `accord` from source, which takes a few m
 
 </details>
 
+<details>
+<summary><b>Como recebo aviso quando a Apple aprovar?</b> (How do I get an alert when Apple approves?)</summary>
+
+Turn on a channel in the **Notificações** (Notifications) card in **Configuração** (Setup), for example Telegram, and keep the **Mudança de estado na loja** (Store status change) event checked. The panel checks the App Store at the configured interval (default 15 min), only for projects with a pending or under-review version, and alerts you when the version changes status or goes on sale. See [Notifications and store tracking](#notifications-and-store-tracking).
+
+</details>
+
 ## Updating
 
 **xtool:** the **base** version (1.24.0) comes from the repository, in `base/`, and is installed when the image is built, without accessing xtool's GitHub. With internet access, the panel checks the [xtool Releases](https://github.com/xtool-org/xtool/releases) every hour. When a new version comes out, the **xtool** card shows **⬆ Atualizar** (Update). The downloaded version appears as **xtool-org**, is kept in `/root/.xtool` in the volume, and stays available after restarting the container. Without internet, the panel keeps using the base version.
@@ -1190,6 +1265,8 @@ The first time, the container compiles `accord` from source, which takes a few m
 - The current panel is copied to `/root/.xtool-panel-backup` (the 3 most recent backups are kept).
 - The update is blocked while tasks are running.
 - Changes outside `panel/` (Dockerfile, `base/`, `docker-compose.yml`) are not applied by the panel: it warns you, and in that case run `docker compose up -d --build`.
+
+**Voltar uma versão** (Go back one version): the **Atualização do painel** (Panel update) card also lists the **Versões anteriores** (Previous versions), with the date, version and commit of each backup (the 3 most recent). Click **↩ Restaurar** (Restore) to take the panel back to that version. The current panel becomes a backup, the panel restarts (about 5 s), and logins, projects and builds are not affected. As with the update, the rollback is blocked while tasks are running.
 
 ### From the image (rebuild)
 
@@ -1209,6 +1286,13 @@ Versions are pinned in the `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 The page is served with `Cache-Control: no-cache`: after updating the image, just reload the browser tab.
 
 ## Changelog
+
+### 1.7.0
+
+- **Notificações** (Notifications): **Notificações** card in **Configuração** (Setup), with alerts in the browser, Telegram, Discord and e-mail (SMTP), the **Enviar teste** (Send test) button and the choice of events. Secrets are kept in `secrets.json`
+- **Acompanhamento das lojas** (Store tracking): checks the stores in the background (default 15 min, from 5 to 240) only for projects with a pending or under-review version, and for 24 h after any change. Badges on the project card and **Histórico** (History) in each tab of **Gerenciar lojas publicadas** (Manage published stores). Alerts when the version changes status, is rejected or goes on sale
+- **Voltar uma versão do painel** (Roll back the panel version): the **Atualização do painel** card lists the previous versions (the 3 most recent backups), with **↩ Restaurar** (Restore)
+- Routes `/api/watch`, `/api/watch/config`, `/api/watch/run`, `/api/notify/config`, `/api/notify/test`, `/api/notify/events`, `/api/update/backups` and `/api/update/restore`
 
 ### 1.6.0
 
@@ -1326,6 +1410,6 @@ This project is distributed under the [MIT](LICENSE) license, © marco3079.
 
 ---
 
-**xtool Painel 1.6.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.7.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

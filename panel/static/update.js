@@ -16,6 +16,8 @@
 const UPD_INTERVALO=6*3600*1000;
 const UPD_LBL={modified:'Alterados',added:'Novos',removed:'Removidos'};
 let updState=null;
+let updBackups=null;      /* lista de GET /api/update/backups; null = carregando */
+let updBackupsErr='';
 
 function updData(iso){
   if(!iso)return '—';
@@ -26,6 +28,12 @@ function updHora(epoch){
   if(!epoch)return '—';
   const d=new Date(epoch*1000);
   return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+/* data/hora local a partir de epoch em segundos (campo date dos backups) */
+function updDataEpoch(epoch){
+  if(!epoch)return '—';
+  const d=new Date(epoch*1000);
+  return isNaN(d)?'—':d.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
 }
 
 /* GET /api/update/check; force=true ignora o cache do servidor. */
@@ -53,11 +61,22 @@ function updPaint(){
       ?'<button class="btn sm pri" onclick="updOpen()">⬆ Atualização disponível</button>'
       :'';
   }
+  updPaintCard();
+  updLoadBackups();
+}
+
+/* Repinta só o card (#updCard). */
+function updPaintCard(){
   const card=$('updCard');
   if(card)card.innerHTML=updCardHtml();
 }
 
+/* Card = resumo da atualização + seção "Versões anteriores". */
 function updCardHtml(){
+  return updCardMainHtml()+updBackupsHtml();
+}
+
+function updCardMainHtml(){
   const s=updState;
   if(!s)return '<h3>Atualização do painel</h3><p class="hint">Verificando…</p>';
   const inst=s.installed||{}, L=s.latest;
@@ -166,14 +185,19 @@ async function updApply(){
   updEsperarVoltar(sha);
 }
 
-/* Consulta /api/version a cada 1,5 s até o commit novo aparecer (máx. 90 s). */
-function updEsperarVoltar(sha){
+/* Consulta /api/version a cada 1,5 s até o painel voltar (máx. 90 s).
+   esperado = commit que tem que aparecer; null = espera o painel cair e voltar de novo. */
+function updEsperarVoltar(esperado){
   const t0=Date.now();
+  let caiu=false;
   const tentar=async()=>{
     try{
       const v=await api('/api/version');
-      if(v.commit===sha){location.reload();return}
-    }catch(e){/* painel ainda reiniciando */}
+      if(esperado?v.commit===esperado:caiu){location.reload();return}
+    }catch(e){
+      /* painel ainda reiniciando */
+      caiu=true;
+    }
     if(Date.now()-t0>=90000){
       const w=document.getElementById('updWait');
       if(w)w.textContent='O painel não voltou em 90 s: veja `docker logs xtool`.';
@@ -182,6 +206,95 @@ function updEsperarVoltar(sha){
     setTimeout(tentar,1500);
   };
   setTimeout(tentar,1500);
+}
+
+/* GET /api/update/backups → [{name,date,commit,short,version}] (mais novo primeiro). */
+async function updLoadBackups(){
+  try{
+    const l=await api('/api/update/backups');
+    updBackups=Array.isArray(l)?l:[];
+    updBackupsErr='';
+  }catch(e){
+    updBackups=[];
+    updBackupsErr=e.message||'Falha ao carregar as versões anteriores';
+  }
+  updPaintCard();
+}
+
+/* Seção "Versões anteriores" do card. */
+function updBackupsHtml(){
+  let corpo;
+  if(updBackupsErr)corpo=`<div class="upd-err">${esc(updBackupsErr)}</div>`;
+  else if(updBackups===null)corpo='<div class="hint">Carregando…</div>';
+  else if(!updBackups.length)corpo='<div class="hint">Nenhuma versão anterior ainda (os backups aparecem depois da primeira atualização).</div>';
+  else corpo=updBackups.map(b=>`
+      <div class="upd-row" style="justify-content:space-between;margin-top:6px">
+        <span>${esc(updDataEpoch(b.date))}</span>
+        <span>v${esc(b.version||'?')}</span>
+        <span class="hint">${esc(b.short||'commit desconhecido')}</span>
+        <button class="btn sm" data-name="${esc(b.name||'')}" onclick="updRestoreOpen(this.dataset.name)">↩ Restaurar</button>
+      </div>`).join('');
+  return `<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+    <b>Versões anteriores</b>
+    <div class="hint" style="margin-top:4px">Backups do painel feitos nas atualizações (guardamos os 3 mais recentes).</div>
+    ${corpo}
+  </div>`;
+}
+
+/* Modal de restauração: bloqueia se houver tarefa rodando (mesma lógica do updOpen). */
+/* Procura o backup pelo name (não pelo índice); null se não estiver mais na lista. */
+function updBackupPorNome(name){
+  return (updBackups||[]).find(x=>x.name===name)||null;
+}
+
+async function updRestoreOpen(name){
+  const b=updBackupPorNome(name);
+  if(!b){toast('Backup não encontrado, recarregue');return}
+  let rodando=[];
+  try{
+    const jobs=await api('/api/jobs');
+    rodando=(Array.isArray(jobs)?jobs:[]).filter(j=>!j.ended);
+  }catch(e){
+    toast('Não consegui checar as tarefas: '+e.message);
+    return;
+  }
+  const ocupado=rodando.length>0;
+  const ocupadoHtml=ocupado?'<div class="upd-warn upd-bad">Há tarefas em andamento: espere terminarem para restaurar o painel.</div>':'';
+  const html=`
+    <div class="pm-sec">
+      <div class="hint">Voltar para: <b>v${esc(b.version||'?')}</b> · ${esc(b.short||'commit desconhecido')} · ${esc(updDataEpoch(b.date))}</div>
+    </div>
+    ${ocupadoHtml}
+    <div class="upd-warn">O painel volta para esta versão. A versão atual vira um backup, e ela continua disponível na lista para voltar depois.</div>
+    <div class="hint">O painel reinicia sozinho (≈5 s). Logins, projetos e builds não são afetados.</div>`;
+
+  pmModal('↩ Restaurar versão do painel',html,[
+    {label:'Cancelar',onClick:()=>pmClose()},
+    {label:'↩ Restaurar agora',cls:'pri',id:'updRestGo',onClick:()=>updRestoreApply(name)}
+  ]);
+  const btn=document.getElementById('updRestGo');
+  if(btn&&ocupado)btn.disabled=true;
+}
+
+/* Confirmação: POST /api/update/restore {name}, depois espera o painel voltar. */
+async function updRestoreApply(name){
+  const btn=document.getElementById('updRestGo');
+  const corpo=document.querySelector('.pm-back .pm-body');
+  const b=updBackupPorNome(name);
+  if(!b){
+    if(corpo)corpo.insertAdjacentHTML('beforeend','<div class="upd-warn upd-bad">Backup não encontrado, recarregue</div>');
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='Restaurando…'}
+  try{
+    await api('/api/update/restore',{name:b.name});
+  }catch(e){
+    if(corpo)corpo.insertAdjacentHTML('beforeend',`<div class="upd-warn upd-bad">${esc(e.message||'Falha ao restaurar')}</div>`);
+    if(btn){btn.disabled=false;btn.textContent='↩ Restaurar agora'}
+    return;
+  }
+  if(corpo)corpo.innerHTML=`<div class="upd-warn">Restaurando… o painel vai reiniciar. Não feche esta janela.</div><div class="hint" id="updWait">Aguardando o painel voltar…</div>`;
+  updEsperarVoltar(b.commit||null);
 }
 
 /* Verificação automática: ao abrir (3 s depois) e a cada 6 h. */
