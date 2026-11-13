@@ -6,7 +6,7 @@
 
 **Desenvolva, instale e publique apps iOS e Android sem Mac, direto pelo navegador.**
 
-[![Versão](https://img.shields.io/badge/versão-1.5.0-4f8cff?style=flat-square)](#changelog)
+[![Versão](https://img.shields.io/badge/versão-1.6.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-e-google-play)
@@ -95,7 +95,7 @@ Gere os textos da ficha com IA a partir dos commits desde o último lançamento 
 
 | Área | O que faz |
 |---|---|
-| **Painel** | Versões do xtool e do Swift, conta Apple em uso, SDK do iOS, Android, disco e conexão com o iPhone. Avisa quando sai uma versão nova do xtool e atualiza com um clique. |
+| **Painel** | Versões do xtool e do Swift, conta Apple em uso, SDK do iOS, Android, disco e conexão com o iPhone. Avisa quando sai uma versão nova do xtool e atualiza com um clique. Avisa quando há uma versão nova do próprio painel no GitHub e atualiza com confirmação. |
 | **Contas** | Contas Apple, Google Play e Steam, na aba correspondente do menu **Contas**. |
 | **Apps da conta** | Apps registrados em cada loja, com versões, faixas, bundle IDs e prévias. |
 | **Barra do topo** | Seletores da conta Steam e da conta Google Play, e indicadores de iPhone, Android e PC. |
@@ -119,6 +119,7 @@ Os ícones oficiais das plataformas (Apple, Google Play, Steam e Android) aparec
 - Android: JDK, Node e SDK.
 - Espaço em disco e conexão com o iPhone.
 - Aviso de versão nova do xtool, com atualização em um clique.
+- Atualização do próprio painel pelo GitHub, com confirmação (veja [Atualização](#atualização)).
 
 </details>
 
@@ -895,7 +896,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `Dockerfile` | Imagem com xtool, accord (compilado a partir do código), rcodesign, gh, Python, JDK, Node, SDK do Android, steamcmd e ImageMagick (Wine opcional) |
 | `base/` | xtool 1.24.0 zipado (versão base, instalada no build sem baixar do GitHub do xtool) |
 | `docker-compose.yml` | Porta, volumes e acesso ao serviço da Apple |
-| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais, barra do topo, status do PC, Steam, projetos, bancos de dados, ficha das lojas e rotas (lista abaixo) |
+| `panel/server.py` | Servidor HTTP, tarefas em PTY, contas, aparelhos, contas principais, barra do topo, status do PC, Steam, projetos, bancos de dados, ficha das lojas, atualização do painel e rotas (lista abaixo) |
 | `panel/release.py` | Pipeline de publicação na App Store, executado como tarefa; com `ipaFile` envia um `.ipa` de release pronto, sem compilar |
 | `panel/android.py` | Build Android (Gradle), chaves de upload, instalação por adb e envio ao Google Play; com `existing` envia um `.aab` ou `.apk` de release pronto, sem compilar |
 | `panel/play.py` | Cliente da Google Play Developer API; fichas por idioma, imagens da ficha, notas de release e promoção de release entre faixas (usados em Gerenciar lojas publicadas) |
@@ -911,6 +912,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/dbenv.py` | Aplica a receita do banco no build: comando antes do build, arquivos copiados e variáveis de ambiente |
 | `panel/lojas.py` | Gerenciar lojas publicadas: estado de cada loja (App Store, Google Play e Steam), vínculos com conta e app, versão na loja × mais recente e idiomas do projeto |
 | `panel/lojas_io.py` | Gerenciar lojas publicadas: lê e grava textos e imagens da ficha na App Store e no Google Play; envia a versão para revisão (App Store) e promove a release entre faixas (Google Play) |
+| `panel/selfupdate.py` | Atualização do painel: consulta o último commit de `marco3079/xtool-docker` no GitHub, lista os arquivos de `panel/` que mudam e aplica a atualização com backup e reinício |
 | `panel/static/index.html` | Interface do painel (página única, com as seções e a barra do topo) |
 | `panel/static/logo.svg` | Logo do painel |
 | `panel/static/devices.js` | Telas de Dispositivos: iPhone, Android (adb) e PC (status do Windows, serviço Apple, steamcmd, Node, cache do Electron e builds de PC) |
@@ -921,6 +923,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 | `panel/static/pc.js` | Aba **🎮 Steam (PC)**: compilar o site para PC, descrição do build, contas e apps da Steam e envio à Steam |
 | `panel/static/lojas.js` | Popup **🏪 Gerenciar lojas publicadas**: abas, versões, campos e **Atualizar na loja** |
 | `panel/static/lojas2.js` | Popup **✨ Gerar com IA** e seção de imagens da ficha das lojas |
+| `panel/static/update.js` | Atualização do painel: botão no rodapé, card em **Configuração** e diálogo de confirmação |
 
 <details>
 <summary>Rotas do <code>panel/server.py</code></summary>
@@ -933,6 +936,7 @@ O botão **Listar** busca os modelos disponíveis direto na API do provedor.
 - Bancos de dados por projeto: `/api/project/databases`
 - Ações `init.android` e `multi`
 - Ficha das lojas: `/api/lojas/*` (veja [Gerenciar lojas publicadas](#gerenciar-lojas-publicadas))
+- Atualização do painel: `/api/update/check` e `/api/update/apply`
 
 </details>
 
@@ -1178,6 +1182,17 @@ Na primeira vez, o container compila o `accord` a partir do código-fonte, o que
 
 **xtool:** a versão **base** (1.24.0) vem do repositório, em `base/`, e é instalada no build da imagem sem acessar o GitHub do xtool. Com internet, o painel consulta a cada hora os [Releases do xtool](https://github.com/xtool-org/xtool/releases). Quando sai uma versão nova, o card **xtool** mostra **⬆ Atualizar**. A versão baixada aparece como **xtool-org**, fica em `/root/.xtool`, no volume, e continua valendo depois de reiniciar o container. Sem internet, o painel segue com a versão base.
 
+### Pelo painel
+
+- O painel consulta o último commit de `marco3079/xtool-docker` (branch `main`) ao abrir e a cada 6 horas. **Verificar agora** força a consulta.
+- Quando há commit novo, aparece **⬆ Atualização disponível** no rodapé da barra lateral. O card **Atualização do painel**, em **Configuração**, mostra a versão instalada, a do GitHub e a lista de arquivos que mudam.
+- **⬆ Atualizar** mostra o que muda e pede confirmação. Só os arquivos de `panel/` são aplicados, e o painel reinicia sozinho, sem reiniciar o container.
+- O painel atual vai para `/root/.xtool-panel-backup` (são mantidos os 3 backups mais recentes).
+- A atualização fica bloqueada enquanto houver tarefas rodando.
+- Mudanças fora de `panel/` (Dockerfile, `base/`, `docker-compose.yml`) não entram pelo painel: ele avisa, e nesse caso rode `docker compose up -d --build`.
+
+### Pela imagem (rebuild)
+
 **Painel inteiro** (imagem, ferramentas e interface):
 
 ```bash
@@ -1194,6 +1209,14 @@ As versões ficam fixas no `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 A página é servida com `Cache-Control: no-cache`: depois de atualizar a imagem, basta recarregar a aba do navegador.
 
 ## Changelog
+
+### 1.6.0
+
+- **⬆ Atualizar o painel:** botão no rodapé da barra lateral e card **Atualização do painel** em **Configuração**. Verifica o último commit de `marco3079/xtool-docker` (branch `main`) ao abrir o painel e a cada 6 horas, e mostra os arquivos que mudam antes de pedir confirmação
+- Aplica só os arquivos de `panel/`, com backup em `/root/.xtool-panel-backup` (os 3 mais recentes) e reinício do painel sem reiniciar o container
+- Bloqueado enquanto houver tarefas rodando
+- Avisa quando mudam arquivos fora de `panel/` (Dockerfile, `base/`, `docker-compose.yml`): nesse caso, rode `docker compose up -d --build`
+- Rotas `/api/update/check` e `/api/update/apply`
 
 ### 1.5.0
 
@@ -1303,6 +1326,6 @@ Este projeto é distribuído sob a licença [MIT](LICENSE), © marco3079.
 
 ---
 
-**xtool Painel 1.5.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.6.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

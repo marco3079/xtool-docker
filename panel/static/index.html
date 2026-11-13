@@ -102,6 +102,7 @@ header .sp{flex:1}
 .btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent2));border:0;color:#fff}
 .btn.danger{color:var(--bad)}
 .btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn svg{width:16px;height:16px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
@@ -290,7 +291,7 @@ h2:first-child{margin-top:0}
   <button class="nav" data-s="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>Arquivos</button>
   <button class="nav" data-s="shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg>Terminal</button>
   <button class="nav" data-s="jobs" style="order:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Tarefas<span class="badge" id="runBadge" hidden>0</span></button>
-  <div class="by" id="byVer">xtool Painel 1.2.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a></div>
+  <div class="by" id="byVer">xtool Painel 1.2.0<br>By <a href="https://github.com/marco3079" target="_blank">marco3079</a><div id="updFoot"></div></div>
 </aside>
 
 <main>
@@ -341,6 +342,9 @@ h2:first-child{margin-top:0}
       <button class="btn" onclick="run('sdk.build',{path:val('xipPath')||val('xipSel'),out:val('sdkOut')},'Gerar SDK')">Gerar</button></div>
     <div class="card"><h3>Remover SDK</h3><p>Apaga o SDK instalado.</p><button class="btn danger" onclick="confirmRun('Remover o SDK do iOS?','sdk.remove',{},'Remover SDK')">Remover</button></div>
   </div>
+
+  <h2>Painel</h2>
+  <div class="card" id="updCard" style="max-width:680px"><h3>Atualização do painel</h3><p class="hint">Verificando…</p></div>
 </section>
 
 <!-- ACCOUNTS -->
@@ -1569,5 +1573,6 @@ iconify(document.body);biObs.observe(document.body,BI_OPTS);
 <script src="/static/lojas.js"></script>
 <script src="/static/deliver.js"></script>
 <script src="/static/projlinks.js"></script>
+<script src="/static/update.js"></script>
 </body>
 </html>

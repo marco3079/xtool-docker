@@ -6,7 +6,7 @@
 
 **Develop, install and publish iOS and Android apps without a Mac, right from your browser.**
 
-[![Version](https://img.shields.io/badge/version-1.5.0-4f8cff?style=flat-square)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.6.0-4f8cff?style=flat-square)](#changelog)
 [![xtool](https://img.shields.io/badge/xtool-1.24.0-7c5cff?style=flat-square)](https://github.com/xtool-org/xtool)
 [![Swift](https://img.shields.io/badge/Swift-6.4.2-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Android](https://img.shields.io/badge/Android-SDK%2036-3DDC84?style=flat-square&logo=android&logoColor=white)](#android-and-google-play)
@@ -95,7 +95,7 @@ Generate the listing texts with AI from the commits since the last release and t
 
 | Area | What it does |
 |---|---|
-| **Painel** (Panel) | Xtool and Swift versions, Apple account in use, iOS SDK, Android, disk and iPhone connection. Warns when a new xtool version is released and updates with one click. |
+| **Painel** (Panel) | Xtool and Swift versions, Apple account in use, iOS SDK, Android, disk and iPhone connection. Warns when a new xtool version is released and updates with one click. Warns when a new version of the panel itself is on GitHub and updates it with confirmation. |
 | **Contas** (Accounts) | Apple, Google Play and Steam accounts, in the matching tab of the **Contas** menu. |
 | **Apps da conta** (Account apps) | Apps registered in each store, with versions, tracks, bundle IDs and previews. |
 | **Barra do topo** (Top bar) | Steam account and Google Play account selectors, and iPhone, Android and PC indicators. |
@@ -119,6 +119,7 @@ The official platform icons (Apple, Google Play, Steam and Android) appear throu
 - Android: JDK, Node and SDK.
 - Disk space and iPhone connection.
 - Notice of a new xtool version, with one-click update.
+- Update of the panel itself from GitHub, with confirmation (see [Updating](#updating)).
 
 </details>
 
@@ -895,7 +896,7 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `Dockerfile` | Image with xtool, accord (compiled from source), rcodesign, gh, Python, JDK, Node, Android SDK, steamcmd and ImageMagick (Wine optional) |
 | `base/` | xtool 1.24.0 zipped (base version, installed at build time without downloading from xtool's GitHub) |
 | `docker-compose.yml` | Port, volumes and access to the Apple service |
-| `panel/server.py` | HTTP server, PTY tasks, accounts, devices, main accounts, top bar, PC status, Steam, projects, databases, store listings and routes (list below) |
+| `panel/server.py` | HTTP server, PTY tasks, accounts, devices, main accounts, top bar, PC status, Steam, projects, databases, store listings, panel update and routes (list below) |
 | `panel/release.py` | App Store publishing pipeline, run as a task; with `ipaFile` it uploads a ready release `.ipa`, without compiling |
 | `panel/android.py` | Android build (Gradle), upload keys, adb installation and upload to Google Play; with `existing` it uploads a ready release `.aab` or `.apk`, without compiling |
 | `panel/play.py` | Google Play Developer API client; listings per language, listing images, release notes and release promotion between tracks (used in Manage published stores) |
@@ -911,6 +912,7 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/dbenv.py` | Applies the database recipe to the build: command before build, copied files and environment variables |
 | `panel/lojas.py` | Manage published stores: status of each store (App Store, Google Play and Steam), links to account and app, store version × latest version and the project languages |
 | `panel/lojas_io.py` | Manage published stores: reads and writes the listing texts and images on the App Store and Google Play; submits the version for review (App Store) and promotes the release between tracks (Google Play) |
+| `panel/selfupdate.py` | Panel update: checks the latest commit of `marco3079/xtool-docker` on GitHub, lists the files in `panel/` that change and applies the update with a backup and restart |
 | `panel/static/index.html` | Panel interface (single page, with the sections and the top bar) |
 | `panel/static/logo.svg` | Panel logo |
 | `panel/static/devices.js` | Devices screens: iPhone, Android (adb) and PC (Windows status, Apple service, steamcmd, Node, Electron cache and PC builds) |
@@ -921,6 +923,7 @@ The **Listar** (List) button fetches the models available directly from the prov
 | `panel/static/pc.js` | **🎮 Steam (PC)** tab: build the site for PC, build description, Steam accounts and apps, and upload to Steam |
 | `panel/static/lojas.js` | **🏪 Gerenciar lojas publicadas** popup: tabs, versions, fields and **Atualizar na loja** |
 | `panel/static/lojas2.js` | **✨ Gerar com IA** popup and the listing images section |
+| `panel/static/update.js` | Panel update: button in the footer, card in **Configuração** and confirmation dialog |
 
 <details>
 <summary>Routes of <code>panel/server.py</code></summary>
@@ -933,6 +936,7 @@ The **Listar** (List) button fetches the models available directly from the prov
 - Per-project databases: `/api/project/databases`
 - Actions `init.android` and `multi`
 - Store listings: `/api/lojas/*` (see [Manage published stores](#manage-published-stores))
+- Panel update: `/api/update/check` and `/api/update/apply`
 
 </details>
 
@@ -1178,6 +1182,17 @@ The first time, the container compiles `accord` from source, which takes a few m
 
 **xtool:** the **base** version (1.24.0) comes from the repository, in `base/`, and is installed when the image is built, without accessing xtool's GitHub. With internet access, the panel checks the [xtool Releases](https://github.com/xtool-org/xtool/releases) every hour. When a new version comes out, the **xtool** card shows **⬆ Atualizar** (Update). The downloaded version appears as **xtool-org**, is kept in `/root/.xtool` in the volume, and stays available after restarting the container. Without internet, the panel keeps using the base version.
 
+### From the panel
+
+- The panel checks the latest commit of `marco3079/xtool-docker` (branch `main`) when it opens and every 6 hours. **Verificar agora** (Check now) forces a check.
+- When there is a new commit, **⬆ Atualização disponível** (Update available) appears in the footer of the sidebar. The **Atualização do painel** (Panel update) card, in **Configuração** (Setup), shows the installed version, the GitHub version and the list of changed files.
+- **⬆ Atualizar** (Update) shows what changes and asks for confirmation. Only the files in `panel/` are applied, and the panel restarts by itself, without restarting the container.
+- The current panel is copied to `/root/.xtool-panel-backup` (the 3 most recent backups are kept).
+- The update is blocked while tasks are running.
+- Changes outside `panel/` (Dockerfile, `base/`, `docker-compose.yml`) are not applied by the panel: it warns you, and in that case run `docker compose up -d --build`.
+
+### From the image (rebuild)
+
 **Whole panel** (image, tools and interface):
 
 ```bash
@@ -1194,6 +1209,14 @@ Versions are pinned in the `Dockerfile`: `XTOOL_VERSION`, `RCODESIGN_VERSION`, `
 The page is served with `Cache-Control: no-cache`: after updating the image, just reload the browser tab.
 
 ## Changelog
+
+### 1.6.0
+
+- **⬆ Atualizar o painel** (Update the panel): button in the footer of the sidebar and the **Atualização do painel** card in **Configuração** (Setup). Checks the latest commit of `marco3079/xtool-docker` (branch `main`) when the panel opens and every 6 hours, and shows the changed files before asking for confirmation
+- Applies only the files in `panel/`, with a backup in `/root/.xtool-panel-backup` (the 3 most recent) and a panel restart without restarting the container
+- Blocked while tasks are running
+- Warns when files outside `panel/` change (Dockerfile, `base/`, `docker-compose.yml`): in that case, run `docker compose up -d --build`
+- Routes `/api/update/check` and `/api/update/apply`
 
 ### 1.5.0
 
@@ -1303,6 +1326,6 @@ This project is distributed under the [MIT](LICENSE) license, © marco3079.
 
 ---
 
-**xtool Painel 1.5.0** · By [marco3079](https://github.com/marco3079)
+**xtool Painel 1.6.0** · By [marco3079](https://github.com/marco3079)
 
 </div>

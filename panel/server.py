@@ -30,6 +30,7 @@ import github
 import lojas
 import lojas_io
 import pc
+import selfupdate
 import steam
 import store
 import versions
@@ -38,7 +39,7 @@ from play import Play, PlayError
 
 PANEL_PY = os.path.dirname(os.path.abspath(__file__))
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 PORT = int(os.environ.get("PANEL_PORT", "8080"))
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 WORK = os.environ.get("XTOOL_WORK", "/work")
@@ -1907,7 +1908,10 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/favicon.ico":
                 return self._file(os.path.join(STATIC, "logo.svg"), "image/svg+xml")
             if u.path == "/api/version":
-                return self._json({"panel": VERSION, "author": "marco3079"})
+                return self._json({"panel": VERSION, "author": "marco3079",
+                                   "commit": selfupdate.installed_commit()})
+            if u.path == "/api/update/check":
+                return self._json(selfupdate.check(VERSION, force=qs.get("force") == "1"))
             if u.path in ("/", "/index.html"):
                 return self._file(os.path.join(STATIC, "index.html"))
             if u.path.startswith("/static/"):
@@ -2023,6 +2027,14 @@ class H(BaseHTTPRequestHandler):
                 j = Job(argv, cwd, b.get("title") or " ".join(argv), env)
                 JOBS[j.id] = j
                 return self._json(j.info())
+            if u.path == "/api/update/apply":
+                b = self._body()
+                if any_running():
+                    return self._json({"error": "Há tarefas em andamento: espere terminarem para atualizar o painel"}, 409)
+                try:
+                    return self._json(selfupdate.apply(b.get("sha", "")))
+                except selfupdate.UpdateError as e:
+                    return self._json({"error": str(e)}, 400)
             m = re.fullmatch(r"/api/jobs/(\w+)/(input|stop)", u.path)
             if m:
                 j = JOBS.get(m.group(1))
